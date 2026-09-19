@@ -1,0 +1,15 @@
+name: georeview
+type: score
+question: "How positive is this review of an organization (in Russian)? Pick the star rating the author most likely gave."
+rubric:
+  levels: [1, 2, 3, 4, 5]
+  descriptions: [very negative, negative, mixed or neutral, positive, very positive]
+lang: ru
+data:
+  source: {hf: mteb/GeoreviewClassification}
+  text: "{text}"
+  max_chars: 2000
+  gold: label          # 0-4 = index into levels 1-5 (stars - 1)
+  train: {split: train, n: 4000}
+  calib: {split: train, n: 500}
+  eval: {split: test, n: 2000}

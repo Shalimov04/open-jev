@@ -3,8 +3,9 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
-runs/
-cache/
-data/
-models/
+/runs/
+/cache/
+/data/
+/models/
 *.safetensors
+*.egg-info/

@@ -1,0 +1,14 @@
+name: toxic
+type: noul
+question: "Is the following statement about the text true?"
+statement: "This comment is toxic (rude, disrespectful, or likely to make someone leave a discussion)."
+lang: en
+data:
+  source: {hf: google/civil_comments}
+  text: "{text}"
+  max_chars: 1500
+  gold: toxicity       # fraction of raters; >= 0.5 -> true
+  gold_prob: toxicity
+  train: {split: "train[:60000]", n: 4000, balance: true}
+  calib: {split: "train[:60000]", n: 500, balance: true}
+  eval: {split: test, n: 3000}

@@ -1,0 +1,13 @@
+name: kinopoisk
+type: choice
+question: "What is the overall sentiment of this movie review (in Russian)?"
+options: [Bad, Neutral, Good]
+lang: ru
+data:
+  source: {hf: ai-forever/kinopoisk-sentiment-classification}
+  text: "{text}"
+  max_chars: 1500
+  gold: label
+  train: {split: train, n: 4000}
+  calib: {split: train, n: 500}
+  eval: {split: test, n: 1500}

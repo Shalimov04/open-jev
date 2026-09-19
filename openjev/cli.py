@@ -64,13 +64,16 @@ def main(argv=None):
 
     if args.cmd == "serve":
         from openjev import serve
-        return serve.main(args.run_dirs, args.host, args.port)
+        serve.main(args.run_dirs, args.host, args.port)
+        return
     if args.cmd == "report":
         from openjev import evaluate
-        return evaluate.report()
+        evaluate.report()
+        return
     task, run_dir = setup(args)
     if args.cmd != "run":
-        return stage(args.cmd, task, run_dir, args)
+        stage(args.cmd, task, run_dir, args)
+        return
     rerun = False  # once a stage re-runs, everything downstream re-runs too
     for name in STAGES:
         if name in DONE and (run_dir / DONE[name]).exists() and not (rerun or name in args.force):

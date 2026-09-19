@@ -1,0 +1,28 @@
+# Minimal template: a `choice` task over a local CSV. Copy, edit, run:
+#   openjev run tasks/example.yaml
+# Full field reference: docs/task-spec.md
+
+name: example                 # run dir = runs/example/
+type: choice                  # choice | score | noul
+question: "What is the intent of this support message?"
+options: [billing, technical, other]   # fixed order = label order; also the teacher's answer set
+lang: en                      # only affects the teacher prompt wording and the report
+
+data:
+  source: {csv: data/support.csv}   # one CSV; a `datasets`-loadable file. Also {jsonl: ...} or {hf: org/name}
+  text: "{message}"           # str.format over the CSV columns; multi-field is fine: "{title}\n{body}"
+  max_chars: 2000             # truncate before both teacher and student, so they see the same input
+  gold: label                 # optional column; a string is matched against `options`, an int is an index.
+                              # Omit it entirely to distill with no labels at all.
+  # A single CSV file is one `datasets` split named "train", so all three roles read from it.
+  # They are drawn in order (train, then calib, then eval) and never overlap.
+  train: {split: train, n: 500}
+  calib: {split: train, n: 100}   # held out: early stopping + temperature scaling
+  eval:  {split: train, n: 100}   # held out: the reported metrics
+
+# Optional; shown here with the defaults you are most likely to change.
+student:
+  model: jhu-clsp/mmBERT-small  # 140M, en+ru+; mmBERT-base for a final run
+  max_len: 256
+  epochs: 5
+  batch_size: 32

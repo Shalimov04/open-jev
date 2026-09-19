@@ -59,7 +59,9 @@ def run(task, run_dir):
         p = torch.tensor([r["probs"] for r in rows]).clamp_min(1e-6)
         t = fit_temperature(logits, p / p.sum(-1, keepdim=True))
         target = "teacher-soft"
-    out = {"temperature": t, "target": target,
-           "ece_before": ece(logits.softmax(-1), y), "ece_after": ece((logits / t).softmax(-1), y)}
+    before, after = ece(logits.softmax(-1), y), ece((logits / t).softmax(-1), y)
+    if after > before:  # a model that is already calibrated; T fitted on ~500 rows just adds noise
+        t, after, target = 1.0, before, target + "-kept-1.0"
+    out = {"temperature": t, "target": target, "ece_before": before, "ece_after": after}
     (run_dir / "calib.json").write_text(json.dumps(out, indent=2))
     return out

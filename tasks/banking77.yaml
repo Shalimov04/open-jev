@@ -88,3 +88,5 @@ options:
   - why verify identity
   - wrong amount of cash received
   - wrong exchange rate for cash withdrawal
+student:
+  epochs: 12    # 77 classes: calib KL was still falling at the 5th epoch

@@ -105,7 +105,9 @@ def run(task, run_dir, student=None, epochs=None, batch_size=None, max_steps=Non
                 break
         if step >= steps:
             break
-    info = {"student": name, "n_train": len(train), "n_synth": sum(r.get("source") == "synth" for r in train),
+    synth = [r for r in train if r.get("source") == "synth"]  # ids are "synth:<round>:<i>"
+    info = {"student": name, "n_train": len(train), "n_synth": len(synth),
+            "augment_round": max((int(r["id"].split(":")[1]) for r in synth), default=0),
             "gold_weight": s.gold_weight, "best_epoch": best_epoch, "best_calib_kl": best, "history": history,
             "train_minutes": (time.time() - t0) / 60,
             "peak_gpu_gb": torch.cuda.max_memory_allocated() / 2**30 if dev == "cuda" else 0.0}

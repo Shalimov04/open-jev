@@ -102,3 +102,21 @@ def test_split_disjoint():
     assert [len(v) for v in ids.values()] == [300, 100, 50]
     assert not ids["train"] & ids["calib"]
     assert [e["id"] for e in examples(t)] == [e["id"] for e in ex]  # deterministic
+
+
+def test_augment_parse_and_targets():
+    from openjev.augment import parse_texts, targets
+
+    seen = {"a real train text"}
+    got = parse_texts('junk ```json\n["A Real Train Text", "Stocks rose sharply today.", "short",\n'
+                      ' "Stocks rose sharply today.", "' + "x" * 99 + '"]\n``` trailing',
+                      max_chars=50, seen=seen)
+    assert got == ["Stocks rose sharply today."]  # dup vs train, dup in batch, too short, too long
+    assert "stocks rose sharply today." in seen
+    # not valid JSON -> line mode: bullets, numbering and JSON quoting stripped
+    assert parse_texts('[\n  "The quick brown fox.",\n  - Another bullet example,\n  3) A third one.\n',
+                       max_chars=500, seen=set()) == \
+        ["The quick brown fox.", "Another bullet example", "A third one."]
+    ev = {"calib_split": {"recall": {"a": 0.9, "b": 0.5, "c": 0.7},
+                          "confusion": [[9, 0, 1], [0, 5, 5], [0, 3, 7]]}}
+    assert targets(ev, cap=4) == [(1, None), (2, None), (0, None), (1, 2)]  # weak classes, then pairs

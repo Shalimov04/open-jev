@@ -60,7 +60,8 @@ def run(task, run_dir, results_dir=None, latency=True):
     student = {"acc": s["acc"], "macro_f1": s["macro_f1"], "ece_raw": ece(raw, y), "ece_cal": s["ece"],
                "brier": s["brier"], "nll": float(F.nll_loss(cal.log(), y))}
     res = {"task": task.name, "type": task.type, "k": task.k, "lang": task.lang, "student_model": train["student"],
-           "n_train": train["n_train"], "n_synth": train["n_synth"], "gold_weight": train["gold_weight"],
+           "n_train": train["n_train"], "n_synth": train["n_synth"],
+           "augment_round": train.get("augment_round", 0), "gold_weight": train["gold_weight"],
            "eval_n": len(rows), "eval_target": eval_target,
            "student": student, "teacher": _cls(teacher, y),
            "agreement": {"argmax": float((cal.argmax(-1) == teacher.argmax(-1)).float().mean()),

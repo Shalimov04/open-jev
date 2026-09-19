@@ -1,4 +1,4 @@
-"""openjev run|label|train|calibrate|eval|serve|report"""
+"""openjev run|label|train|calibrate|eval|augment|serve|report"""
 import argparse
 import os
 from pathlib import Path
@@ -47,7 +47,7 @@ def main(argv=None):
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
     p = argparse.ArgumentParser(prog="openjev")
     sub = p.add_subparsers(dest="cmd", required=True)
-    for name in ["run", *STAGES]:
+    for name in ["run", "augment", *STAGES]:
         s = sub.add_parser(name)
         s.add_argument("task")
         s.add_argument("--runs", default="runs")
@@ -57,6 +57,10 @@ def main(argv=None):
             s.add_argument("--limit", type=int, help="label at most N examples")
         if name == "run":
             s.add_argument("--force", action="append", default=[], choices=STAGES, help="re-run STAGE")
+        if name == "augment":
+            s.add_argument("--rounds", type=int, default=1)
+            s.add_argument("--per-class", type=int, default=100, help="texts asked for per prompt")
+            s.add_argument("--targets", type=int, default=6, help="prompts per round (weak classes + pairs)")
     s = sub.add_parser("serve")
     s.add_argument("run_dirs", nargs="+")
     s.add_argument("--host", default="127.0.0.1")
@@ -73,6 +77,13 @@ def main(argv=None):
         evaluate.report()
         return
     task, run_dir = setup(args)
+    if args.cmd == "augment":
+        from openjev import augment
+        for _ in range(args.rounds):
+            augment.round_once(task, run_dir, args.per_class, args.targets)
+            for name in STAGES[1:]:  # label already happened inside the round
+                stage(name, task, run_dir, args)
+        return
     if args.cmd != "run":
         stage(args.cmd, task, run_dir, args)
         return

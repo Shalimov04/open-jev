@@ -91,6 +91,27 @@ and a fixed label set — this is not a general model that takes arbitrary optio
 - **Distillation cannot beat its teacher's errors.** Where the teacher is systematically wrong the
   student inherits it, and the agreement column is what tells you how much.
 
+## Targeted synthetic data (`openjev augment`)
+
+`openjev augment tasks/<task>.yaml --rounds 1 --per-class 100` is a PGKD-lite active loop. It reads
+the per-class recall and the confusion matrix that `eval` measured **on the calib split** (never on
+eval), picks the weakest classes and the most frequent confusion pairs, and asks the teacher — normal
+generation, `temperature 0.9`, `enable_thinking: false`, JSON-list output — for new texts in the
+task's language, few-shot-prompted with three real train examples of that class. Confusion pairs get
+the "make half of them look like *B* but really be *A*" variant. The parser is lenient (JSON array if
+one can be found, else one text per line); duplicates (against the whole train split and within the
+batch) and texts over `max_chars` are dropped.
+
+The survivors are appended to the same append-only `teacher.jsonl` as `{"source": "synth", "split":
+"train"}` rows with ids `synth:<round>:<i>`, which the dataset can never produce (dataset ids are
+`<source_split>:<row_idx>`), and then labeled by the **normal** label stage. The teacher often
+disagrees with the class the text was generated for; that label is kept as-is — the point is targeted
+data near the decision boundary, not more hard labels. Train, calibrate and eval then re-run, and
+`results/<task>.json` carries `augment_round` and `n_synth`.
+
+Ceiling: no hard-negative mining beyond the confusion pairs, and no filter on whether a synthetic
+text is actually useful; the upgrade path is the full PGKD selection loop.
+
 ## Requirements
 
 - A vLLM (or other OpenAI-compatible) endpoint serving the teacher, reachable at

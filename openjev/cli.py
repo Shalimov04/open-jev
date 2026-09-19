@@ -14,10 +14,11 @@ def setup(args):
     suffix = []
     if getattr(args, "student", None):
         task.student.model = args.student
-        suffix.append("base" if "base" in args.student.lower() else args.student.split("/")[-1])
+        suffix.append(args.student.split("/")[-1])  # full model name: mmBERT-base != ModernBERT-base
     if getattr(args, "gold_weight", None) is not None:
         task.student.gold_weight = args.gold_weight
-        suffix.append("gold")
+        if args.gold_weight:  # --gold-weight 0 is the default setting, not a variant
+            suffix.append("gold")
     run_dir = Path(args.runs) / "-".join([task.name, *suffix])
     run_dir.mkdir(parents=True, exist_ok=True)
     if suffix:  # variants share the base run's teacher labels
@@ -32,7 +33,7 @@ def stage(name, task, run_dir, args):
         from openjev import teacher
         if run_dir.name != task.name:
             run_dir = run_dir.parent / task.name  # variants never label into their own dir
-        return teacher.run(task, run_dir, limit=args.limit)
+        return teacher.run(task, run_dir, limit=getattr(args, "limit", None))
     if name == "train":
         from openjev import train as mod
     elif name == "calibrate":
@@ -50,14 +51,15 @@ def main(argv=None):
         s = sub.add_parser(name)
         s.add_argument("task")
         s.add_argument("--runs", default="runs")
-        s.add_argument("--student", help="override student model; run dir gets a -base/-<name> suffix")
+        s.add_argument("--student", help="override student model; run dir gets a -<model name> suffix")
         s.add_argument("--gold-weight", type=float, help="override gold_weight; run dir gets a -gold suffix")
-        s.add_argument("--limit", type=int, help="label at most N examples (label stage)")
+        if name == "label":  # a limit on `run` would label train rows only and leave calib/eval empty
+            s.add_argument("--limit", type=int, help="label at most N examples")
         if name == "run":
             s.add_argument("--force", action="append", default=[], choices=STAGES, help="re-run STAGE")
     s = sub.add_parser("serve")
     s.add_argument("run_dirs", nargs="+")
-    s.add_argument("--host", default="0.0.0.0")
+    s.add_argument("--host", default="127.0.0.1")
     s.add_argument("--port", type=int, default=8080)
     sub.add_parser("report")
     args = p.parse_args(argv)

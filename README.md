@@ -73,6 +73,9 @@ and a fixed label set — this is not a general model that takes arbitrary optio
 
 - **The student sees zero gold labels.** `gold_weight` is 0 by default, so training uses only the
   teacher's distributions. Gold is used for the eval and (when present) for fitting the temperature.
+  One exception: **toxic** sets `balance: true` on its training split, which picks 50/50 rows *by gold*
+  from an 8%-positive dataset. Its labels are still the teacher's, but the row selection spent gold, so
+  it is not a zero-gold row; every other task is.
 - **The baseline is the teacher, not the state of the art.** Teacher zero-shot accuracy on the same
   eval split is in the table beside the student's. The claim being tested is "a 140M encoder can keep
   the teacher's accuracy at a fraction of the cost", not "this beats a supervised model".
@@ -115,6 +118,8 @@ and a fixed label set — this is not a general model that takes arbitrary optio
   `student/` + `openjev.json`.
 - **One temperature per task.** No per-class or vector scaling, no recalibration under drift.
 - **Calibration target depends on the data.** With gold on the calib split the temperature is fitted
-  to gold; without it, to the teacher's argmax — which calibrates the student to the teacher's
-  opinion, not to the truth. `calib_target` in `results/*.json` says which.
+  to gold; without it, to the teacher's *soft* probabilities (`calib_target: teacher-soft`) — which
+  calibrates the student to the teacher's opinion, not to the truth. `calib_target` in
+  `results/*.json` says which. A temperature also cannot correct a prior shift, so fit it on a split
+  drawn at the same rate as the eval split.
 - **The teacher is the cost.** Labeling dominates wall-clock; the student trains in minutes.

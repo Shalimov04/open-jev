@@ -17,7 +17,7 @@ openjev run tasks/<name>.yaml
 |---|---|---|---|
 | `name` | str | **required** | Run directory is `runs/<name>/`; also the model id used by `openjev serve` and the row name in the results table. |
 | `type` | `choice` \| `score` \| `noul` | **required** | Picks the derived labels and the response view. Anything else is an error. |
-| `question` | str | **required** | First line of the teacher's system prompt. For `noul` the loader still requires it, but the prompt uses `statement` instead, so it is only documentation there. |
+| `question` | str | **required** for `choice`/`score` | First line of the teacher's system prompt. Optional for `noul`, where it only overrides the default head line `Is the following statement about the text true?` (the `statement` block follows it either way). |
 | `lang` | str | `en` | Not used for anything functional — it goes into the teacher prompt context you write yourself and into the report column. |
 | `options` | list[str] | `null` | **`choice` only, required.** The label set, in a fixed order that is the class order end to end. |
 | `rubric` | dict | `null` | **`score` only, required.** `{levels: [...], descriptions: [...]}` — see below. |
@@ -54,16 +54,17 @@ over. `descriptions` only affect the teacher prompt: each option line becomes `"
 | `source` | mapping | **required** | Exactly one of `{hf: org/name}`, `{csv: path}`, `{jsonl: path}`. For `hf`, optional `config:` and `revision:` are passed to `datasets.load_dataset`. |
 | `text` | str | `"{text}"` | `str.format` template over the row's fields. Multi-field is fine: `"{title}\n{body}"`. A missing field raises. |
 | `max_chars` | int | `2000` | Truncation applied *before* both teacher and student, so both see exactly the same input. |
-| `gold` | str \| null | `null` | Column holding the ground-truth label. Optional: with no gold, everything still works — calibration falls back to the teacher's argmax and the eval is reported against the teacher. |
+| `gold` | str \| null | `null` | Column holding the ground-truth label. Optional: with no gold, everything still works — the temperature is fitted to the teacher's soft probabilities and the eval is reported against the teacher. |
 | `gold_map` | list \| dict \| null | `null` | Applied to the raw gold value before interpretation: a list is indexed by an integer gold, a dict is keyed by the raw value. Use it when the dataset's label ids do not match your `options` order. |
 | `gold_prob` | str \| null | `null` | `noul` only: column with a *fractional* gold probability (e.g. the share of annotators who said yes). Enables Brier score against that fraction in the eval. |
-| `gold_threshold` | float | `0.5` | `noul` only: a float gold ≥ threshold becomes `true` (index 0), otherwise `false`. |
-| `train` | split | `{split: train, n: 1000, balance: false, seed: 0}` | Distillation set. |
-| `calib` | split | `{split: train, n: 500, balance: false, seed: 0}` | Early stopping + temperature fitting. |
-| `eval` | split | `{split: test, n: 2000, balance: false, seed: 0}` | The reported numbers. |
+| `gold_threshold` | float | `0.5` | `noul` only: a gold value ≥ threshold becomes `true` (index 0), otherwise `false`. Applies to floats, ints and booleans alike. |
+| `seed` | int | `0` | Sampling seed for all three splits. One seed, because the roles are drawn in order from the same pool — changing it reshuffles all of them together. |
+| `train` | split | `{split: train, n: 1000, balance: false}` | Distillation set. |
+| `calib` | split | `{split: train, n: 500, balance: false}` | Early stopping + temperature fitting. |
+| `eval` | split | `{split: test, n: 2000, balance: false}` | The reported numbers. |
 
-Gold interpretation, in order: `gold_map` if set → a float on a `noul` task becomes an index via
-`gold_threshold` → a string is looked up in `labels` (exact match) → anything else is `int()`-ed
+Gold interpretation, in order: `gold_map` if set → a number or boolean on a `noul` task becomes an
+index via `gold_threshold` → a string is looked up in `labels` (exact match) → anything else is `int()`-ed
 and used as an index.
 
 ### split blocks (`train` / `calib` / `eval`)
@@ -72,8 +73,7 @@ and used as an index.
 |---|---|---|---|
 | `split` | str | `train` (`test` for `eval`) | The `datasets` split expression, slices included: `train[:60000]`. A plain CSV/JSONL file is always a single split named `train`. |
 | `n` | int | `1000` (`500` calib, `2000` eval) | Number of examples to draw. |
-| `balance` | bool | `false` | Draw `n // k` per gold class, then top up from the remaining rows. Requires `gold`. Use it on train/calib for a skewed task; leave eval at the natural distribution. |
-| `seed` | int | `0` | Sampling seed. The actual RNG seed is `"<seed>:<role>"`, so the three roles shuffle differently. |
+| `balance` | bool | `false` | Draw `n // k` per gold class, then top up from the remaining rows. Requires `gold` (so a balanced split is not a zero-gold split). Use it on train for a skewed task; leave `calib` and `eval` at the natural distribution, or the fitted temperature is calibrated to the wrong prior. |
 
 Roles are drawn in the fixed order train → calib → eval, each from the rows not yet taken from
 that source split. Two roles pointing at the same split are therefore guaranteed disjoint, and the
@@ -83,7 +83,6 @@ draw is deterministic — re-running resumes rather than re-labels.
 
 | field | type | default | what it does |
 |---|---|---|---|
-| `system_prompt` | str \| null | `null` | Replaces the generated head line (the `question`, or the statement block for `noul`). The option lines and `Answer with a single letter.` are still appended. |
 | `concurrency` | int | `32` | In-flight requests to the teacher. |
 | `max_options_per_call` | int | `19` | Options per teacher call. vLLM caps `top_logprobs` at 20 and `Z` is reserved for "none of the above", so 19 is the ceiling. Above `k`, the shortlist path kicks in (see below). |
 
@@ -104,9 +103,10 @@ with the text as the user message. The soft label is the softmax over the return
 logprobs; letters that do not appear in `top_logprobs` get probability 0.
 
 For `k > max_options_per_call` the options are split into `ceil(k / max_options_per_call)`
-balanced chunks, each asked with an extra `Z: none of the above`; per-chunk scores
-`s_i = p(i | chunk) * (1 - p(none | chunk))` pick a shortlist of `max_options_per_call` options,
-and one final call over the shortlist produces the distribution. Options outside the shortlist get
+balanced chunks, each asked with an extra `Z: none of the above`; the per-chunk scores
+`s_i = p(i | chunk)` (a chunk answering `none` puts little mass on its options) pick a shortlist of
+`max_options_per_call` options, and one final call over the shortlist — lettered in the original
+option order, not in score order — produces the distribution. Options outside the shortlist get
 probability 0 (clamped to 1e-6 before the KL). Cost: `ceil(k/19) + 1` calls per example.
 
 ## student
@@ -114,13 +114,18 @@ probability 0 (clamped to 1e-6 before the KL). Cost: `ceil(k/19) + 1` calls per 
 | field | type | default | what it does |
 |---|---|---|---|
 | `model` | str | `jhu-clsp/mmBERT-small` | Any `AutoModelForSequenceClassification` checkpoint. `jhu-clsp/mmBERT-base` for a bigger run. Overridable per run with `--student`. |
-| `max_len` | int | `256` | Tokenizer truncation length for training, eval and serving. |
+| `max_len` | int | `256` | Tokenizer truncation length for training, eval and serving. 512 for long-text tasks — see below. |
 | `epochs` | int | `5` | Upper bound; early stopping on calib KL with patience 2 usually stops sooner. |
 | `lr` | float | `5.0e-5` | AdamW learning rate, 6% linear warmup then linear decay. |
 | `batch_size` | int | `32` | Training batch size. Halve it if you OOM next to a running vLLM. |
 | `gold_weight` | float | `0.0` | Weight of a CE term on gold added to the distillation KL, applied only to rows that have gold. `0.0` = pure distillation, which is the headline setting. Overridable with `--gold-weight`. |
 
 Write floats in YAML as `5.0e-5`, not `5e-5` — YAML 1.1 parses the latter as a string.
+
+`max_chars` and `max_len` are two truncations in a row: `data.max_chars` cuts the raw text once, for
+teacher and student alike, and `student.max_len` then cuts the student's *tokens*. If `max_len` binds
+first the student never sees text the teacher was labelling (long Russian reviews: ~1500 chars is well
+over 256 tokens), which caps agreement — raise `max_len` or lower `max_chars` so the two roughly meet.
 
 ## Worked examples
 
@@ -190,7 +195,6 @@ used as an index into `labels`. If your column held the stars themselves you wou
 ```yaml
 name: toxic
 type: noul
-question: "Is the following statement about the text true?"
 statement: "This comment is toxic (rude, disrespectful, or likely to make someone leave a discussion)."
 lang: en
 data:
@@ -200,13 +204,14 @@ data:
   gold: toxicity       # fraction of raters; >= 0.5 -> true
   gold_prob: toxicity
   train: {split: "train[:60000]", n: 4000, balance: true}
-  calib: {split: "train[:60000]", n: 500, balance: true}
+  calib: {split: "train[:60000]", n: 500}
   eval: {split: test, n: 3000}
 ```
 
 `labels = ["true", "false"]`, `k = 2`. The gold column is a fraction, so `gold_threshold` (0.5)
-turns it into a class and `gold_prob` keeps the fraction for a Brier score against it. Train and
-calib are balanced because positives are ~8% of the data; eval stays at the natural rate.
+turns it into a class and `gold_prob` keeps the fraction for a Brier score against it. Train is balanced because positives are ~8% of the data; calib and eval stay at the natural rate, so
+the temperature is fitted under the prior it is evaluated on. Note that `balance: true` selects rows by
+gold, so a balanced split does spend gold labels.
 Response shape (illustrative numbers):
 
 ```json

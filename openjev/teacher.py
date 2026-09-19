@@ -31,10 +31,9 @@ def option_lines(task):
 
 def system_prompt(task, idx, with_none=False):
     """Prompt over the option subset `idx` (indices into task.labels). Returns (prompt, letters)."""
-    if task.teacher.system_prompt:
-        head = task.teacher.system_prompt  # replaces the question line; options are still appended
-    elif task.type == "noul":
-        head = f"Is the following statement about the text true?\nStatement: {task.statement}"
+    if task.type == "noul":  # `question` is optional here; it only overrides the default head line
+        head = (task.question or "Is the following statement about the text true?") + \
+            f"\nStatement: {task.statement}"
     else:
         head = task.question
     lines = option_lines(task)
@@ -67,12 +66,13 @@ def softmax_letters(raw: dict, letters) -> list[float]:
 
 def shortlist(chunk_results, top):
     """chunk_results: list of (option_idx_list, probs over chunk letters + none last).
-    Score s_i = p(i|chunk) * (1 - p(none|chunk)); return the `top` option indices by score."""
+    Score s_i = p(i|chunk). "none" is one of the letters in that softmax, so a chunk that answers
+    "none" already scores all of its options low; multiplying by (1 - p(none)) would count it twice.
+    Returns the `top` option indices by score."""
     scores = {}
     for idx, p in chunk_results:
-        keep = 1.0 - p[-1]
         for i, pi in zip(idx, p[:-1]):
-            scores[i] = pi * keep
+            scores[i] = pi
     return sorted(scores, key=lambda i: -scores[i])[:top]
 
 
@@ -116,7 +116,8 @@ class Teacher:
             return idx, softmax_letters(await self.ask(system, text, letters), letters)
 
         chunk_results = await asyncio.gather(*(one(c) for c in chunks))
-        short = shortlist(chunk_results, m)
+        short = sorted(shortlist(chunk_results, m))  # option order, not score order: letter A must
+        # not always be the chunk stage's favourite (that would amplify the teacher's position bias)
         system, letters = system_prompt(self.task, short)
         raw = await self.ask(system, text, letters)
         p = softmax_letters(raw, letters)

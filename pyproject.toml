@@ -1,0 +1,11 @@
+[project]
+name = "openjev"
+version = "0.0.1"
+requires-python = ">=3.10"
+dependencies = ["torch", "transformers", "datasets", "httpx", "pyyaml", "numpy", "scikit-learn", "fastapi", "uvicorn"]
+
+[project.scripts]
+openjev = "openjev.cli:main"
+
+[tool.setuptools]
+packages = ["openjev"]

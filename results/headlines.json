@@ -1,0 +1,48 @@
+{
+  "task": "headlines",
+  "type": "choice",
+  "k": 6,
+  "lang": "ru",
+  "student_model": "jhu-clsp/mmBERT-small",
+  "n_train": 4000,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "eval_n": 2000,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.762499988079071,
+    "macro_f1": 0.755092580782431,
+    "ece_raw": 0.03010045364499092,
+    "ece_cal": 0.042266570031642914,
+    "brier": 0.3435196578502655,
+    "nll": 0.7735422849655151
+  },
+  "teacher": {
+    "acc": 0.7829999923706055,
+    "macro_f1": 0.7747998088211775,
+    "ece": 0.05795801803469658,
+    "brier": 0.3312590420246124
+  },
+  "agreement": {
+    "argmax": 0.859000027179718,
+    "mean_kl": 0.17283493280410767
+  },
+  "throughput_gpu_b64": 1050.219979799885,
+  "latency_ms": {
+    "gpu_b1_p50": 18.137798993848264,
+    "gpu_b1_p99": 21.338104968890548,
+    "cpu_b1_p50": 95.82558396505192
+  },
+  "teacher_calls": 6500,
+  "teacher_minutes": 9.834968495368958,
+  "train_minutes": 2.6563801685969035,
+  "peak_gpu_gb": 3.221810817718506,
+  "temperature": 1.1003665924072266,
+  "calib_target": "gold",
+  "ece_calib_split": [
+    0.05732452869415283,
+    0.052606403827667236
+  ],
+  "git": "51542f5-dirty"
+}

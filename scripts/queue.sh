@@ -9,11 +9,20 @@ tasks=("$@")
 
 for t in "${tasks[@]}"; do  # label lane (a concurrent labeler of the same task waits on runs/<t>/label.lock)
   mkdir -p runs/$t
-  openjev label tasks/$t.yaml >> runs/$t/label.log 2>&1 && touch runs/$t/.labeled
+  rm -f runs/$t/.labelfail
+  openjev label tasks/$t.yaml >> runs/$t/label.log 2>&1 && touch runs/$t/.labeled || touch runs/$t/.labelfail
 done &
+label_lane=$!
 
 for t in "${tasks[@]}"; do  # train lane
-  while [ ! -e runs/$t/.labeled ]; do sleep 30; done
+  # wait for this task's labels; stop waiting if its labeling failed or the whole label lane died
+  while [ ! -e runs/$t/.labeled ] && [ ! -e runs/$t/.labelfail ] && kill -0 $label_lane 2>/dev/null; do
+    sleep 30
+  done
+  if [ ! -e runs/$t/.labeled ]; then  # skip this task only; the queue moves on to the next one
+    echo "$(date +%T) SKIP $t (labeling did not finish, see runs/$t/label.log)"
+    continue
+  fi
   echo "$(date +%T) run $t"
   openjev run tasks/$t.yaml $OPENJEV_RUN_ARGS >> runs/$t/run.log 2>&1 || echo "$(date +%T) FAILED $t (see runs/$t/run.log)"
 done

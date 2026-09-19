@@ -12,10 +12,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, get_linear_schedule_with_warmup
 
-
-def read_rows(run_dir, split):
-    with open(Path(run_dir) / "teacher.jsonl") as f:
-        return [r for r in map(json.loads, f) if r["split"] == split]
+from openjev.data import read_rows
 
 
 def device():

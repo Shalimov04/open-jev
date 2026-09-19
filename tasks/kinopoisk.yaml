@@ -11,3 +11,5 @@ data:
   train: {split: train, n: 4000}
   calib: {split: train, n: 500}
   eval: {split: test, n: 1500}
+student:
+  max_len: 512    # long reviews: 256 tokens would cut text the teacher saw (see max_chars)

@@ -1,7 +1,7 @@
 """Task spec: YAML -> Task dataclass. Downstream code only needs `labels` (+ `values` for score).
 
 Task fields (all read-only after load):
-  name, type ("choice"|"score"|"noul"), question, lang, path (yaml path)
+  name, type ("choice"|"score"|"noul"), question (choice/score only), lang, path (yaml path)
   options: list[str]            # choice only
   rubric: {levels: [...], descriptions: [...]}  # score only
   statement: str                # noul only
@@ -21,7 +21,6 @@ class SplitSpec:
     split: str = "train"
     n: int = 1000
     balance: bool = False
-    seed: int = 0
 
 
 @dataclass
@@ -29,6 +28,7 @@ class DataSpec:
     source: dict  # {hf: id, config?, revision?, slice?} | {csv: path} | {jsonl: path}
     text: str = "{text}"
     max_chars: int = 2000
+    seed: int = 0     # one sampling seed for all three splits (they are drawn in order)
     gold: str | None = None
     gold_map: list | dict | None = None
     gold_prob: str | None = None  # optional column with a fractional gold probability (noul)
@@ -40,7 +40,6 @@ class DataSpec:
 
 @dataclass
 class TeacherSpec:
-    system_prompt: str | None = None
     concurrency: int = 32
     max_options_per_call: int = 19
 
@@ -59,8 +58,8 @@ class StudentSpec:
 class Task:
     name: str
     type: str
-    question: str
     data: DataSpec
+    question: str | None = None  # required for choice/score; optional head override for noul
     lang: str = "en"
     options: list[str] | None = None
     rubric: dict | None = None
@@ -87,6 +86,9 @@ def _build(cls, d):
 
 def load_task(path) -> Task:
     raw = yaml.safe_load(Path(path).read_text())
+    derived = sorted({"labels", "values", "path"} & set(raw))
+    if derived:
+        raise ValueError(f"Task: {derived} are derived from type/options/rubric, not settable")
     data = dict(raw.pop("data"))
     for s in ("train", "calib", "eval"):
         if s in data:
@@ -94,6 +96,8 @@ def load_task(path) -> Task:
     t = _build(Task, {**raw, "data": _build(DataSpec, data), "path": str(path),
                       "teacher": _build(TeacherSpec, raw.get("teacher")),
                       "student": _build(StudentSpec, raw.get("student"))})
+    if t.type in ("choice", "score") and not t.question:
+        raise ValueError(f"{t.type} task needs a question")
     if t.type == "choice":
         if not t.options:
             raise ValueError("choice task needs options")

@@ -5,7 +5,8 @@ from pathlib import Path
 import torch
 import torch.nn.functional as F
 
-from openjev.train import load_student, predict_logits, read_rows
+from openjev.data import read_rows
+from openjev.train import load_student, predict_logits
 
 
 def ece(probs, targets, bins=15):
@@ -25,6 +26,7 @@ def brier(probs, targets):
 
 
 def fit_temperature(logits, targets):
+    """`targets`: class indices, or a [N, K] probability matrix (soft-target cross-entropy)."""
     log_t = torch.zeros(1, requires_grad=True)
     opt = torch.optim.LBFGS([log_t], lr=0.1, max_iter=200)
 
@@ -51,7 +53,12 @@ def run(task, run_dir):
     tok, model = load_student(run_dir / "student")
     logits = predict_logits(tok, model, [r["text"] for r in rows], task.student.max_len)
     y, target = targets_for(rows)
-    t = fit_temperature(logits, y)
+    if target == "gold":
+        t = fit_temperature(logits, y)
+    else:  # no gold: fit to the teacher's *soft* probs, the thing the student was trained on.
+        p = torch.tensor([r["probs"] for r in rows]).clamp_min(1e-6)
+        t = fit_temperature(logits, p / p.sum(-1, keepdim=True))
+        target = "teacher-soft"
     out = {"temperature": t, "target": target,
            "ece_before": ece(logits.softmax(-1), y), "ece_after": ece((logits / t).softmax(-1), y)}
     (run_dir / "calib.json").write_text(json.dumps(out, indent=2))

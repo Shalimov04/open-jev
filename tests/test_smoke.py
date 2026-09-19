@@ -44,10 +44,47 @@ def test_softmax_missing_letter_is_zero():
 
 
 def test_shortlist_math():
-    # chunk 1 confident its option 1 fits; chunk 2 says "none" -> its options are down-weighted
-    chunks = [([0, 1, 2], [0.1, 0.8, 0.1, 0.0]), ([3, 4], [0.9, 0.1, 0.9])]
-    assert shortlist(chunks, 2) == [1, 0]  # s: 0.1,0.8,0.1 vs 0.09,0.01
-    assert shortlist(chunks, 5) == [1, 0, 2, 3, 4]
+    # each chunk's probs are a softmax over its letters + "none" (last), so they sum to 1
+    chunks = [([0, 1, 2], [0.1, 0.8, 0.05, 0.05]), ([3, 4], [0.2, 0.1, 0.7])]
+    # score = p(i|chunk): chunk 2 mostly answers "none", so its options already rank low.
+    # Penalising them again by (1 - p(none)) would put option 0 (0.1) above option 3 (0.2).
+    assert shortlist(chunks, 2) == [1, 3]
+    assert shortlist(chunks, 5) == [1, 3, 0, 4, 2]
+
+
+def test_final_call_letters_options_in_option_order():
+    """A3: the shortlist is re-sorted before the final call, so letter A is not always the
+    chunk stage's favourite (that would double-count the teacher's letter-position bias)."""
+    import asyncio
+
+    from openjev.teacher import Teacher
+
+    task = load_task(ROOT / "tasks/banking77.yaml")
+    task.teacher.max_options_per_call = 2
+    task.options = task.labels = ["a", "b", "c", "d"]
+    weight = {"a": 0.2, "b": 0.1, "c": 0.1, "d": 0.5}  # d wins the chunk stage, a is second
+    seen = []
+
+    class Fake(Teacher):
+        async def ask(self, system, text, letters):
+            opts = [l.split(": ", 1)[1] for l in system.splitlines()[1:-1]]
+            seen.append(opts)
+            w = [weight.get(o, 0.1) for o in opts]  # "none of the above" -> 0.1
+            return {l: math.log(x / sum(w)) for l, x in zip(letters, w)}
+
+    probs, _ = asyncio.run(Fake(task, None, "m").label("text"))
+    assert seen[-1] == ["a", "d"]  # not ["d", "a"]
+    assert probs[1] == probs[2] == 0 and probs[0] > 0 and probs[3] > 0
+
+
+def test_noul_bool_and_int_gold_are_not_inverted():
+    """A1: labels are ["true", "false"], so a true-ish gold must map to index 0."""
+    from openjev.data import gold_index
+
+    t = load_task(ROOT / "tasks/toxic.yaml")
+    assert [gold_index(t, g) for g in (True, 1, 0.9, 1.0)] == [0, 0, 0, 0]
+    assert [gold_index(t, g) for g in (False, 0, 0.1, 0.0)] == [1, 1, 1, 1]
+    assert gold_index(t, None) is None
 
 
 def test_prompt_letters():

@@ -29,6 +29,17 @@ def test_temperature_scaling_fixes_overconfidence():
     assert ece((logits / t).softmax(-1), y) < ece(logits.softmax(-1), y)
 
 
+def test_temperature_no_gold_fits_the_teachers_softness():
+    """B1: with no gold the target is the teacher's soft probs, so T flattens the student toward
+    the teacher instead of sharpening it onto the teacher's argmax."""
+    torch.manual_seed(0)
+    logits = 2.0 * torch.randn(500, 4)
+    teacher = (logits / 2.5).softmax(-1)  # the teacher is softer than the raw student
+    t_soft = fit_temperature(logits, teacher)
+    assert t_soft == pytest.approx(2.5, abs=0.1)
+    assert fit_temperature(logits, teacher.argmax(-1)) < 1.0 < t_soft  # the old, sharpening target
+
+
 def test_end_to_end_tiny(tmp_path):
     from fastapi.testclient import TestClient
 

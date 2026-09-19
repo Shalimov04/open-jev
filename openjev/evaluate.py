@@ -11,7 +11,8 @@ import torch.nn.functional as F
 from sklearn.metrics import confusion_matrix, f1_score, roc_auc_score
 
 from openjev.calibrate import brier, ece, targets_for
-from openjev.train import load_student, predict_logits, read_rows
+from openjev.data import read_rows
+from openjev.train import load_student, predict_logits
 from openjev.views import view
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -35,8 +36,11 @@ def _latency(tok, model, texts, max_len, n=200, warmup=20):
 
 
 def _git():
-    r = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True)
-    return r.stdout.strip() or "none"
+    def git(*a):
+        return subprocess.run(["git", *a], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+
+    sha = git("rev-parse", "--short", "HEAD")
+    return (sha + "-dirty" if git("status", "--porcelain") else sha) if sha else "none"
 
 
 def run(task, run_dir, results_dir=None, latency=True):
@@ -51,14 +55,13 @@ def run(task, run_dir, results_dir=None, latency=True):
     raw, cal = logits.softmax(-1), (logits / T).softmax(-1)
     teacher = torch.tensor([r["probs"] for r in rows]).clamp_min(1e-6)
     teacher = teacher / teacher.sum(-1, keepdim=True)
-    has_gold = all(r.get("gold") is not None for r in rows)
-    y, _ = targets_for(rows)  # gold, or teacher argmax when gold is missing
+    y, eval_target = targets_for(rows)  # gold, or teacher argmax when gold is missing
     s = _cls(cal, y)
     student = {"acc": s["acc"], "macro_f1": s["macro_f1"], "ece_raw": ece(raw, y), "ece_cal": s["ece"],
                "brier": s["brier"], "nll": float(F.nll_loss(cal.log(), y))}
     res = {"task": task.name, "type": task.type, "k": task.k, "lang": task.lang, "student_model": train["student"],
            "n_train": train["n_train"], "n_synth": train["n_synth"], "gold_weight": train["gold_weight"],
-           "eval_n": len(rows), "eval_target": "gold" if has_gold else "teacher",
+           "eval_n": len(rows), "eval_target": eval_target,
            "student": student, "teacher": _cls(teacher, y),
            "agreement": {"argmax": float((cal.argmax(-1) == teacher.argmax(-1)).float().mean()),
                          "mean_kl": float(F.kl_div(cal.log(), teacher, reduction="batchmean"))}}

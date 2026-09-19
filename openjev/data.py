@@ -6,6 +6,7 @@ Example dict: {"id": "<source_split>:<row_idx>", "split": "train|calib|eval", "t
 import json
 import random
 from collections import defaultdict
+from pathlib import Path
 
 from datasets import load_dataset
 
@@ -25,8 +26,8 @@ def gold_index(task, raw):
         return None
     if d.gold_map is not None:
         raw = d.gold_map[raw]
-    if isinstance(raw, float) and task.type == "noul":
-        return 0 if raw >= d.gold_threshold else 1  # labels = ["true", "false"]
+    if task.type == "noul" and isinstance(raw, (bool, int, float)):
+        return 0 if raw >= d.gold_threshold else 1  # labels = ["true", "false"]; True/1 -> "true"
     if isinstance(raw, str):
         return task.labels.index(raw)
     return int(raw)
@@ -47,9 +48,9 @@ def _pick(pool, golds, n, balance, k, rng):
     return chosen
 
 
-def examples(task, roles=ROLES):
-    """All examples for the given roles, in role order. Train and calib drawn from the same
-    source split never overlap (roles are drawn in order from the not-yet-used rows)."""
+def examples(task):
+    """All examples, in role order. Train and calib drawn from the same source split never
+    overlap (roles are drawn in order from the not-yet-used rows)."""
     d = task.data
     used = defaultdict(set)
     out = []
@@ -61,10 +62,8 @@ def examples(task, roles=ROLES):
         ds = cache[sp.split]
         golds = [gold_index(task, g) for g in ds[d.gold]] if d.gold else [None] * len(ds)
         pool = [i for i in range(len(ds)) if i not in used[sp.split]]
-        idx = _pick(pool, golds, sp.n, sp.balance, task.k, random.Random(f"{sp.seed}:{role}"))
+        idx = _pick(pool, golds, sp.n, sp.balance, task.k, random.Random(f"{d.seed}:{role}"))
         used[sp.split].update(idx)
-        if role not in roles:
-            continue
         rows = ds.select(idx)
         for i, row in zip(idx, rows):
             ex = {"id": f"{sp.split}:{i}", "split": role,
@@ -88,6 +87,11 @@ def read_jsonl(path):
         return out
     except FileNotFoundError:
         return []
+
+
+def read_rows(run_dir, split):
+    """Teacher rows for one split. Tolerates a line left half-written by a crash mid-flush."""
+    return [r for r in read_jsonl(Path(run_dir) / "teacher.jsonl") if r["split"] == split]
 
 
 def append_jsonl(f, rows):

@@ -1,6 +1,5 @@
 name: toxic
 type: noul
-question: "Is the following statement about the text true?"
 statement: "This comment is toxic (rude, disrespectful, or likely to make someone leave a discussion)."
 lang: en
 data:
@@ -10,5 +9,5 @@ data:
   gold: toxicity       # fraction of raters; >= 0.5 -> true
   gold_prob: toxicity
   train: {split: "train[:60000]", n: 4000, balance: true}
-  calib: {split: "train[:60000]", n: 500, balance: true}
+  calib: {split: "train[:60000]", n: 500}   # natural rate: T is fit under the eval prior
   eval: {split: test, n: 3000}

@@ -44,7 +44,8 @@ def _targets(rows):
     return p / p.sum(-1, keepdim=True)
 
 
-def run(task, run_dir, student=None, epochs=None, batch_size=None, max_steps=None, patience=2, seed=0):
+def run(task, run_dir, student=None, epochs=None, batch_size=None, max_steps=None, patience=2, seed=0,
+        no_synth=False, gold_n=None):
     run_dir = Path(run_dir)
     s = task.student
     name = student or s.model
@@ -53,6 +54,10 @@ def run(task, run_dir, student=None, epochs=None, batch_size=None, max_steps=Non
     random.seed(seed)
     dev = device()
     train, calib = read_rows(run_dir, "train"), read_rows(run_dir, "calib")
+    if no_synth:  # augment control arm: same run dir (same labels), synthetic rows dropped
+        train = [r for r in train if r.get("source") != "synth"]
+    # --gold-n: spend only the first N gold labels (read_rows sorts by id) in the CE term
+    gold_ids = {r["id"] for r in train[:gold_n]} if gold_n is not None else None
     tok = AutoTokenizer.from_pretrained(name)
     model = AutoModelForSequenceClassification.from_pretrained(
         name, num_labels=task.k, id2label=dict(enumerate(task.labels)),
@@ -77,7 +82,8 @@ def run(task, run_dir, student=None, epochs=None, batch_size=None, max_steps=Non
                 logits = model(**enc).logits.float()
             logp = F.log_softmax(logits, -1)
             loss = F.kl_div(logp, _targets(rows).to(dev), reduction="batchmean")
-            gold = [(j, r["gold"]) for j, r in enumerate(rows) if r.get("gold") is not None]
+            gold = [(j, r["gold"]) for j, r in enumerate(rows) if r.get("gold") is not None
+                    and (gold_ids is None or r["id"] in gold_ids)]
             if s.gold_weight and gold:
                 idx, y = zip(*gold)
                 loss = loss + s.gold_weight * F.nll_loss(logp[list(idx)], torch.tensor(y, device=dev))
@@ -108,7 +114,8 @@ def run(task, run_dir, student=None, epochs=None, batch_size=None, max_steps=Non
     synth = [r for r in train if r.get("source") == "synth"]  # ids are "synth:<round>:<i>"
     info = {"student": name, "n_train": len(train), "n_synth": len(synth),
             "augment_round": max((int(r["id"].split(":")[1]) for r in synth), default=0),
-            "gold_weight": s.gold_weight, "best_epoch": best_epoch, "best_calib_kl": best, "history": history,
+            "gold_weight": s.gold_weight, "gold_n": gold_n, "no_synth": no_synth, "seed": seed,
+            "epochs": epochs, "best_epoch": best_epoch, "best_calib_kl": best, "history": history,
             "train_minutes": (time.time() - t0) / 60,
             "peak_gpu_gb": torch.cuda.max_memory_allocated() / 2**30 if dev == "cuda" else 0.0}
     (run_dir / "train.json").write_text(json.dumps(info, indent=2))

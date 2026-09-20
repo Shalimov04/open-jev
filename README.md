@@ -73,22 +73,22 @@ is only a report column and the language `openjev augment` generates in.
 <!-- results -->
 | task | type | K | lang | n_train | student acc / F1 | teacher acc / F1 | agree | ECE raw→cal | Brier | GPU p50 ms | ex/s |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| agnews | choice | 4 | en | 4000 | 0.879 / 0.880 | 0.880 / 0.881 | 0.938 | 0.071→0.042 | 0.198 | 5.3 | 869 |
 | agnews-mmBERT-base | choice | 4 | en | 4000 | 0.883 / 0.884 | 0.880 / 0.881 | 0.945 | 0.081→0.053 | 0.194 | 6.3 | 435 |
 | agnews-nogold | choice | 4 | en | 4000 | 0.944 / 0.944 | 1.000 / 1.000 | 0.944 | 0.131→0.129 | 0.115 | 5.7 | 863 |
-| agnews | choice | 4 | en | 4000 | 0.879 / 0.880 | 0.880 / 0.881 | 0.938 | 0.071→0.042 | 0.198 | 5.3 | 869 |
 | banking77 | choice | 77 | en | 3000 | 0.748 / 0.736 | 0.764 / 0.749 | 0.836 | 0.017→0.028 | 0.357 | 5.2 | 2644 |
-| georeview-mmBERT-base | score | 5 | ru | 4000 | 0.433 / 0.409 | 0.470 / 0.455 | 0.820 | 0.242→0.065 | 0.661 | 7.1 | 115 |
 | georeview | score | 5 | ru | 4000 | 0.421 / 0.391 | 0.470 / 0.455 | 0.797 | 0.253→0.072 | 0.670 | 6.2 | 203 |
-| headlines | choice | 6 | ru | 4522 | 0.767 / 0.760 | 0.783 / 0.775 | 0.860 | 0.024→0.024 | 0.336 | 5.5 | 2644 |
+| georeview-mmBERT-base | score | 5 | ru | 4000 | 0.433 / 0.409 | 0.470 / 0.455 | 0.820 | 0.242→0.065 | 0.661 | 7.1 | 115 |
+| headlines (n=2) | choice | 6 | ru | 4522 | 0.765 ± 0.003 / 0.759 ± 0.002 | 0.783 / 0.775 | 0.861 ± 0.001 | 0.025 ± 0.002→0.025 ± 0.002 | 0.338 ± 0.002 | 5.5 | 2644 |
 | kinopoisk | choice | 3 | ru | 4000 | 0.609 / 0.564 | 0.652 / 0.609 | 0.817 | 0.161→0.109 | 0.542 | 7.0 | 186 |
 | toxic | noul | 2 | en | 4000 | 0.917 / 0.626 | 0.893 / 0.624 | 0.925 | 0.116→0.037 | 0.129 | 5.7 | 437 |
 
+- **agnews**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.74).
 - **agnews-mmBERT-base**: jhu-clsp/mmBERT-base distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.73).
 - **agnews-nogold**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs teacher on 2000 eval examples; calibrated to teacher-soft (T=0.99).
-- **agnews**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.74).
 - **banking77**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=1.09).
-- **georeview-mmBERT-base**: jhu-clsp/mmBERT-base distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.771 (teacher 0.619); calibrated to gold (T=1.91).
 - **georeview**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.783 (teacher 0.619); calibrated to gold (T=1.95).
+- **georeview-mmBERT-base**: jhu-clsp/mmBERT-base distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.771 (teacher 0.619); calibrated to gold (T=1.91).
 - **headlines**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; temperature kept at 1.0 (fitting it did not improve ECE on the calib split).
 - **kinopoisk**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 1500 eval examples; calibrated to gold (T=2.35).
 - **toxic**: jhu-clsp/mmBERT-small distilled from the teacher with no gold in the loss (but train rows picked 50/50 by gold); p(true); AUROC vs gold on 3000 eval examples; AUROC 0.856 (teacher 0.817); calibrated to gold (T=0.25).

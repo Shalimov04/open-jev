@@ -98,8 +98,11 @@ def read_jsonl(path):
 
 
 def read_rows(run_dir, split):
-    """Teacher rows for one split. Tolerates a line left half-written by a crash mid-flush."""
-    return [r for r in read_jsonl(Path(run_dir) / "teacher.jsonl") if r["split"] == split]
+    """Teacher rows for one split, sorted by id. Tolerates a line left half-written by a crash
+    mid-flush. B6: the file is appended in teacher-completion order, so sorting here is what makes
+    the training batch order depend on the seed only (seeded, not bit-exact — CUDA still drifts)."""
+    rows = [r for r in read_jsonl(Path(run_dir) / "teacher.jsonl") if r["split"] == split]
+    return sorted(rows, key=lambda r: r["id"])
 
 
 def append_jsonl(f, rows):

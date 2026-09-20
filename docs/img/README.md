@@ -1,7 +1,8 @@
 # README figures
 
 Illustrations for the top-level README (`pipeline`, `response-card`, `student-vs-teacher`, `terminal`),
-for `README.ru.md` (the same set) and for `docs/findings.md` (`calibration`, `cascade`, `cost`).
+for `README.ru.md` (the same set), for `docs/findings.md` (`calibration`, `cascade`, `cost`)
+and for `docs/use-cases.md` (`use-cases`).
 The `srcset`/`src` paths below are written for a file at the repo root; from inside `docs/` drop the
 `docs/` prefix. All hand-written SVG — no matplotlib, no
 browser, no fonts to download. Regenerate with:
@@ -44,6 +45,7 @@ alone is fine too — it just shows a white card on dark theme.
 | `cascade-{light,dark}.svg` | Escalation rate vs accuracy. One curve per task that has one, with each teacher's accuracy as a dashed line and the best point annotated. The story: on agnews, kinopoisk and headlines-8k escalating a tenth of the rows buys +0.7 to +1.3 points and then turns back down; on headlines the student is 6 points above its teacher, so escalation only costs; banking77 is the one task still behind its teacher, and escalating a third of it gains +2.8. | `cascade[]` and `cascade_parity` in `results/*.json` — accuracy tasks only (georeview is MAE, toxic AUROC, agnews-nogold is scored against the teacher), one series per task, seed 0 |
 | `calibration-{light,dark}.svg` | Dumbbell chart of ECE before → after calibration (`logits / T + b`), every run, sorted by raw ECE. Green = ECE improved, red = ECE got worse — the fit is selected on held-out NLL and accuracy, not on ECE, so headlines gains 7.5 accuracy points while its ECE goes 0.024 → 0.036. Each row carries its fitted `T`. | `student.ece_raw`, `student.ece_cal`, `temperature`, `calib_target` |
 | `cost-{light,dark}.svg` | Two panels: teacher minutes per task (paid once, 66,522 calls / 2.4 h, banking77 is 42% of it) against student batch-1 p50 latency per task (paid per call). Ends on the amortised 130 ms/label vs 5.2 ms/call comparison. | `teacher_calls`, `teacher_minutes`, `latency_ms.gpu_b1_p50`, `throughput_gpu_b64` |
+| `use-cases-{light,dark}.svg` | Small multiples for the five agent-shaped tasks: one panel per task, each with its own metric named in it (`arb-success` AUROC, `m2w-target` AUROC, `swde-field` macro-F1, `m2w-element` accuracy, `arb-quality` MAE) and its own axis, student vs teacher inside the panel only. The five metrics are not comparable, so they never share a bar scale. `m2w-element` is marked as the failed task and carries its `1/16 = 0.0625` chance floor as a dashed line; `arb-quality`'s MAE bars hang from the top with a "better ↓" arrow. Panels say `n=3 seeds (mean)` or `n=1 seed`. | `noul.auroc` / `noul.teacher_auroc`, `student.macro_f1` / `teacher.macro_f1`, `student.acc` / `teacher.acc`, `score.mae` / `score.teacher_mae`, `k` and `eval_n` from `results/{arb-success,arb-quality,swde-field,m2w-target,m2w-element}.json`; the three-seed panels average the `-s1`/`-s2` files |
 | `response-card-{light,dark}.svg` | The actual request and typed JSON response, with callouts on `choice`, `probabilities` and `confidence`, and the `score`/`noul` shapes from `openjev/views.py`. | the README quickstart's verbatim request/response; probabilities abridged to 4 dp |
 | `terminal.svg` | Animated (SMIL) terminal: `openjev run tasks/agnews.yaml` types itself out, the stage logs appear, then a `curl` and the served JSON. Dark only — it's a terminal. | `runs/agnews/{label,train,calib}.json` and `results/agnews.json` |
 
@@ -78,6 +80,12 @@ alone is fine too — it just shows a white card on dark theme.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/cost-dark.svg">
   <img alt="Teacher labeling cost paid once vs student inference cost per call" src="docs/img/cost-light.svg" width="900">
+</picture>
+
+<!-- use cases (docs/use-cases.md) -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/use-cases-dark.svg">
+  <img alt="Five agent-shaped tasks, each panel with its own metric: student vs teacher" src="docs/img/use-cases-light.svg" width="900">
 </picture>
 
 <!-- typed response -->

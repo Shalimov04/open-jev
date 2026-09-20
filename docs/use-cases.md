@@ -6,6 +6,14 @@ the work an agent stack actually does — a web-agent run to judge, an element t
 to label? Five tasks, the unchanged pipeline (`tasks/<t>.yaml` → `check` → `run`), one teacher
 (Qwen3.8-27B zero-shot, the same one as everywhere else in this repo).
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/use-cases-dark.svg">
+  <img alt="Five agent-shaped tasks, each panel with its own metric: student vs teacher" src="img/use-cases-light.svg" width="900">
+</picture>
+
+*One panel per task, each with its own metric and its own axis — AUROC, macro-F1, accuracy and MAE
+are not comparable, so they never share a scale. Regenerate with `python docs/img/make_figures.py`.*
+
 **Four of the five work. One fails, and the failure is the most transferable thing here** — it says
 which primitive fits which problem, so it gets its own section rather than a footnote.
 

@@ -583,6 +583,145 @@ def fig_terminal():
             + "\n".join(b) + "\n</svg>\n")
 
 
+# ---------------------------------------------------------------- 8. use cases
+
+
+def fig_usecases(th):
+    """Small multiples: five agent-shaped tasks that do NOT share a metric.
+
+    One panel per task, each with its own axis and its own metric named in it, so
+    nothing here invites a cross-task bar comparison.
+    """
+    W = 900
+
+    def mean(key, *names):
+        vals = [key(ALL[n]) for n in names]
+        return sum(vals) / len(vals), len(vals)
+
+    auroc = lambda r: r["noul"]["auroc"]
+    f1 = lambda r: r["student"]["macro_f1"]
+    acc = lambda r: r["student"]["acc"]
+
+    arb_s, n_arb = mean(auroc, "arb-success", "arb-success-s1", "arb-success-s2")
+    arb_acc, _ = mean(acc, "arb-success", "arb-success-s1", "arb-success-s2")
+    m2t_s, n_m2t = mean(auroc, "m2w-target", "m2w-target-s1", "m2w-target-s2")
+    m2t_acc, _ = mean(acc, "m2w-target", "m2w-target-s1", "m2w-target-s2")
+    swde_s, n_swde = mean(f1, "swde-field", "swde-field-s1", "swde-field-s2")
+    swde_acc, _ = mean(acc, "swde-field", "swde-field-s1", "swde-field-s2")
+    elem, qual = ALL["m2w-element"], ALL["arb-quality"]
+    floor = 1.0 / elem["k"]
+
+    # (task, kind, metric, student, teacher, vmax, seeds, eval_n, second line, floor)
+    panels = [
+        ("arb-success", "noul", "AUROC", arb_s, ALL["arb-success"]["noul"]["teacher_auroc"],
+         1.0, n_arb, ALL["arb-success"]["eval_n"],
+         f"acc {arb_acc:.3f} / {ALL['arb-success']['teacher']['acc']:.3f}", None),
+        ("m2w-target", "noul", "AUROC", m2t_s, ALL["m2w-target"]["noul"]["teacher_auroc"],
+         1.0, n_m2t, ALL["m2w-target"]["eval_n"],
+         f"acc {m2t_acc:.3f} / {ALL['m2w-target']['teacher']['acc']:.3f}", None),
+        ("swde-field", f"choice K={ALL['swde-field']['k']}", "macro-F1",
+         swde_s, ALL["swde-field"]["teacher"]["macro_f1"], 1.0, n_swde,
+         ALL["swde-field"]["eval_n"],
+         f"acc {swde_acc:.3f} / {ALL['swde-field']['teacher']['acc']:.3f}", None),
+        ("m2w-element", f"choice K={elem['k']}", "accuracy",
+         elem["student"]["acc"], elem["teacher"]["acc"], 1.0, 1, elem["eval_n"],
+         f"macro-F1 {elem['student']['macro_f1']:.3f} / {elem['teacher']['macro_f1']:.3f}",
+         floor),
+        ("arb-quality", f"score 1–{qual['k']}", "MAE",
+         qual["score"]["mae"], qual["score"]["teacher_mae"], 1.0, 1, qual["eval_n"],
+         f"acc {qual['student']['acc']:.3f} / {qual['teacher']['acc']:.3f}", None),
+    ]
+
+    b = head(th, "Five agent-shaped tasks, five different metrics",
+             "small multiples: each panel has its own metric and its own axis — the bars are "
+             "student vs teacher within a panel, never across panels")
+    # legend
+    b.append(rect(20, 58, 11, 11, th["student"], rx=2))
+    b.append(t(36, 68, "student (mmBERT-small, 140M)", th["fg"], 11.5))
+    b.append(rect(250, 58, 11, 11, th["teacher"], rx=2))
+    b.append(t(266, 68, "teacher (Qwen3.8-27B, zero-shot)", th["fg"], 11.5))
+
+    top, pw, gap, ph, card = 80, 164, 10, 170, 316
+    for i, (name, kind, metric, s, tc, vmax, seeds, n_ev, second, fl) in enumerate(panels):
+        px = 20 + i * (pw + gap)
+        down = metric == "MAE"          # lower is better: bars hang from the top
+        failed = fl is not None
+        b.append(rect(px, top, pw, card, th["panel"], th["grid"], rx=8))
+        b.append(t(px + 12, top + 22, name, th["bad"] if failed else th["fg"], 13, "700",
+                   font=MONO))
+        b.append(t(px + 12, top + 38, kind, th["muted"], 10.5, font=MONO))
+        # metric chip: the honest part — every panel names what it is measuring
+        chip = th["bad"] if failed else th["accent"]
+        b.append(rect(px + 12, top + 46, 8 * len(metric) + 16, 19, chip, rx=9, opacity=0.14))
+        b.append(t(px + 20, top + 60, metric, chip, 11.5, "700"))
+        b.append(t(px + 32 + 8 * len(metric), top + 60,
+                   "↓ lower better" if down else "↑ higher", th["muted"], 9.5))
+
+        ax, ay, aw = px + 34, top + 76, pw - 46
+
+        def yv(v, ay=ay):
+            return ay + (v / vmax) * ph if down else ay + ph - (v / vmax) * ph
+
+        for g in (0.0, 0.5, 1.0):
+            b.append(ln(ax, yv(g), ax + aw, yv(g), th["grid"], 1))
+            b.append(t(ax - 6, yv(g) + 3.5, f"{g:.1f}", th["muted"], 9.5, anchor="end"))
+        bw, bx = 42, ax + 12
+        for k, (v, col) in enumerate([(s, th["student"]), (tc, th["teacher"])]):
+            x = bx + k * (bw + 12)
+            y0 = ay if down else yv(v)
+            b.append(rect(x, y0, bw, abs(yv(v) - ay) if down else ph - (yv(v) - ay), col, rx=3))
+            lab = f"{v:.3f}"
+            if fl is not None and k == 0:   # the failed bar: label beside it, not on the floor
+                b.append(t(ax + 2, yv(v) - 6, lab, col, 11, "700"))
+            else:
+                b.append(t(x + bw / 2, yv(v) + (13 if down else -6), lab, col, 11, "700", "middle"))
+        if fl is not None:
+            b.append(ln(ax, yv(fl), ax + aw, yv(fl), th["bad"], 1.5, dash="4 3"))
+            ctext = f"1/{elem['k']} = {fl:.4f}"
+            b.append(rect(ax + aw - 5.4 * len(ctext) - 6, yv(fl) - 17, 5.4 * len(ctext) + 6, 15,
+                          th["panel"], rx=3))
+            b.append(t(ax + aw - 3, yv(fl) - 6, ctext, th["bad"], 9.5, "700", anchor="end"))
+        if down:
+            # "lower is better" as a direction, not only as a word
+            axx = ax + aw - 4
+            b.append(ln(axx, ay + 26, axx, ay + ph - 8, th["muted"], 1.5))
+            b.append(poly([(axx, ay + ph), (axx - 4.5, ay + ph - 9), (axx + 4.5, ay + ph - 9)],
+                          th["muted"]))
+            b.append(t(ax + aw, ay + ph + 14, "better ↓", th["muted"], 9.5, "600", anchor="end"))
+        b.append(ln(ax, ay + (0 if down else ph), ax + aw, ay + (0 if down else ph),
+                    th["edge"], 1.5))
+        fy = top + 76 + ph + 26
+        b.append(t(px + 12, fy, second, th["muted"], 10, font=MONO))
+        b.append(t(px + 12, fy + 15,
+                   f"n={seeds} seed" + ("s (mean)" if seeds > 1 else ""),
+                   th["fg"] if seeds > 1 else th["muted"], 10, "600"))
+        b.append(t(px + 12, fy + 29, f"{n_ev} eval rows", th["muted"], 10))
+
+    notes = [
+        f"AUROC on arb-success, not accuracy: the teacher answers “no” on almost every row, so "
+        f"its accuracy ({ALL['arb-success']['teacher']['acc']:.3f}) is just the majority-class "
+        f"rate and its macro-F1 is {ALL['arb-success']['teacher']['macro_f1']:.3f}. The "
+        f"probabilities still rank runs, which is what AUROC measures — and what an agent gate "
+        f"consumes.",
+        f"m2w-element is the failed task. {elem['student']['acc']:.3f} is below the "
+        f"{floor:.4f} chance floor of a {elem['k']}-way choice (dashed): the student collapsed "
+        f"onto one slot — slot “G” means something different on every row, so there is nothing "
+        f"row-independent to learn. Same task as m2w-target, wrong primitive.",
+        f"arb-quality is MAE on a 1–{qual['k']} score, where lower is better — its bars hang "
+        f"from the top for that reason, and its axis is not the same quantity as any other "
+        f"panel's. Both models are weak here.",
+    ]
+    y = top + card + 22
+    for text in notes:
+        for j, line in enumerate(wrap(text, 143)):
+            b.append(t(20 if j == 0 else 28, y, ("• " + line) if j == 0 else line,
+                       th["muted"], 10.5))
+            y += 13
+        y += 3
+    return doc(W, y + 4, th, b,
+               "Student vs teacher on five agent-shaped tasks, one metric per panel")
+
+
 # ---------------------------------------------------------------- main
 
 FIGURES = {
@@ -592,6 +731,7 @@ FIGURES = {
     "calibration": fig_calibration,
     "cost": fig_cost,
     "response-card": fig_response,
+    "use-cases": fig_usecases,
 }
 
 

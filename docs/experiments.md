@@ -136,7 +136,7 @@ Two independent code paths, same answer. `results/variants/{kinopoisk,georeview}
 - Each Δ above is a paired bootstrap within one run. For the three tasks that have seed arms the
   refit is in the table for **all three seeds**: headlines +7.50 / +7.00 / +7.40, kinopoisk
   +5.13 / +4.53 / +5.13 — every CI excludes 0 — and agnews +0.95 / +1.05 / +0.65, inside noise on
-  two of three. That is what backs the calibration claim in the README Findings; the single-seed
+  two of three. That is what backs the calibration claim in the findings in `findings.md`; the single-seed
   rows (banking77, georeview, toxic, the `-mmBERT-base` arms) stay `docs/` numbers under PLAN-2 §5.
 - `-mmBERT-base` rows are a different student and are not part of any comparison; they are here only
   to show the effect is not an artifact of the small model.
@@ -238,7 +238,7 @@ size, same calibration rule. `openjev compare runs/<task> runs/<task>-e12`:
 | kinopoisk vs kinopoisk-e12 | acc | 0.6600 | 0.6600 | +0.0 ± 1.5 pts (95 % CI −1.5..+1.6) | no measurable difference |
 
 (Δ is A − B, so a positive Δ favours the 5-epoch default. One seed per arm: `docs/` numbers, never
-README Findings.)
+`findings.md`.)
 
 **Decision: the default stays at 5 epochs.** The rule in PLAN-2 §3 was "raise it to 10 if the CI
 excludes 0 on ≥ 2 of 3 tasks". It excludes 0 on **0 of 3**, and on headlines the sign favours the
@@ -354,7 +354,7 @@ teacher calls. Post-hoc calibration fixes the marginal that permutation averagin
 choosing it needs gold to know which order is the good one, and the headlines pair goes the other
 way — 0.784 original vs 0.768 reversed. There is no order-agnostic rule here.)
 
-**The measured sentence for the README limitations section**, which is what the rule says to write
+**The measured sentence for the limitations section of `findings.md`**, which is what the rule says to write
 instead of the feature:
 
 > Reversing the option order moves the teacher's *Good* rate on kinopoisk from 56.4 % to 41.9 %

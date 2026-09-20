@@ -72,6 +72,31 @@ def cascade(task, student, teacher, y, taus=TAUS, slack=0.005):
                    "parity": min(within, key=lambda c: c["escalation"]) if within else None}
 
 
+SEL_TAUS = [round(0.50 + 0.05 * i, 2) for i in range(10)]
+
+
+def selective(task, student, y, taus=SEL_TAUS):
+    """Risk-coverage: the student answers when its confidence >= tau and abstains otherwise -- the
+    abstained row goes to a *human* (gold), not to the teacher as in `cascade`. -> one row per tau
+    with the coverage and the metric over the answered rows only (acc / mae, plus, for noul, the
+    precision of the "true" answers: the number an "accept the run automatically" gate rides on)."""
+    conf, pred = student.max(-1).values.numpy(), student.argmax(-1)
+    ok = (pred == y).numpy()
+    name, _, mf = metric_fn(task, student, y)
+    if task.type != "score":  # acc on the covered rows, also for noul (metric_fn's auroc is global)
+        name, mf = "acc", lambda i: float(ok[i].mean())
+    ti = task.labels.index("true") if task.type == "noul" else None
+    curve = []
+    for tau in taus:
+        i = conf >= tau
+        r = {"tau": tau, "coverage": float(i.mean()), name: mf(i) if i.any() else None}
+        if ti is not None:
+            p = i & (pred.numpy() == ti)
+            r["precision_true"] = float(ok[p].mean()) if p.any() else None
+        curve.append(r)
+    return curve
+
+
 def _latency(tok, model, texts, max_len, n=200, warmup=20):
     ts = []
     for i in range(warmup + n):
@@ -115,6 +140,7 @@ def run(task, run_dir, results_dir=None, latency=True):
            "agreement": {"argmax": float((cal.argmax(-1) == teacher.argmax(-1)).float().mean()),
                          "mean_kl": float(F.kl_div(cal.log(), teacher, reduction="batchmean"))}}
     res["cascade"], res["cascade_parity"] = cascade(task, cal, teacher, y)
+    res["selective"] = selective(task, cal, y)
     if task.type == "score":
         v = torch.tensor(task.values)
         gold_v = v[y]
@@ -347,6 +373,10 @@ def report(results_dir=None, readme=None):
             extra = f"; MAE {r['score']['mae']:.3f} (teacher {r['score']['teacher_mae']:.3f})"
         if r.get("noul", {}).get("auroc") is not None:
             extra = f"; AUROC {r['noul']['auroc']:.3f} (teacher {r['noul']['teacher_auroc']:.3f})"
+        if r["type"] == "noul" and r.get("selective"):  # the "ask a human" gate, one line
+            g = [c for c in r["selective"] if (c.get("precision_true") or 0) >= 0.9]
+            extra += ("; gate: " + (f"{max(g, key=lambda c: c['coverage'])['coverage']:.0%} coverage at "
+                                    f"90%+ precision(true)" if g else "no tau reaches 90% precision(true)"))
         gold = (f"gold CE weight {r['gold_weight']}" if r["gold_weight"] else
                 "no gold in the loss (but train rows picked 50/50 by gold)" if r.get("balanced_train") else
                 "zero gold labels")

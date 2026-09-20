@@ -195,10 +195,13 @@ way to debug a `data.text` template. Full field reference: `docs/task-spec.md`.
 | georeview | score | 5 | ru | 4000 | 0.558 / 0.567 | 0.470 / 0.455 | 0.649 | 0.253→0.025 | 0.556 | 6.2 | 203 |
 | georeview-mmBERT-base | score | 5 | ru | 4000 | 0.564 / 0.573 | 0.470 / 0.455 | 0.648 | 0.242→0.027 | 0.544 | 7.1 | 115 |
 | headlines (n=3) | choice | 6 | ru | 4522 | 0.838 ± 0.005 / 0.838 ± 0.005 | 0.783 / 0.775 | 0.816 ± 0.002 | 0.025 ± 0.001→0.029 ± 0.007 | 0.248 ± 0.001 | 5.5 | 2644 |
+| headlines-8k (n=3) | choice | 6 | ru | 8000 | 0.851 ± 0.002 / 0.851 ± 0.002 | 0.783 / 0.775 | 0.818 ± 0.002 | 0.031 ± 0.004→0.036 ± 0.004 | 0.231 ± 0.002 | – | – |
 | headlines-e12 | choice | 6 | ru | 4522 | 0.836 / 0.836 | 0.783 / 0.775 | 0.813 | 0.034→0.023 | 0.250 | – | – |
 | headlines-nosynth (n=3) | choice | 6 | ru | 4000 | 0.838 ± 0.004 / 0.838 ± 0.004 | 0.783 / 0.775 | 0.818 ± 0.006 | 0.024 ± 0.006→0.030 ± 0.005 | 0.247 ± 0.004 | – | – |
 | kinopoisk (n=3) | choice | 3 | ru | 4000 | 0.657 ± 0.003 / 0.656 ± 0.004 | 0.652 / 0.609 | 0.693 ± 0.006 | 0.154 ± 0.006→0.040 ± 0.005 | 0.460 ± 0.001 | 7.0 | 186 |
 | kinopoisk-e12 | choice | 3 | ru | 4000 | 0.660 / 0.657 | 0.652 / 0.609 | 0.681 | 0.173→0.033 | 0.463 | – | – |
+| kinopoisk-gold | choice | 3 | ru | 4000 | 0.672 / 0.669 | 0.652 / 0.609 | 0.655 | 0.075→0.030 | 0.435 | – | – |
+| kinopoisk-gold-n500 (n=3) | choice | 3 | ru | 4000 | 0.616 ± 0.011 / 0.614 ± 0.012 | 0.652 / 0.609 | 0.624 ± 0.021 | 0.086 ± 0.025→0.044 ± 0.014 | 0.490 ± 0.012 | – | – |
 | toxic | noul | 2 | en | 4000 | 0.917 / 0.626 | 0.893 / 0.624 | 0.925 | 0.116→0.037 | 0.129 | 5.7 | 437 |
 
 - **agnews**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.64).
@@ -209,10 +212,13 @@ way to debug a `data.text` template. Full field reference: `docs/task-spec.md`.
 - **georeview**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.609 (teacher 0.619); calibrated to gold (T=1.09).
 - **georeview-mmBERT-base**: jhu-clsp/mmBERT-base distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.594 (teacher 0.619); calibrated to gold (T=1.07).
 - **headlines**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.81).
+- **headlines-8k**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.75).
 - **headlines-e12**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.78).
 - **headlines-nosynth**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.81).
 - **kinopoisk**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 1500 eval examples; calibrated to gold (T=1.28).
 - **kinopoisk-e12**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 1500 eval examples; calibrated to gold (T=1.27).
+- **kinopoisk-gold**: jhu-clsp/mmBERT-small distilled from the teacher with gold CE weight 1.0; argmax accuracy vs gold on 1500 eval examples; calibrated to gold (T=1.03).
+- **kinopoisk-gold-n500**: jhu-clsp/mmBERT-small distilled from the teacher with gold CE weight 1.0; argmax accuracy vs gold on 1500 eval examples; calibrated to gold (T=1.43).
 - **toxic**: jhu-clsp/mmBERT-small distilled from the teacher with no gold in the loss (but train rows picked 50/50 by gold); p(true); AUROC vs gold on 3000 eval examples; AUROC 0.856 (teacher 0.817); calibrated to gold (T=0.25).
 <!-- results -->
 

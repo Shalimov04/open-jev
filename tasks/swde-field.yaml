@@ -1,0 +1,50 @@
+name: swde-field
+type: choice
+question: "Which schema field does this text node hold? Answer 'none' if it is not one of them."
+lang: en
+data:
+  source: {jsonl: data/swde-field.jsonl}   # scripts/prep_swde.py (SWDE pages, stdlib html.parser)
+  text: "{text}"
+  max_chars: 600
+  gold: field          # '<vertical>.<field>' or 'none'; string, matched against options
+  # Train-site rows first (7401), then the 2 held-out sites per vertical (3940): unseen-site eval.
+  train: {split: "train[:7401]", n: 4000}
+  calib: {split: "train[:7401]", n: 500}
+  eval: {split: "train[7401:]", n: 2000}
+options:
+  - auto.model
+  - auto.price
+  - auto.fuel_economy
+  - auto.engine
+  - book.title
+  - book.author
+  - book.publisher
+  - book.isbn_13
+  - book.publication_date
+  - camera.manufacturer
+  - camera.product_title
+  - camera.price
+  - job.title
+  - job.company
+  - job.location
+  - job.date_posted
+  - movie.title
+  - movie.genre
+  - movie.director
+  - movie.mpaa_rating
+  - nbaplayer.name
+  - nbaplayer.height
+  - nbaplayer.weight
+  - nbaplayer.team
+  - restaurant.name
+  - restaurant.address
+  - restaurant.cuisine
+  - restaurant.phone
+  - university.name
+  - university.type
+  - university.phone
+  - university.website
+  - none
+student:
+  max_len: 256
+  epochs: 12    # 33 classes, as banking77

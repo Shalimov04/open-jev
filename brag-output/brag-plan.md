@@ -77,7 +77,7 @@ Black screen, monospace, one line, no motion but the cut:
 Attribution fades in underneath at 1.6s: `— README.md, "Findings"`. No music swell, no logo.
 The tension is entirely "why is a launch video saying this?"
 
-*(Alternative hook B is at the bottom of this plan.)*
+*(The user picked **hook B**; it is at the bottom of this plan, with the scene changes it needs.)*
 
 ## Key moments (the middle)
 - The typed JSON response arriving key by key — `"choice": "Business"` and `"confidence": 0.987`
@@ -302,7 +302,7 @@ for the two numbers, one low impact on the title, and silence under the closing 
 
 ## Two hook options (first 2 seconds) — user picks one
 
-### Hook A — "The failure line" (CHOSEN, storyboarded above)
+### Hook A — "The failure line" (storyboarded above; NOT chosen)
 Black. One amber monospace line, no motion, no music accent:
 > `On the hard Russian tasks the framework did not deliver.`
 → `— README.md · "Findings"`
@@ -311,7 +311,7 @@ Black. One amber monospace line, no motion, no music accent:
 cannot belong to any other project, and for the ML-engineer audience it buys credibility for
 every number that follows. Risk: a viewer who watches only 2 seconds takes away a negative.
 
-### Hook B — "The number with nothing behind it"
+### Hook B — "The number with nothing behind it" (**CHOSEN by the user, 2026-09-20** — apply the scene surgery below before composing)
 Black. One line of muted monospace at 0.27s: `labels used: 0` — hold 1.0s, dead still. At 1.3s,
 directly beneath, in `#7CD4A0`, a second line lands: `accuracy vs real labels: 0.8825`. No third
 line, no explanation until Scene 2.

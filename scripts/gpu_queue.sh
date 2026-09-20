@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.." && export PATH=$PWD/.venv/bin:$PATH
 unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy   # the teacher is localhost
 
 JOBS=${1:-runs/queue2.jobs}
-LOG=runs/queue2.log
+LOG=${LOG:-runs/queue2.log}
 CUDA_GB=${CUDA_GB:-12}
 HOST_GB=${HOST_GB:-10}
 mkdir -p runs

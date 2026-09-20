@@ -31,10 +31,11 @@ def setup(args):
         suffix.append(f"s{args.seed}")
     run_dir = Path(args.runs) / "-".join([task.name, *suffix])
     run_dir.mkdir(parents=True, exist_ok=True)
-    if suffix and not jev:  # variants share the base run's teacher labels
+    base = task.name + ("-jev" if jev else "")
+    if run_dir.name != base:  # variants share the base run's teacher labels
         for f in ("teacher.jsonl", "label.json"):
             if not (run_dir / f).is_symlink():
-                (run_dir / f).symlink_to(Path("..") / task.name / f)
+                (run_dir / f).symlink_to(Path("..") / base / f)
     return task, run_dir
 
 
@@ -42,8 +43,9 @@ def stage(name, task, run_dir, args):
     if name == "label":
         from openjev import teacher
         backend = getattr(args, "teacher", "vllm")
-        if run_dir.name != task.name and backend != "jev":
-            run_dir = run_dir.parent / task.name  # variants never label into their own dir
+        base = task.name + ("-jev" if backend == "jev" else "")
+        if run_dir.name != base:
+            run_dir = run_dir.parent / base  # variants never label into their own dir
         return teacher.run(task, run_dir, limit=getattr(args, "limit", None),
                            split=getattr(args, "split", None), backend=backend)
     if name == "train":

@@ -1,0 +1,16 @@
+name: m2w-target
+type: noul
+question: "Judge this browser step from the task, the recent actions and one candidate element."
+statement: "This element is the one the agent should act on next."
+lang: en
+data:
+  source: {jsonl: data/m2w-target.jsonl}   # scripts/prep_m2w.py, 1 positive + 3 sampled negatives per action
+  text: "{text}"
+  max_chars: 700
+  gold: target         # 1 = this element is the action target; natural rate is 25%
+  # Source-train rows first (29444), test_website after (3900): eval is unseen websites.
+  train: {split: "train[:29444]", n: 5000, balance: true}
+  calib: {split: "train[:29444]", n: 500}
+  eval: {split: "train[29444:]", n: 2000}
+student:
+  max_len: 256

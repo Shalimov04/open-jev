@@ -1,0 +1,18 @@
+name: m2w-element
+type: choice
+question: "Which candidate element should the agent act on for its next step?"
+options: [candidate A, candidate B, candidate C, candidate D, candidate E, candidate F,
+          candidate G, candidate H, candidate I, candidate J, candidate K, candidate L,
+          candidate M, candidate N, candidate O, candidate P]
+lang: en
+data:
+  source: {jsonl: data/m2w-element.jsonl}   # scripts/prep_m2w.py (Multimodal-Mind2Web, text columns only)
+  text: "{text}"
+  max_chars: 1600
+  gold: gold           # slot index of the positive among the 16 shuffled candidates
+  # One file, source-train actions first (7361) then test_website (975): eval is unseen websites.
+  train: {split: "train[:7361]", n: 5000}
+  calib: {split: "train[:7361]", n: 500}
+  eval: {split: "train[7361:]", n: 900}
+student:
+  max_len: 512    # 16 candidate lines run to ~1000 chars (see max_chars)

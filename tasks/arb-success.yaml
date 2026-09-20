@@ -1,0 +1,15 @@
+name: arb-success
+type: noul
+question: "Judge this web-agent run from its action log only."
+statement: "The agent completed the user's task: its final state or final message satisfies the goal."
+lang: en
+data:
+  source: {jsonl: data/arb.jsonl}   # scripts/prep_arb.py (AgentRewardBench, 1290 annotated runs)
+  text: "{text}"
+  max_chars: 1800
+  gold: success        # majority over duplicate annotators; Unsure and ties dropped; 27% positive
+  train: {split: train, n: 750}
+  calib: {split: train, n: 200}
+  eval: {split: train, n: 300}   # one pool, shuffled with seed 0: held-out runs, mixed agents
+student:
+  max_len: 512    # action logs run to ~1500 chars (see max_chars)

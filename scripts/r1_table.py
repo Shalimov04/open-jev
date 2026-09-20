@@ -114,7 +114,11 @@ def r2(dirs, results=None):
         m = par["metric"]
         pt = par["parity"]
         esc = f"{pt['escalation']:.1%}" if pt else "never"
-        print(f"| {Path(d).name} | {m} | {c[0][m]:.3f} | {at(c, 0.10, m)} | {at(c, 0.25, m)} "
+        # the student alone, not curve[0]: the tau sweep starts at 0.30, which already escalates a
+        # few percent of rows on some tasks.
+        alone = next(v[m] for v in (res["student"], res.get("score", {}), res.get("noul", {}))
+                     if m in v)
+        print(f"| {Path(d).name} | {m} | {alone:.3f} | {at(c, 0.10, m)} | {at(c, 0.25, m)} "
               f"| {at(c, 0.50, m)} | {par['teacher']:.3f} | {esc} | {pt['tau'] if pt else '–'} |")
 
 

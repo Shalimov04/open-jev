@@ -3,7 +3,7 @@
 <title>open-jev pipeline: unlabeled text, LLM teacher soft labels, distilled encoder student, temperature calibration, typed JSON response</title>
 <rect x="0.0" y="0.0" width="900.0" height="312.0" fill="#ffffff"/>
 <text x="20.0" y="30.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="17" font-weight="700">open-jev: a prompt becomes a calibrated 140M classifier</text>
-<text x="20.0" y="51.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="12.5">one YAML task → soft labels from a local LLM → distilled encoder → one temperature → typed JSON</text>
+<text x="20.0" y="51.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="12.5">one YAML task → soft labels from a local LLM → distilled encoder → temperature + per-class bias → typed JSON</text>
 <rect x="20.0" y="72.0" width="156.0" height="136.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
 <rect x="20.0" y="72.0" width="156.0" height="4.0" fill="#59636e" rx="2"/>
 <circle cx="36.0" cy="96.0" r="9" fill="#59636e"/>
@@ -40,11 +40,11 @@
 <circle cx="564.0" cy="96.0" r="9" fill="#8250df"/>
 <text x="564.0" y="100.0" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">4</text>
 <text x="580.0" y="100.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="14" font-weight="700">Calibrate</text>
-<text x="560.0" y="124.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11">one temperature,</text>
+<text x="560.0" y="124.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11">logits / T + b,</text>
 <text x="560.0" y="140.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">LBFGS on 500</text>
-<text x="560.0" y="156.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">held-out rows</text>
-<text x="560.0" y="172.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">kept only if ECE</text>
-<text x="560.0" y="188.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">improves</text>
+<text x="560.0" y="156.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">held-out gold rows</text>
+<text x="560.0" y="172.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">kept on a 2-fold</text>
+<text x="560.0" y="188.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">held-out NLL test</text>
 <line x1="708.0" y1="140.0" x2="714.0" y2="140.0" stroke="#afb8c1" stroke-width="2"/><polygon points="720.0,140.0 713.0,135.5 713.0,144.5" fill="#afb8c1"/>
 <rect x="724.0" y="72.0" width="156.0" height="136.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
 <rect x="724.0" y="72.0" width="156.0" height="4.0" fill="#1a7f37" rx="2"/>

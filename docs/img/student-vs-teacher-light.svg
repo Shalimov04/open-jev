@@ -16,34 +16,34 @@
 <text x="54.0" y="138.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" text-anchor="end">0.8</text>
 <line x1="62.0" y1="76.0" x2="880.0" y2="76.0" stroke="#d1d9e0" stroke-width="1"/>
 <text x="54.0" y="80.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" text-anchor="end">1.0</text>
-<rect x="77.4" y="110.9" width="40.0" height="255.1" fill="#0969da" rx="3"/>
-<text x="97.4" y="104.9" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.879</text>
+<rect x="77.4" y="108.2" width="40.0" height="257.8" fill="#0969da" rx="3"/>
+<text x="97.4" y="102.2" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.889</text>
 <rect x="123.4" y="110.8" width="40.0" height="255.2" fill="#bf8700" rx="3"/>
 <text x="143.4" y="104.8" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.880</text>
 <text x="120.4" y="384.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="600" text-anchor="middle">agnews</text>
 <rect x="182.9" y="70.0" width="108.9" height="296.0" fill="#0969da" rx="6" opacity="0.09"/>
-<rect x="194.3" y="110.1" width="40.0" height="255.9" fill="#0969da" rx="3"/>
-<text x="214.3" y="104.1" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.882</text>
+<rect x="194.3" y="110.2" width="40.0" height="255.8" fill="#0969da" rx="3"/>
+<text x="214.3" y="104.2" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.882</text>
 <rect x="240.3" y="110.4" width="40.0" height="255.6" fill="#bf8700" rx="3"/>
 <text x="260.3" y="104.4" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.882</text>
 <text x="237.3" y="384.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="600" text-anchor="middle">agnews-nogold*</text>
-<rect x="311.1" y="148.9" width="40.0" height="217.1" fill="#0969da" rx="3"/>
-<text x="331.1" y="142.9" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.748</text>
+<rect x="311.1" y="148.4" width="40.0" height="217.6" fill="#0969da" rx="3"/>
+<text x="331.1" y="142.4" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.751</text>
 <rect x="357.1" y="144.4" width="40.0" height="221.6" fill="#bf8700" rx="3"/>
 <text x="377.1" y="138.4" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.764</text>
 <text x="354.1" y="384.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="600" text-anchor="middle">banking77</text>
-<rect x="428.0" y="243.9" width="40.0" height="122.1" fill="#0969da" rx="3"/>
-<text x="448.0" y="237.9" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.421</text>
+<rect x="428.0" y="204.0" width="40.0" height="162.0" fill="#0969da" rx="3"/>
+<text x="448.0" y="198.0" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.558</text>
 <rect x="474.0" y="229.6" width="40.0" height="136.4" fill="#bf8700" rx="3"/>
 <text x="494.0" y="223.6" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.470</text>
 <text x="471.0" y="384.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="600" text-anchor="middle">georeview</text>
-<rect x="544.9" y="144.1" width="40.0" height="221.9" fill="#0969da" rx="3"/>
-<text x="564.9" y="138.1" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.765</text>
+<rect x="544.9" y="123.0" width="40.0" height="243.0" fill="#0969da" rx="3"/>
+<text x="564.9" y="117.0" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.838</text>
 <rect x="590.9" y="138.9" width="40.0" height="227.1" fill="#bf8700" rx="3"/>
 <text x="610.9" y="132.9" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.783</text>
 <text x="587.9" y="384.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="600" text-anchor="middle">headlines†</text>
-<rect x="661.7" y="189.5" width="40.0" height="176.5" fill="#0969da" rx="3"/>
-<text x="681.7" y="183.5" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.609</text>
+<rect x="661.7" y="174.6" width="40.0" height="191.4" fill="#0969da" rx="3"/>
+<text x="681.7" y="168.6" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.660</text>
 <rect x="707.7" y="176.9" width="40.0" height="189.1" fill="#bf8700" rx="3"/>
 <text x="727.7" y="170.9" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.652</text>
 <text x="704.7" y="384.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="600" text-anchor="middle">kinopoisk</text>
@@ -59,7 +59,7 @@
 <text x="288.0" y="68.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5">teacher (Qwen3.8-27B, zero-shot)</text>
 <text x="20.0" y="410.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">* agnews-nogold: no gold label is used anywhere in the pipeline — not in training, not for the temperature. Both bars are scored offline against</text>
 <text x="32.0" y="423.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">the real ag_news test labels.</text>
-<text x="20.0" y="439.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">† headlines: mean of 2 seeds (0.768, 0.763).</text>
+<text x="20.0" y="439.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">† headlines: mean of 3 seeds (0.842, 0.833, 0.839).</text>
 <text x="20.0" y="455.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">‡ toxic: accuracy is misleading on an 8.1%-positive split — always answering “not toxic” scores 0.919. The student wins on AUROC (0.856 vs 0.817)</text>
 <text x="32.0" y="468.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">and Brier (0.035 vs 0.048).</text>
 </svg>

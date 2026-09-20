@@ -198,12 +198,12 @@ way to debug a `data.text` template. Full field reference: `docs/task-spec.md`.
 | georeview | score | 5 | ru | 4000 | 0.558 / 0.567 | 0.470 / 0.455 | 0.649 | 0.253→0.025 | 0.556 | 6.2 | 203 |
 | georeview-mmBERT-base | score | 5 | ru | 4000 | 0.564 / 0.573 | 0.470 / 0.455 | 0.648 | 0.242→0.027 | 0.544 | 7.1 | 115 |
 | headlines (n=3) | choice | 6 | ru | 4522 | 0.838 ± 0.005 / 0.838 ± 0.005 | 0.783 / 0.775 | 0.816 ± 0.002 | 0.025 ± 0.001→0.029 ± 0.007 | 0.248 ± 0.001 | 5.5 | 2644 |
-| headlines-8k (n=3) | choice | 6 | ru | 8000 | 0.851 ± 0.002 / 0.851 ± 0.002 | 0.783 / 0.775 | 0.818 ± 0.002 | 0.031 ± 0.004→0.036 ± 0.004 | 0.231 ± 0.002 | – | – |
+| headlines-8k (n=3) | choice | 6 | ru | 8000 | 0.851 ± 0.002 / 0.851 ± 0.002 | 0.783 / 0.775 | 0.818 ± 0.002 | 0.031 ± 0.004→0.036 ± 0.004 | 0.231 ± 0.002 | 5.3 | 2561 |
 | headlines-e12 | choice | 6 | ru | 4522 | 0.836 / 0.836 | 0.783 / 0.775 | 0.813 | 0.034→0.023 | 0.250 | – | – |
 | headlines-nosynth (n=3) | choice | 6 | ru | 4000 | 0.838 ± 0.004 / 0.838 ± 0.004 | 0.783 / 0.775 | 0.818 ± 0.006 | 0.024 ± 0.006→0.030 ± 0.005 | 0.247 ± 0.004 | – | – |
 | kinopoisk (n=3) | choice | 3 | ru | 4000 | 0.657 ± 0.003 / 0.656 ± 0.004 | 0.652 / 0.609 | 0.693 ± 0.006 | 0.154 ± 0.006→0.040 ± 0.005 | 0.460 ± 0.001 | 7.0 | 186 |
 | kinopoisk-e12 | choice | 3 | ru | 4000 | 0.660 / 0.657 | 0.652 / 0.609 | 0.681 | 0.173→0.033 | 0.463 | – | – |
-| kinopoisk-gold | choice | 3 | ru | 4000 | 0.672 / 0.669 | 0.652 / 0.609 | 0.655 | 0.075→0.030 | 0.435 | – | – |
+| kinopoisk-gold | choice | 3 | ru | 4000 | 0.672 / 0.669 | 0.652 / 0.609 | 0.655 | 0.075→0.030 | 0.435 | 7.0 | 186 |
 | kinopoisk-gold-n500 (n=3) | choice | 3 | ru | 4000 | 0.616 ± 0.011 / 0.614 ± 0.012 | 0.652 / 0.609 | 0.624 ± 0.021 | 0.086 ± 0.025→0.044 ± 0.014 | 0.490 ± 0.012 | – | – |
 | toxic | noul | 2 | en | 4000 | 0.917 / 0.626 | 0.893 / 0.624 | 0.925 | 0.116→0.037 | 0.129 | 5.7 | 437 |
 
@@ -266,11 +266,11 @@ id in `runs/<task>/label.json` — newer ones do.
 
 Nine runs, one teacher, two nights. Every "Δ" below is a paired bootstrap (`openjev compare`, 2000
 resamples) over the eval rows the two arms share; a Δ whose 95 % CI includes 0 is written as *no
-measurable difference*, never as a gain. Training-side deltas (epochs, augment, more labels, where
-gold is spent) are pooled over **three seeds per arm**. The post-hoc calibration deltas are over
-eval rows at one seed per run — the tasks they matter on move 5–8 points, far outside the 0.6–1.2 pt
-seed band, and the 3-seed table rows carry the same conclusion. The full tables are in
-`docs/experiments.md`.
+measurable difference*, never as a gain. Training-side deltas (augment, more labels, where gold is
+spent) are pooled over **three seeds per arm**; the epochs bullet below is the one exception and is
+labelled. The post-hoc calibration deltas below are quoted at one seed per run, but the fit was
+refit on all three seeds: headlines +7.0..+7.5 pts, kinopoisk +4.5..+5.1, every CI excludes 0
+(R1 table in `docs/experiments.md`). The full tables are in `docs/experiments.md`.
 
 **500 gold labels are worth more as a per-class bias than as training signal.** The calibration step
 fits `logits / T + b`, `b ∈ R^K` (`method: vector`), on the 500-row calib split, accepted only when
@@ -282,9 +282,11 @@ banking77 +0.20 (CI −1.35..+1.65) — both CIs include 0, so on those two task
 toxic is excluded: its metric is AUROC, which a constant per-class shift transforms monotonically
 and therefore cannot move at all, and its calib split is 2.2 % positive against 8.1 % on eval.
 
-**With the bias, four students beat their own teacher.** headlines 0.843 vs the teacher's 0.783,
-headlines-8k 0.8515 vs 0.783, kinopoisk 0.660 vs 0.652, georeview MAE 0.609 vs 0.619. Before it,
-three of those four were behind. Nothing about the teacher changed — the student is distilled from
+**With the bias, two students beat their own teacher and two match it.** headlines 0.843 vs the
+teacher's 0.783 (+6.0 pts, 95 % CI +4.3..+7.7) and headlines-8k 0.8515 vs 0.783 (+6.9, +5.2..+8.6)
+are measurable wins; kinopoisk 0.660 vs 0.652 (+0.8, −1.8..+3.5) and georeview MAE 0.609 vs 0.619
+(−0.0095, −0.027..+0.005) are *no measurable difference* — both CIs include 0. Before it, all four
+were behind. Nothing about the teacher changed — the student is distilled from
 the same probabilities; the bias only removes the marginal the teacher shifted.
 
 **Why it works: the teacher's dominant error on the hard tasks is a marginal shift, not per-example
@@ -336,7 +338,8 @@ teacher itself — that call is yours.
 **Two knobs that turned out not to matter.** Both were believed to work before they were measured
 with a control arm:
 
-- **Epochs: 5 vs 12 is no measurable difference.** agnews Δ +0.0 ± 0.6 pts, headlines +0.7 ± 0.9,
+- **Epochs: 5 vs 12 is no measurable difference** (one seed per arm — the CIs are over eval rows
+  only; kept here because it decides the default). agnews Δ +0.0 ± 0.6 pts, headlines +0.7 ± 0.9,
   kinopoisk +0.0 ± 1.5 — all three CIs include 0, and the sign on headlines favours the *shorter*
   run. All three 12-epoch runs early-stop (patience 2) at 9, 7 and 5 epochs, so what `--epochs`
   really changes is the LR-decay horizon, not the training length. **The default stays 5.**
@@ -369,8 +372,9 @@ helps (0.776 at 27 %).
 
 **Model size is not the bottleneck at either end.** mmBERT-base (307M vs 140M) buys agnews
 0.891 vs 0.889 and georeview MAE 0.594 vs 0.609, for half the batch-64 throughput (435 vs 869 ex/s on
-agnews; 115 vs 203 on georeview), 9.9 GB of training memory instead of 5.5, and 9.0 minutes of
-training instead of 1.7. On the easy task the small student had already reached the teacher; on the
+agnews; 115 vs 203 on georeview), 9.8–9.9 GB of training memory instead of 5.5, and 7.4 minutes of
+training instead of 1–3.5 on agnews (on georeview the two took the same ~10 minutes — the box was
+busy, so training time here is not a clean number). On the easy task the small student had already reached the teacher; on the
 hard one it was already reproducing the teacher more faithfully than the big one — the teacher is
 what was wrong, and a bias on 500 rows fixed more of it than 2.2× the parameters did.
 
@@ -379,12 +383,13 @@ with the `data.gold` line deleted, so nothing in the pipeline ever sees a label.
 carefully: with no gold, "teacher acc" is the teacher scored against itself (1.000 by construction)
 and "student acc" 0.944 is the agreement column under another name. The number that answers "what do
 you get with no labels at all" is measured offline against the real ag_news test labels:
-**0.8825** against the teacher's **0.8815** on the same 2000 rows, within noise of the
+**0.8820** against the teacher's **0.8815** on the same 2000 rows, within noise of the
 gold-calibrated run. Removing gold from the loop cost nothing measurable *here* — on a task where the
 teacher is strong and already well calibrated. On the hard tasks the gold-free path is the `prior:`
 one above, and it is only as good as the prior you declare. (`gold_acc_offline` in
-`results/agnews-nogold.json` comes from `scripts/nogold_gold_acc.py`, a hand-run measurement outside
-the pipeline; re-running `openjev eval` overwrites the file without it.)
+`results/variants/agnews-nogold-goldacc.json` comes from `scripts/nogold_gold_acc.py`, a hand-run
+measurement outside the pipeline; it lives in `results/variants/` because `openjev eval` rewrites
+`results/agnews-nogold.json` and would drop a key it did not write.)
 
 **Teacher cost.** 66,522 teacher calls and 144 minutes (2.4 h) of labeling wall-clock across the six
 tasks, of which banking77 alone is 61 minutes; headlines-8k added 4,434 rows in 9 more. Student

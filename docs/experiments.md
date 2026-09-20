@@ -63,11 +63,17 @@ logits (`runs/<run>/eval_rows.jsonl`, written by `openjev eval`; no re-inference
 | agnews | acc | 0.880 | 0.879 | 0.879 | 0.889 | 0.895 | 0.890 | vector | +0.95 (-0.10..+1.95) | +1.55 (+0.55..+2.50) * |
 | agnews-mmBERT-base | acc | 0.880 | 0.883 | 0.883 | 0.891 | 0.894 | 0.894 | vector | +0.80 (-0.30..+1.90) | +1.05 (+0.00..+2.10) |
 | agnews-nogold | acc | 1.000 | 0.944 | – | – | 0.924 | – | – (no gold) | – | -2.00 (-3.00..-1.00) * |
+| agnews-s1 | acc | 0.880 | 0.882 | 0.882 | 0.893 | 0.898 | 0.896 | vector | +1.05 (+0.05..+2.05) * | +1.60 (+0.65..+2.55) * |
+| agnews-s2 | acc | 0.880 | 0.875 | 0.875 | 0.881 | 0.885 | 0.885 | vector | +0.65 (-0.35..+1.70) | +1.05 (+0.10..+2.00) * |
 | banking77 | acc | 0.764 | 0.749 | 0.749 | 0.750 | 0.755 | 0.786 | vector | +0.20 (-1.35..+1.65) | +0.70 (-0.70..+2.15) |
 | georeview | mae | 0.619 | 0.675 | 0.783 | 0.609 | 0.599 | 0.599 | vector | -0.17 (-0.19..-0.16) * | -0.18 (-0.20..-0.17) * |
 | georeview-mmBERT-base | mae | 0.619 | 0.664 | 0.771 | 0.594 | 0.583 | 0.585 | vector | -0.18 (-0.19..-0.16) * | -0.19 (-0.20..-0.17) * |
 | headlines | acc | 0.783 | 0.767 | 0.767 | 0.843 | 0.842 | 0.838 | vector | +7.50 (+5.95..+9.05) * | +7.45 (+5.95..+8.90) * |
+| headlines-s1 | acc | 0.783 | 0.763 | 0.763 | 0.833 | 0.836 | 0.832 | vector | +7.00 (+5.55..+8.50) * | +7.30 (+5.75..+8.75) * |
+| headlines-s2 | acc | 0.783 | 0.764 | 0.764 | 0.839 | 0.840 | 0.838 | vector | +7.40 (+5.90..+8.85) * | +7.55 (+6.10..+8.95) * |
 | kinopoisk | acc | 0.652 | 0.609 | 0.609 | 0.660 | 0.655 | 0.659 | vector | +5.13 (+2.87..+7.47) * | +4.67 (+2.33..+7.07) * |
+| kinopoisk-s1 | acc | 0.652 | 0.609 | 0.609 | 0.654 | 0.657 | 0.662 | vector | +4.53 (+2.33..+6.67) * | +4.87 (+2.53..+7.13) * |
+| kinopoisk-s2 | acc | 0.652 | 0.605 | 0.605 | 0.657 | 0.663 | 0.662 | vector | +5.13 (+2.80..+7.53) * | +5.73 (+3.27..+8.27) * |
 | toxic | auroc | 0.817 | 0.856 | 0.856 | 0.856 | 0.856 | 0.856 | temperature | +0.00 (-0.00..+0.00) | +0.00 (-0.00..+0.00) |
 
 Reading the table:
@@ -127,9 +133,11 @@ Two independent code paths, same answer. `results/variants/{kinopoisk,georeview}
   depleted-pool bug, fixed in code after that run was made). A bias fitted on that calib split
   calibrates to the wrong prior. Re-drawing and re-labelling its calib split (500 rows, ~1.2 min of
   teacher) is what would make it comparable.
-- Every Δ above is **one seed per run**. Under PLAN-2 §5 that makes them `docs/` numbers; the README
-  gets them only with the 3-seed arms (`runs/{headlines,agnews,kinopoisk}-s{1,2}`, trained in the M1
-  queue) behind them.
+- Each Δ above is a paired bootstrap within one run. For the three tasks that have seed arms the
+  refit is in the table for **all three seeds**: headlines +7.50 / +7.00 / +7.40, kinopoisk
+  +5.13 / +4.53 / +5.13 — every CI excludes 0 — and agnews +0.95 / +1.05 / +0.65, inside noise on
+  two of three. That is what backs the calibration claim in the README Findings; the single-seed
+  rows (banking77, georeview, toxic, the `-mmBERT-base` arms) stay `docs/` numbers under PLAN-2 §5.
 - `-mmBERT-base` rows are a different student and are not part of any comparison; they are here only
   to show the effect is not an artifact of the small model.
 
@@ -148,24 +156,27 @@ the teacher's) are stored in `results/<run>.json` as `cascade` and `cascade_pari
 | agnews | acc | 0.889 | 0.897 | 0.885 | 0.880 | 0.880 | 0.0% | 0.3 |
 | agnews-mmBERT-base | acc | 0.891 | 0.897 | 0.888 | 0.880 | 0.880 | 0.0% | 0.3 |
 | agnews-nogold | acc | 0.944 | 0.983 | 0.994 | 1.000 | 1.000 | 36.9% | 0.8 |
-| banking77 | acc | 0.758 | 0.771 | 0.776 | 0.776 | 0.764 | 6.9% | 0.35 |
-| georeview | mae | 0.606 | 0.594 | 0.583 | 0.574 | 0.619 | 0.9% | 0.3 |
-| georeview-mmBERT-base | mae | 0.590 | 0.580 | 0.570 | 0.571 | 0.619 | 1.0% | 0.3 |
-| headlines | acc | 0.845 | 0.840 | 0.814 | 0.792 | 0.783 | 1.0% | 0.3 |
+| banking77 | acc | 0.751 | 0.771 | 0.776 | 0.776 | 0.764 | 6.9% | 0.35 |
+| georeview | mae | 0.609 | 0.594 | 0.583 | 0.574 | 0.619 | 0.9% | 0.3 |
+| georeview-mmBERT-base | mae | 0.594 | 0.580 | 0.570 | 0.571 | 0.619 | 1.0% | 0.3 |
+| headlines | acc | 0.842 | 0.840 | 0.814 | 0.792 | 0.783 | 1.0% | 0.3 |
 | kinopoisk | acc | 0.660 | 0.671 | 0.673 | 0.659 | 0.652 | 0.0% | 0.3 |
 | toxic | auroc | 0.856 | 0.857 | 0.817 | 0.817 | 0.817 | 0.0% | 0.3 |
 | kinopoisk-prior | acc | 0.655 | 0.673 | 0.671 | 0.666 | 0.652 | 0.0% | 0.3 |
-| georeview-prior | mae | 0.596 | 0.587 | 0.582 | 0.574 | 0.619 | 0.8% | 0.3 |
+| georeview-prior | mae | 0.599 | 0.587 | 0.582 | 0.574 | 0.619 | 0.8% | 0.3 |
 
 Reading the curve:
 
 - **Four of the nine runs are already at parity with 0 % escalation** — after vector scaling the
   student matches or beats its own teacher on the eval split, so the cheapest cascade is "never
-  escalate". headlines (student 0.845 vs teacher 0.783) is the extreme case: escalating *costs*
-  accuracy all the way up, which is why its curve falls from 0.845 to 0.783.
+  escalate". (Seven of the nine are at or above their teacher with no escalation at all; the
+  recorded parity point sits at the sweep floor τ = 0.30, which already routes ~1 % of rows on
+  headlines, georeview and headlines-8k.) headlines (student 0.843 vs teacher 0.783) is the
+  extreme case: escalating *costs*
+  accuracy all the way up, which is why its curve falls from 0.843 to 0.783.
 - Escalation buys something on the tasks where the student is behind or the teacher disagrees
-  usefully: banking77 0.758 → 0.776 at 25 % escalation (above both student and teacher), kinopoisk
-  0.660 → 0.673 at 25 %, georeview MAE 0.606 → 0.583 at 25 %.
+  usefully: banking77 0.751 → 0.776 at 27 % escalation (above both student and teacher), kinopoisk
+  0.660 → 0.673 at 9 %, georeview MAE 0.609 → 0.583 at 26 %.
 - agnews and agnews-mmBERT-base peak at ~10 % escalation (0.889 → 0.897) and then fall back to the
   teacher's 0.880: a small, real "route the unsure ones" gain.
 - The `agnews-nogold` row is definitional again — it is scored against the teacher, so escalating to
@@ -445,9 +456,6 @@ python scripts/r1_table.py                       # both tables above, from runs/
 python scripts/prior_variant.py tasks/kinopoisk.yaml uniform   # the no-gold arm, into runs/<task>-prior
 openjev compare runs/A runs/B                    # paired per-seed deltas + pooled 95 % CI
 ```
-
-(`compare` is `openjev.evaluate.compare`; until the subcommand is wired in `cli.py`, call it as
-`python -c 'from openjev.evaluate import compare; compare("runs/A", "runs/B")'`.)
 
 `scripts/r1_table.py` refits all four calibrations from `runs/<run>/calib_logits.pt` on the CPU, so
 the table can be rebuilt without touching the GPU. `results/variants/` holds the run dirs that are

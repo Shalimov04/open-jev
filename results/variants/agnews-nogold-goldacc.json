@@ -1,0 +1,6 @@
+{
+  "run": "agnews-nogold",
+  "n": 2000,
+  "gold_acc_offline": 0.8820000290870667,
+  "teacher_gold_acc_offline": 0.8815000057220459
+}

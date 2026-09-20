@@ -1,0 +1,13 @@
+name: headlines-8k
+type: choice
+question: "What is the topic of this Russian news headline?"
+options: [спорт, происшествия, политика, наука, культура, экономика]
+lang: ru
+data:
+  source: {hf: ai-forever/headline-classification}
+  text: "{text}"
+  max_chars: 2000
+  gold: label
+  train: {split: train, n: 8000}
+  calib: {split: train, n: 500}
+  eval: {split: test, n: 2000}

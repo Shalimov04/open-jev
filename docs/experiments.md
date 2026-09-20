@@ -215,6 +215,182 @@ run of this pair would have "shown" either a +0.8 pt gain or a −0.9 pt loss.
 Note for E1: all three 12-epoch runs early-stop on calib KL (patience 2) before epoch 12 —
 `agnews-e12` best at epoch 6 of 9 run, `headlines-e12` best at 4 of 7, `kinopoisk-e12` best at 2 of 5. The knob that actually changed is the LR schedule's horizon, not the number of epochs trained.
 
+## E1 — epochs: 12 vs the YAML's 5
+
+One factor varies: `--epochs 12`. Same seed 0, same cached teacher labels, same LR, same batch
+size, same calibration rule. `openjev compare runs/<task> runs/<task>-e12`:
+
+| pair | metric | 5 epochs | 12 epochs | Δ (95 % CI) | verdict |
+|---|---|---|---|---|---|
+| agnews vs agnews-e12 | acc | 0.8890 | 0.8890 | +0.0 ± 0.6 pts (95 % CI −0.6..+0.6) | no measurable difference |
+| headlines vs headlines-e12 | acc | 0.8425 | 0.8360 | +0.7 ± 0.9 pts (95 % CI −0.2..+1.6) | no measurable difference |
+| kinopoisk vs kinopoisk-e12 | acc | 0.6600 | 0.6600 | +0.0 ± 1.5 pts (95 % CI −1.5..+1.6) | no measurable difference |
+
+(Δ is A − B, so a positive Δ favours the 5-epoch default. One seed per arm: `docs/` numbers, never
+README Findings.)
+
+**Decision: the default stays at 5 epochs.** The rule in PLAN-2 §3 was "raise it to 10 if the CI
+excludes 0 on ≥ 2 of 3 tasks". It excludes 0 on **0 of 3**, and on headlines the sign favours the
+*shorter* run.
+
+### Why — the epoch count is not the knob that binds
+
+The early-stopping traces (`runs/<run>/train.json`, `history`) say what actually happened:
+
+| run | epochs asked | epochs run | best epoch | best calib KL |
+|---|---|---|---|---|
+| agnews | 5 | 5 | 5 of 5 | 0.0496 |
+| agnews-e12 | 12 | 9 | 7 | 0.0463 |
+| headlines | 5 | 5 | 5 of 5 | 0.1690 |
+| headlines-e12 | 12 | 7 | 5 | 0.1755 |
+| kinopoisk | 5 | 5 | 5 of 5 | 0.1130 |
+| kinopoisk-e12 | 12 | 5 | 3 | 0.1350 |
+
+Two things follow, and they point the same way.
+
+1. **All three 5-epoch baselines are best at their *last* epoch** — calib KL was still falling when
+   the budget ran out. Read alone, that curve says "train longer".
+2. **No 12-epoch run ever reached epoch 12.** Patience-2 early stopping fired at 9, 7 and 5 epochs,
+   and two of the three stopped at a *worse* calib KL than the 5-epoch run had reached
+   (headlines 0.1755 vs 0.1690; kinopoisk 0.1350 vs 0.1130) — while scoring the same accuracy.
+
+`--epochs` sets the length of the linear LR decay (`steps = epochs × batches`), so a 12-epoch run at
+epoch 4 has a much higher learning rate than a 5-epoch run at epoch 4. The two arms are not "the
+same training, one longer": they are two different LR horizons, and epoch-for-epoch the long-horizon
+arm is *less* converged, which is what makes the KL curve noisy enough for patience 2 to trip. The
+binding knob is the LR horizon, not the epoch count, and moving the horizon by 2.4× buys nothing
+measurable on any of the three tasks.
+
+kinopoisk is the cleanest statement of it: `kinopoisk-e12` stopped at epoch 3 with calib KL 0.1350
+against the baseline's 0.1130 — a visibly worse fit to the calib targets — and scored **exactly the
+same 0.6600 accuracy**. On these tasks calib KL is not a proxy for accuracy over this range, so
+spending GPU time to minimise it further is not an improvement, and neither is the extra epoch
+budget that lets early stopping chase it.
+
+What this may not claim: anything about patience (never varied), or about epochs on a task not in
+the table. A budget that starts *below* 5 was not tested either.
+
+## E2 — seed variance: the noise floor for everything else
+
+Three seeds per arm, everything else fixed. Accuracy on the shared eval rows
+(`results/<task>{,-s1,-s2}.json`):
+
+| task | seed 0 | seed 1 | seed 2 | mean ± sd | spread |
+|---|---|---|---|---|---|
+| agnews | 0.8890 | 0.8930 | 0.8815 | 0.888 ± 0.006 | 1.2 pts |
+| headlines | 0.8425 | 0.8330 | 0.8385 | 0.838 ± 0.005 | 0.9 pts |
+| headlines-nosynth | 0.8350 | 0.8420 | 0.8365 | 0.838 ± 0.004 | 0.7 pts |
+| kinopoisk | 0.6600 | 0.6540 | 0.6567 | 0.657 ± 0.003 | 0.6 pts |
+
+Seeds change the classifier-head init and the batch order only (the teacher labels and the splits
+are identical). That alone moves accuracy by 0.6–1.2 pts peak-to-peak. **Every one-seed delta in
+the E1 table above is inside this band**, which is the whole reason the epochs verdict is "no
+measurable difference" rather than "12 epochs is 0.7 pts worse on headlines". This is the sd column
+in `openjev report` and the noise floor the claim rule in PLAN-2 §5 is calibrated against.
+
+## E3 — the augment (PGKD-lite) control arm
+
+Three seeds per arm; the only factor varying is whether the 522 synthetic train rows written by
+`openjev augment` are in the training set. Teacher labels, epochs and calibration rule are fixed —
+the synth rows' *labels* are in both run dirs, `--no-synth` just drops them at load time.
+
+```
+$ openjev compare runs/headlines runs/headlines-nosynth
+A = runs/headlines   B = runs/headlines-nosynth   metric: acc (higher is better), 2000 shared eval rows, 3 seed(s), 2000 bootstrap resamples
+| seed | A | B | Δ |
+|---|---|---|---|
+| 0 | 0.8425 | 0.8350 | +0.0075 |
+| 1 | 0.8330 | 0.8420 | -0.0090 |
+| 2 | 0.8385 | 0.8365 | +0.0020 |
+verdict: no measurable difference (Δ = +0.0 ± 0.5 pts (95 % CI -0.5..+0.6))
+```
+
+**Verdict, and it is the README sentence: no measurable difference (Δ = +0.0 ± 0.5 pts, 95 % CI
+−0.5..+0.6).** Seed 1 has the opposite sign to seeds 0 and 2; the pre-M1 "+0.5 pt augment gain" was
+a one-seed artefact of exactly this size. What this may not claim: that PGKD does not work — one
+task, one round, 522 rows against 4000.
+
+## The option-order permutation diagnostic: readout and decision
+
+The M0 diagnostic (`scripts/perm_check.py`, results in `runs/{kinopoisk,headlines}-rev/perm_check.json`)
+re-labelled the calib+eval rows of both tasks through the *same* teacher with the option list
+reversed and the gold remapped `g → K−1−g`, then scored the original order, the reversed order and
+their probability average. The numbers are in the R1 table at the top of this file.
+
+PLAN-2 §3 M2.2 set the decision rule before the numbers were in: build
+`teacher: {permutations: 2}` **only if** averaging moves the kinopoisk marginal ≥ 5 pts closer to
+gold on the *worst* class **and** averaged teacher accuracy ≥ original + 1 pt.
+
+| test | measured | passes? |
+|---|---|---|
+| worst class (kinopoisk *Neutral*, gold 0.337): distance to gold, original → averaged | 0.209 → 0.248 — averaging moves it **3.9 pts further away** | **no** |
+| teacher accuracy, original → averaged | 0.646 → 0.693 (+4.7 pts) | yes |
+
+The rule is an `and`, so: **the feature is not built.** `openjev` keeps labelling each row once.
+
+Averaging fails the marginal test for a concrete reason. The Bad↔Good split *is* positional —
+reversing the order moves Good 0.564 → 0.419 and Bad 0.308 → 0.462 — and averaging two orders
+splits that difference. The *Neutral* collapse is not positional: it is 12.9 % in one order and
+12.0 % in the other against a gold 33.7 %, and averaging two distributions that both starve the
+middle class starves it further (9.0 %), because the class that is never the argmax in either order
+gains nothing from the mean. Doubling the teacher bill would buy an accuracy gain the cheaper tool
+already gets: the M1 calibration bias fitted on kinopoisk is
+`[+0.80 Bad, +0.59 Neutral, −1.39 Good]` — it lifts exactly the class averaging starves and pushes
+down exactly the class averaging over-predicts, and it moves the *student* 0.609 → 0.660 for zero
+teacher calls. Post-hoc calibration fixes the marginal that permutation averaging could not.
+
+(The reversed order on its own scores +4.7 pts over the original. That is not a free win either:
+choosing it needs gold to know which order is the good one, and the headlines pair goes the other
+way — 0.784 original vs 0.768 reversed. There is no order-agnostic rule here.)
+
+**The measured sentence for the README limitations section**, which is what the rule says to write
+instead of the feature:
+
+> Reversing the option order moves the teacher's *Good* rate on kinopoisk from 56.4 % to 41.9 %
+> (gold 33.4 %) and its accuracy from 0.646 to 0.693 — but the *Neutral* collapse survives both
+> orders (12.9 % and 12.0 % against a gold 33.7 %), and averaging the two orders makes it worse
+> (9.0 %). The bias is semantic, not positional, so openjev labels each row once and removes the
+> marginal shift post-hoc with the calibration bias instead — on kinopoisk that is
+> `[+0.80 Bad, +0.59 Neutral, −1.39 Good]`, fitted on 500 calib rows, for zero extra teacher calls.
+
+
+## headlines-8k — does doubling the teacher labels move the student?
+
+`tasks/headlines-8k.yaml` is `tasks/headlines.yaml` with `data.train.n: 8000` and nothing else
+changed (same source, same prompt, same options, same `max_chars`, same calib and eval `n`, same
+student config).
+
+### Split-id check, before spending teacher time
+
+PLAN-2 §3 M2.4 predicted "calib/eval ids stay identical because roles are drawn train-first from a
+seeded pool". **Half of that is true, and the check is what caught the other half:**
+
+| role | headlines | headlines-8k | identical? | overlap |
+|---|---|---|---|---|
+| train | 4000 | 8000 | no (by design) | 4000 — headlines' train set is an exact **subset** |
+| calib | 500 | 500 | **no** | 7 of 500 |
+| eval | 2000 | 2000 | **yes** | 2000 |
+
+`data.examples()` draws roles in order from the not-yet-used rows of each source split. eval comes
+from the `test` split, which neither train nor calib touches, so its 2000 ids are bit-identical —
+that is the id set every metric in this comparison is computed on, and it is what makes the pair a
+one-factor comparison *of the metric*. calib, however, is drawn from the **same `train` split** as
+train, from the pool left over after the train draw: growing train from 4000 to 8000 rows consumes
+4000 more rows of that pool, 59 of headlines' old calib rows are now 8k train rows, and the fresh
+calib draw shares only 7 ids with the old one.
+
+So the honest framing is: **the eval rows are identical and the train set is a strict superset; the
+500-row calib split is re-drawn from the same split and the same distribution.** The re-draw is
+nuisance variation in the fitted calibration, not a systematic difference — but it is a second thing
+that changed, and the claim below is stated with that in it rather than around it.
+
+Teacher labels are frozen per PLAN-2 §2: `scripts/seed_cache.py` copied the 6066 rows the two tasks
+share out of `runs/headlines/teacher.jsonl` with their probabilities untouched (rewriting only the
+`split` field for the 59 promoted rows), so only the 4434 genuinely new rows were labelled —
+9 min at 8.2 ex/s, `runs/headlines-8k/label.log`. Every row both arms contain carries the same
+teacher probabilities in both.
+
+
 ## Reproducing
 
 ```bash

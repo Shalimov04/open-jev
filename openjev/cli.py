@@ -94,9 +94,15 @@ def main(argv=None):
                    help="label N calib rows and report the teacher's accuracy and marginal "
                         "(cached into runs/<task>/teacher.jsonl, so `run` reuses them)")
     s = sub.add_parser("serve")
-    s.add_argument("run_dirs", nargs="+")
+    s.add_argument("run_dirs", nargs="+", help="run dirs, or hf:user/name to pull one from the Hub")
     s.add_argument("--host", default="127.0.0.1")
     s.add_argument("--port", type=int, default=8080)
+    s.add_argument("--device", choices=["cpu", "cuda"], help="default: cuda when available")
+    h = sub.add_parser("push", help="upload a run dir (student/ + openjev.json + model card) to the HF Hub")
+    h.add_argument("run_dir")
+    h.add_argument("--repo", required=True, metavar="USER/NAME")
+    h.add_argument("--dry-run", action="store_true", help="print the file list and the card, upload nothing")
+    h.add_argument("--public", action="store_true", help="create the repo public (default: private)")
     sub.add_parser("report")
     c = sub.add_parser("compare", help="paired-bootstrap comparison of two run dirs, over all seeds")
     c.add_argument("a")
@@ -113,7 +119,11 @@ def main(argv=None):
         return
     if args.cmd == "serve":
         from openjev import serve
-        serve.main(args.run_dirs, args.host, args.port)
+        serve.main(args.run_dirs, args.host, args.port, args.device)
+        return
+    if args.cmd == "push":
+        from openjev import hub
+        hub.push(args.run_dir, args.repo, dry_run=args.dry_run, private=not args.public)
         return
     if args.cmd == "report":
         from openjev import evaluate

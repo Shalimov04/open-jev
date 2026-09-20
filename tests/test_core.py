@@ -1,5 +1,7 @@
 import json
 import random
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -114,5 +116,61 @@ def test_end_to_end_tiny(tmp_path):
     assert sum(er[0]["student_probs"]) == pytest.approx(1.0)
     evaluate.report(tmp_path / "results", tmp_path / "README.md")
     assert "| toy | choice | 2 |" in (tmp_path / "README.md").read_text()
-    r = TestClient(serve.app_for([run_dir])).post("/v1/systemone", json={"model": "toy", "input": "a goal"})
+    client = TestClient(serve.app_for([run_dir], "cpu"))
+    r = client.post("/v1/systemone", json={"model": "toy", "input": "a goal"})
     assert r.status_code == 200 and r.json()["choice"] in ("sport", "other")
+
+    # batch in, list out; one item per input, in order
+    r = client.post("/v1/systemone", json={"model": "toy", "input": ["a goal", "stocks fell"],
+                                           "escalate_below": 0.99, "coverage": 0.9})
+    body = r.json()
+    assert r.status_code == 200 and isinstance(body, list) and len(body) == 2
+    assert all(b["escalate"] == (b["confidence"] < 0.99) for b in body)
+    assert all(b["set"] and set(b["set"]) <= {"sport", "other"} for b in body)
+    assert body[0]["set_target"] == "gold" and (run_dir / "conformal.json").exists()
+    # coverage 1.0 cannot be certified from 16 calib rows -> every label, never an empty set
+    r = client.post("/v1/systemone", json={"model": "toy", "input": "a goal", "coverage": 1.0})
+    assert sorted(r.json()["set"]) == ["other", "sport"]
+    # with no escalate_below in the request, the default comes from openjev.json's parity tau
+    meta = json.loads((run_dir / "openjev.json").read_text())
+    b = client.post("/v1/systemone", json={"model": "toy", "input": "a goal"}).json()
+    assert ("escalate" in b) == (meta["escalate_below"] is not None)
+    if meta["escalate_below"] is not None:
+        assert b["escalate"] == (b["confidence"] < meta["escalate_below"])
+
+    from openjev import hub
+    card = hub.card(run_dir, "u/toy")
+    assert "No gold labels were used in the loss" in card and "sport" in card
+    assert hub.push(run_dir, "u/toy", dry_run=True)["files"] == [
+        "README.md", "conformal.json", "openjev.json", "student/config.json",
+        "student/model.safetensors", "student/tokenizer.json", "student/tokenizer_config.json"]
+    assert hub.resolve("runs/x") == "runs/x"  # only hf: is special-cased
+
+
+def test_jev_adapter_shape(monkeypatch):
+    """The `jev` adapter builds the documented request and reads the documented answer. No key and
+    no network: a fake client records the body. Shape from https://docs.typesafe.ai/api.md."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "compare_api", Path(__file__).resolve().parent.parent / "scripts" / "compare_api.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    monkeypatch.setenv("JEV_API_KEY", "k")
+    seen = {}
+
+    class Fake:
+        def post(self, url, json=None, headers=None):
+            seen.update(url=url, body=json, headers=headers)
+            return SimpleNamespace(
+                raise_for_status=lambda: None,
+                json=lambda: {"answers": {"q": {"type": "choice", "choice": "b",
+                                                "probabilities": {"a": 0.3, "b": 0.7},
+                                                "confidence": 0.6}}})
+
+    meta = {"labels": ["a", "b"], "task": {"type": "choice", "question": "which?"}}
+    assert mod.jev_adapter(Fake(), "https://api.typesafe.ai", "jev-latest", meta, "hi") == [0.3, 0.7]
+    assert seen["url"].endswith("/v1/systemone")
+    assert seen["body"]["state"] == "hi" and seen["body"]["model"] == "jev-latest"
+    assert seen["body"]["questions"]["q"]["type"] == "choice"
+    assert sorted(seen["body"]["questions"]["q"]["criteria"]) == ["a", "b"]
+    assert seen["headers"]["Authorization"] == "Bearer k"

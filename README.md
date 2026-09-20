@@ -60,13 +60,52 @@ That last line, run against `runs/agnews`, prints:
 and a fixed label set — this is not a general model that takes arbitrary options at request time.
 
 Run everything from the repo root (`results/` and this README are resolved relative to it). Tests:
-`pytest -q tests` — 19 tests, ~20 s on CPU, no GPU and no teacher needed; two of them want
+`pytest -q tests` — under a minute on CPU, no GPU and no teacher needed (also run on every push by
+`.github/workflows/test.yml`); two of them want
 `jhu-clsp/mmBERT-small` and `fancyzhx/ag_news` in the Hugging Face cache.
 
 The tasks here are English and Russian, but nothing is language-specific: `question`, `options` and
 `statement` are free text, so write them in whatever language you want the teacher prompted in, as
 long as the teacher and the student checkpoint (mmBERT is multilingual) both cover it. `lang` itself
 is only a report column and the language `openjev augment` generates in.
+
+## Add your own task
+
+Write the YAML → `check` → `check --probe 100` → `run` → `serve`. The teacher is the ceiling of
+everything downstream, so the two `check` steps are there to make iterating on the *prompt* cheap:
+the first costs nothing, the second costs 100 calls.
+
+```bash
+cp tasks/example.yaml tasks/mytask.yaml        # or the closest task in docs/task-spec.md
+openjev check tasks/mytask.yaml                # no teacher calls
+openjev check tasks/mytask.yaml --probe 100    # ~1 min of teacher time; the rows are cached for `run`
+openjev run   tasks/mytask.yaml                # label -> train -> calibrate -> eval
+openjev serve runs/mytask
+```
+
+`check` prints the splits and their gold distribution, the system prompt verbatim, three examples
+exactly as the teacher will see them (after `data.text` and `max_chars`), text length in characters
+and in student tokens, and an estimated teacher cost (±2×). It warns when `max_chars` truncates more
+than a quarter of the rows, and when more than a quarter of them are longer than `student.max_len` —
+that second one is the trap kinopoisk fell into: the teacher reads 1500 characters, and a student
+left at the default `max_len: 256` would read about half of that.
+
+`--probe 100` labels the first 100 calib rows into the real `runs/mytask/teacher.jsonl` (so `run`
+reuses them) and prints what the teacher actually answers — accuracy vs gold, its predicted marginal
+next to the gold marginal, mean max-p, and a warning for any class it under-predicts by more than 10
+points. On kinopoisk that warning is the whole story of the task:
+
+```
+probe: 100 calib rows, teacher Qwen/Qwen3.8-27B-FP8   # the id is read back from label.json
+  teacher accuracy vs gold: 0.710 on 100 rows
+  predicted marginal: Bad 30.0%  Neutral 9.0%  Good 61.0%
+  gold marginal:      Bad 34.0%  Neutral 24.0%  Good 42.0%
+  mean max-p: 0.812
+  WARNING the teacher under-predicts 'Neutral' (9% vs 24%): reword that option, or declare `prior:` ...
+```
+
+Spec and data errors come out of `check` as one line with a hint and exit 1 — it is also the fastest
+way to debug a `data.text` template. Full field reference: `docs/task-spec.md`.
 
 ## Results
 

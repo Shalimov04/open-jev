@@ -64,9 +64,21 @@ and a fixed label set — this is not a general model that takes arbitrary optio
 <!-- results -->
 | task | type | K | lang | n_train | student acc / F1 | teacher acc / F1 | agree | ECE raw→cal | Brier | GPU p50 ms | ex/s |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| agnews | choice | 4 | en | 4000 | 0.879 / 0.880 | 0.880 / 0.881 | 0.938 | 0.071→0.042 | 0.198 | 20.7 | 382 |
+| agnews-mmBERT-base | choice | 4 | en | 4000 | 0.883 / 0.884 | 0.880 / 0.881 | 0.945 | 0.081→0.053 | 0.194 | 6.3 | 435 |
+| agnews | choice | 4 | en | 4000 | 0.879 / 0.880 | 0.880 / 0.881 | 0.938 | 0.071→0.042 | 0.198 | 5.3 | 869 |
+| banking77 | choice | 77 | en | 3000 | 0.748 / 0.736 | 0.764 / 0.749 | 0.836 | 0.017→0.028 | 0.357 | 5.2 | 2644 |
+| georeview | score | 5 | ru | 4000 | 0.421 / 0.391 | 0.470 / 0.455 | 0.797 | 0.253→0.072 | 0.670 | 6.2 | 203 |
+| headlines | choice | 6 | ru | 4522 | 0.767 / 0.760 | 0.783 / 0.775 | 0.860 | 0.024→0.024 | 0.336 | 5.5 | 2644 |
+| kinopoisk | choice | 3 | ru | 4000 | 0.609 / 0.564 | 0.652 / 0.609 | 0.817 | 0.161→0.109 | 0.542 | 7.0 | 186 |
+| toxic | noul | 2 | en | 4000 | 0.917 / 0.626 | 0.893 / 0.624 | 0.925 | 0.116→0.037 | 0.129 | 5.7 | 437 |
 
+- **agnews-mmBERT-base**: jhu-clsp/mmBERT-base distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.73).
 - **agnews**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.74).
+- **banking77**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=1.09).
+- **georeview**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.783 (teacher 0.619); calibrated to gold (T=1.95).
+- **headlines**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; temperature kept at 1.0 (fitting it did not improve ECE on the calib split).
+- **kinopoisk**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 1500 eval examples; calibrated to gold (T=2.35).
+- **toxic**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; p(true); AUROC vs gold on 3000 eval examples; AUROC 0.856 (teacher 0.817); calibrated to gold (T=0.25).
 <!-- results -->
 
 ## What the numbers mean
@@ -85,11 +97,60 @@ and a fixed label set — this is not a general model that takes arbitrary optio
 - **Brier** is the multiclass sum-of-squares against the one-hot gold, on calibrated probabilities.
 - **agree** is argmax agreement between student and teacher on the eval split. It is the metric that
   matters when a task has no gold at all.
-- **Latency** is batch-1 on the GB10 GPU, p50 of 200 requests after 20 warmups, measured *while vLLM
-  was resident on the same GPU* — a dedicated GPU would be faster. `ex/s` is batch-64 throughput on
-  the same hardware. `results/*.json` also carries a CPU batch-1 p50.
+- **Latency** is batch-1 on the GB10 GPU, p50 of 200 requests after 20 warmups. Every row in the table
+  was measured with vLLM resident but **idle**, so the rows are comparable to each other; a box without
+  the teacher loaded at all would be a little faster still. `ex/s` is batch-64 throughput on the same
+  hardware. `results/*.json` also carries a CPU batch-1 p50.
 - **Distillation cannot beat its teacher's errors.** Where the teacher is systematically wrong the
   student inherits it, and the agreement column is what tells you how much.
+
+## Findings
+
+One night, seven runs, one teacher. What it showed:
+
+**Distillation reaches the teacher on easy tasks, and stops there.** On agnews the 140M student scores
+0.879 against the teacher's 0.880 — parity, at 5.3 ms batch-1 and 869 ex/s instead of one LLM call per
+example. The same task with `mmBERT-base` (307M params vs 140M) buys 0.883: +0.4 points for half the
+batch-64 throughput (435 vs 869 ex/s) and 9.8 GB of training memory instead of 5.5. On a task this
+easy the student size is not the bottleneck; the teacher is.
+
+**The student beat its teacher on toxic** — accuracy 0.917 vs 0.893, AUROC 0.856 vs 0.817. That is real
+but it is not free: toxic is the one task whose training rows were selected 50/50 *by gold*
+(`balance: true` over an 8%-positive dataset), so gold paid for the row selection even though every
+label is still the teacher's. The mechanism is ordinary — averaging 4000 noisy soft labels over a
+balanced sample denoises a teacher that is itself poorly thresholded — and it does not generalise to
+the tasks below.
+
+**On the hard Russian tasks the framework did not deliver.** kinopoisk: 0.609 against a teacher at
+0.652. georeview: MAE 0.783 against a teacher at 0.619. The teacher is the ceiling and the teacher is
+weak — on the kinopoisk eval split (gold is an even three-way split) it answers "Good" for 56.5% of
+rows and "Neutral" for 12.7%, a prompt-level prior the student reproduces faithfully (agreement 0.817).
+Distillation transfers the bias along with the signal. Without gold there is no mechanism here that can
+exceed a weak teacher, and none of the knobs in this repo change that.
+
+**banking77 is where the teacher cost shows up.** 77 classes go through the chunked shortlist, which is
+6 teacher calls per example: 33,000 calls for 5,500 rows and 61 minutes of teacher time — 42% of the
+night's entire teacher budget for one task. The result is 0.748 against the teacher's 0.764 at agreement
+0.836, i.e. the shortlist's approximation survives distillation but does not improve under it. The first
+attempt at 5 epochs was underfit (calib KL 0.407 and still falling); 12 epochs moved accuracy 0.7425 →
+0.7485, +0.6 points, with calib KL at 0.347 and *still* falling. The default epoch count is too low for
+large label sets.
+
+**Temperature scaling is worth it exactly where the model is overconfident, and nowhere else.**
+georeview 0.253 → 0.072 and toxic 0.116 → 0.037 are large, real wins. Where the raw model is already
+calibrated it is a no-op or slightly harmful: headlines 0.024 → 0.024 (the fit was rejected), and
+banking77 0.017 → 0.028, where a temperature that improved ECE on the 500-row calib split made it worse
+on eval. A single scalar fitted on 500 rows is noise at that scale, which is why `calibrate` now keeps
+T = 1.0 whenever the fit does not improve ECE on the calib split.
+
+**The augment round is a small gain, not a result.** One round on headlines produced 522 synthetic
+Russian headlines from the teacher, aimed at the weakest classes and the most frequent confusion pairs;
+accuracy went 0.762 → 0.767 and macro-F1 0.755 → 0.760. That is one round, one seed, no control arm and
+no repeat — it is consistent with the method working and equally consistent with variance.
+
+**Teacher cost.** 66,522 teacher calls, 144 minutes (2.4 h) of labeling wall-clock across the six tasks,
+of which banking77 alone is 61 minutes. Student training is 1.5–12 minutes per task. The teacher is the
+budget; everything else is rounding.
 
 ## Targeted synthetic data (`openjev augment`)
 

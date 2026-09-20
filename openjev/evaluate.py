@@ -115,7 +115,7 @@ def run(task, run_dir, results_dir=None, latency=True):
     return res
 
 
-NOTES = {"choice": "argmax accuracy", "score": "expected level; MAE vs gold stars", "noul": "p(true); AUROC vs gold"}
+NOTES = {"choice": "argmax accuracy", "score": "expected level; MAE", "noul": "p(true); AUROC"}
 
 
 def report(results_dir=None, readme=None):
@@ -137,9 +137,13 @@ def report(results_dir=None, readme=None):
         if r.get("noul", {}).get("auroc") is not None:
             extra = f"; AUROC {r['noul']['auroc']:.3f} (teacher {r['noul']['teacher_auroc']:.3f})"
         gold = "zero gold labels" if not r["gold_weight"] else f"gold CE weight {r['gold_weight']}"
+        target = r["calib_target"]
+        cal = (f"temperature kept at 1.0 (fitting it did not improve ECE on the calib split)"
+               if target.endswith("-kept-1.0") else
+               f"calibrated to {target} (T={r['temperature']:.2f})")
         notes.append(f"- **{p.stem}**: {r['student_model']} distilled from the teacher with {gold}; "
                      f"{NOTES[r['type']]} vs {r.get('eval_target', 'gold')} on {r['eval_n']} eval examples"
-                     f"{extra}; calibrated to {r['calib_target']} (T={r['temperature']:.2f}).")
+                     f"{extra}; {cal}.")
     block = f"{MARK}\n" + "\n".join(lines) + "\n\n" + "\n".join(notes) + f"\n{MARK}"
     text = readme.read_text() if readme.exists() else f"# Open-Jev\n\n## Results\n\n{MARK}\n{MARK}\n"
     if text.count(MARK) < 2:

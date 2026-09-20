@@ -244,4 +244,6 @@ Response shape (illustrative numbers):
    ```
 
 Stages skip themselves when their artifact exists; `--force <stage>` re-runs one (and everything
-after it).
+after it). `run` always walks the label stage first — it is a no-op when every row is cached, but it
+does re-read the dataset and would call the teacher for any missing row. To re-run one stage and
+nothing else, call it directly: `openjev eval tasks/<name>.yaml`.

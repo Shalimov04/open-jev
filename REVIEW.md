@@ -1,5 +1,12 @@
 # Open-Jev review (2026-09-20, code at 025fa84 + working tree)
 
+> **Historical.** This is a review of 025fa84. A1–A4, B1–B4, B7–B9, C1–C4, C7, C8 and D were fixed
+> in fa67ccf and later; C12 (the auto-generated "zero gold labels" note contradicting the prose on
+> `toxic`) is fixed now, in `evaluate.report()` via a `balanced_train` flag in `results/*.json`.
+> Still open: B5 (`label.json` `n_failed` is overwritten rather than summed, and the stats are only
+> written on a clean exit), B6 (row order in `teacher.jsonl` follows teacher completion order — the
+> draw is seeded, the file is not bit-exact), C11. For the current state see `REVIEW-final.md`.
+
 Scope: PLAN.md, openjev/*.py, tasks/*.yaml, tests/, scripts/, results/agnews.json, runs/agnews (read-only).
 `pytest -q tests` (CPU): 10 passed. Nothing under runs/ was touched; no GPU jobs started.
 

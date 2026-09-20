@@ -3,7 +3,8 @@
 Writes runs/<name>/teacher.jsonl (append-only, resumable) rows:
   {"id","split","text","gold","probs":[K],"raw":{letter:logprob},"source":"data", ["gold_prob"]}
 For K > max_options_per_call, "raw" is {"chunks": [{option_idx: p, "none": p}...], "final": {option_idx: logprob}}.
-Also writes runs/<name>/label.json {"calls", "minutes", "n_labeled", "n_failed"} (accumulated over resumes).
+Also writes runs/<name>/label.json {"model", "calls", "minutes", "n_labeled", "n_failed"}
+("model" is the served teacher id; the counters accumulate over resumes).
 """
 import asyncio
 import fcntl
@@ -168,7 +169,7 @@ async def _run(task, todo, out_path):
                           f"{teacher.calls / dt:.1f} calls/s failed={failed}", flush=True)
             append_jsonl(f, buf)
     dt = time.time() - t0
-    stats = {"calls": stats["calls"] + teacher.calls, "minutes": stats["minutes"] + dt / 60,
+    stats = {"model": model, "calls": stats["calls"] + teacher.calls, "minutes": stats["minutes"] + dt / 60,
              "n_labeled": stats["n_labeled"] + done, "n_failed": failed}
     stats_path.write_text(json.dumps(stats, indent=1))
     print(f"{task.name}: labeled {done} in {dt:.0f}s ({done / max(dt, 1e-9):.1f} ex/s), failed {failed}", flush=True)

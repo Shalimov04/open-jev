@@ -8,6 +8,7 @@
   "n_synth": 0,
   "augment_round": 0,
   "gold_weight": 0.0,
+  "balanced_train": true,
   "eval_n": 3000,
   "eval_target": "gold",
   "student": {

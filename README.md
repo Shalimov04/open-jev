@@ -2,7 +2,7 @@
 
 Turn a prompt into a small, fast, calibrated classifier. You describe a decision in a YAML file — a
 choice between options, a score on a rubric, or the truth of a statement — and `openjev` has a local
-Qwen teacher label a few thousand examples with *soft* labels (per-option probabilities read off the
+LLM teacher (here Qwen3.8-27B on vLLM) label a few thousand examples with *soft* labels (per-option probabilities read off the
 logprobs of a single constrained letter token), distills those into a ~140M encoder, fits a
 temperature on a held-out split, and serves the result at `POST /v1/systemone`. The output is a typed
 decision with probabilities you can threshold on, not a string you have to parse. It is an open
@@ -59,6 +59,15 @@ That last line, run against `runs/agnews`, prints:
 `GET /v1/models` lists the loaded runs. Each served model is one trained student with a fixed type
 and a fixed label set — this is not a general model that takes arbitrary options at request time.
 
+Run everything from the repo root (`results/` and this README are resolved relative to it). Tests:
+`pytest -q tests` — 19 tests, ~20 s on CPU, no GPU and no teacher needed; two of them want
+`jhu-clsp/mmBERT-small` and `fancyzhx/ag_news` in the Hugging Face cache.
+
+The tasks here are English and Russian, but nothing is language-specific: `question`, `options` and
+`statement` are free text, so write them in whatever language you want the teacher prompted in, as
+long as the teacher and the student checkpoint (mmBERT is multilingual) both cover it. `lang` itself
+is only a report column and the language `openjev augment` generates in.
+
 ## Results
 
 <!-- results -->
@@ -78,8 +87,14 @@ and a fixed label set — this is not a general model that takes arbitrary optio
 - **georeview**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.783 (teacher 0.619); calibrated to gold (T=1.95).
 - **headlines**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; temperature kept at 1.0 (fitting it did not improve ECE on the calib split).
 - **kinopoisk**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 1500 eval examples; calibrated to gold (T=2.35).
-- **toxic**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; p(true); AUROC vs gold on 3000 eval examples; AUROC 0.856 (teacher 0.817); calibrated to gold (T=0.25).
+- **toxic**: jhu-clsp/mmBERT-small distilled from the teacher with no gold in the loss (but train rows picked 50/50 by gold); p(true); AUROC vs gold on 3000 eval examples; AUROC 0.856 (teacher 0.817); calibrated to gold (T=0.25).
 <!-- results -->
+
+Teacher for every row: **Qwen3.8-27B**, 3-bit GSQ quantisation (ISTA-DASLab) with MTP, served by vLLM
+on the same box under the id `Qwen/Qwen3.8-27B-FP8`, called with `max_tokens: 1` and
+`enable_thinking: false`. Every "teacher" number in the table is that model zero-shot; the students
+cannot do better than it except by denoising it. Runs from before 2026-09-20 do not record the model
+id in `runs/<task>/label.json` — newer ones do.
 
 ## What the numbers mean
 
@@ -87,7 +102,11 @@ and a fixed label set — this is not a general model that takes arbitrary optio
   teacher's distributions. Gold is used for the eval and (when present) for fitting the temperature.
   One exception: **toxic** sets `balance: true` on its training split, which picks 50/50 rows *by gold*
   from an 8%-positive dataset. Its labels are still the teacher's, but the row selection spent gold, so
-  it is not a zero-gold row; every other task is.
+  it is not a zero-gold row; every other task is. That balanced draw also came out of the same 60k-row
+  pool as calib, and it went first, so toxic's calib split ended up **11/500 = 2.2% positive against
+  8.1% on eval** — T = 0.25 was fitted on 11 positives. It still cut eval ECE 0.116 → 0.037, but it is
+  a temperature fitted under the wrong prior on very few rows, not a clean result. The sampler now
+  draws the natural-rate splits before any balanced one; the numbers in the table predate that fix.
 - **The baseline is the teacher, not the state of the art.** Teacher zero-shot accuracy on the same
   eval split is in the table beside the student's. The claim being tested is "a 140M encoder can keep
   the teacher's accuracy at a fraction of the cost", not "this beats a supervised model".
@@ -101,8 +120,9 @@ and a fixed label set — this is not a general model that takes arbitrary optio
   was measured with vLLM resident but **idle**, so the rows are comparable to each other; a box without
   the teacher loaded at all would be a little faster still. `ex/s` is batch-64 throughput on the same
   hardware. `results/*.json` also carries a CPU batch-1 p50.
-- **Distillation cannot beat its teacher's errors.** Where the teacher is systematically wrong the
-  student inherits it, and the agreement column is what tells you how much.
+- **Distillation cannot beat its teacher's *systematic* errors.** Where the teacher is consistently
+  wrong the student inherits it, and the agreement column tells you how much. Independent per-example
+  noise is the one thing averaging can wash out — that is the most it did on toxic.
 
 ## Findings
 
@@ -114,12 +134,15 @@ example. The same task with `mmBERT-base` (307M params vs 140M) buys 0.883: +0.4
 batch-64 throughput (435 vs 869 ex/s) and 9.8 GB of training memory instead of 5.5. On a task this
 easy the student size is not the bottleneck; the teacher is.
 
-**The student beat its teacher on toxic** — accuracy 0.917 vs 0.893, AUROC 0.856 vs 0.817. That is real
-but it is not free: toxic is the one task whose training rows were selected 50/50 *by gold*
-(`balance: true` over an 8%-positive dataset), so gold paid for the row selection even though every
-label is still the teacher's. The mechanism is ordinary — averaging 4000 noisy soft labels over a
-balanced sample denoises a teacher that is itself poorly thresholded — and it does not generalise to
-the tasks below.
+**The student ranks better than its teacher on toxic** — AUROC 0.856 vs 0.817, and Brier against the
+annotator fraction 0.035 vs 0.048. Ignore the accuracy column here: the eval split is 8.1% positive
+(244/3000), so always answering "not toxic" scores 0.919 — above both the student's 0.917 and the
+teacher's 0.893 — and macro-F1 is a tie (0.626 vs 0.624). Accuracy on a task this skewed says nothing;
+the ranking and probability metrics are where the student is ahead. That win is not free either: toxic
+is the one task whose training rows were selected 50/50 *by gold* (`balance: true` over an 8%-positive
+dataset), so gold paid for the row selection even though every label is still the teacher's. One
+plausible mechanism is that averaging 4000 soft labels over a balanced sample denoises the teacher's
+per-example noise; it is one task, and it does not generalise to the ones below.
 
 **On the hard Russian tasks the framework did not deliver.** kinopoisk: 0.609 against a teacher at
 0.652. georeview: MAE 0.783 against a teacher at 0.619. The teacher is the ceiling and the teacher is
@@ -133,8 +156,9 @@ exceed a weak teacher, and none of the knobs in this repo change that.
 night's entire teacher budget for one task. The result is 0.748 against the teacher's 0.764 at agreement
 0.836, i.e. the shortlist's approximation survives distillation but does not improve under it. The first
 attempt at 5 epochs was underfit (calib KL 0.407 and still falling); 12 epochs moved accuracy 0.7425 →
-0.7485, +0.6 points, with calib KL at 0.347 and *still* falling. The default epoch count is too low for
-large label sets.
+0.7485, +0.6 points, with calib KL at 0.347 and *still* falling. The default of 5 epochs is too low,
+full stop: in all seven runs the best epoch was the *last* one and calib KL was still going down, so
+early stopping never fired and `epochs` — not patience — is the binding knob.
 
 **Temperature scaling is worth it exactly where the model is overconfident, and nowhere else.**
 georeview 0.253 → 0.072 and toxic 0.116 → 0.037 are large, real wins. Where the raw model is already
@@ -177,7 +201,8 @@ text is actually useful; the upgrade path is the full PGKD selection loop.
 
 - A vLLM (or other OpenAI-compatible) endpoint serving the teacher, reachable at
   `OPENJEV_TEACHER_URL`, supporting `logprobs` + `top_logprobs` and the vLLM `structured_outputs`
-  field. Developed against a local Qwen3 served by vLLM on the same box.
+  field. Developed against Qwen3.8-27B (3-bit GSQ + MTP, alias `Qwen/Qwen3.8-27B-FP8`) served by vLLM
+  on the same box. Any instruct model that returns letter logprobs works; it sets the ceiling.
 - One NVIDIA GPU for training. mmBERT-small at batch 32 / len 256 peaks around 5.5 GB, so it fits
   next to a resident vLLM; mmBERT-base is roughly 8 GB. CPU-only works for `serve` and `eval`.
 - Python ≥ 3.10, and the deps in `pyproject.toml` (torch, transformers, datasets, httpx, pyyaml,
@@ -203,5 +228,6 @@ text is actually useful; the upgrade path is the full PGKD selection loop.
   to gold; without it, to the teacher's *soft* probabilities (`calib_target: teacher-soft`) — which
   calibrates the student to the teacher's opinion, not to the truth. `calib_target` in
   `results/*.json` says which. A temperature also cannot correct a prior shift, so fit it on a split
-  drawn at the same rate as the eval split.
+  drawn at the same rate as the eval split — toxic is the cautionary example above (calib 2.2%
+  positive vs 8.1% on eval, because the balanced train draw went first and depleted the pool).
 - **The teacher is the cost.** Labeling dominates wall-clock; the student trains in minutes.

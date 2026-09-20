@@ -6,7 +6,9 @@ name: example                 # run dir = runs/example/
 type: choice                  # choice | score | noul
 question: "What is the intent of this support message?"
 options: [billing, technical, other]   # fixed order = label order; also the teacher's answer set
-lang: en                      # only affects the teacher prompt wording and the report
+lang: en                      # report column + the language `openjev augment` generates in; the
+                              # labeling prompt never sees it — write `question`/`options` in the
+                              # language you want, any language works the same way
 
 data:
   source: {csv: data/support.csv}   # one CSV; a `datasets`-loadable file. Also {jsonl: ...} or {hf: org/name}

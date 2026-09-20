@@ -18,7 +18,7 @@ openjev run tasks/<name>.yaml
 | `name` | str | **required** | Run directory is `runs/<name>/`; also the model id used by `openjev serve` and the row name in the results table. |
 | `type` | `choice` \| `score` \| `noul` | **required** | Picks the derived labels and the response view. Anything else is an error. |
 | `question` | str | **required** for `choice`/`score` | First line of the teacher's system prompt. Optional for `noul`, where it only overrides the default head line `Is the following statement about the text true?` (the `statement` block follows it either way). |
-| `lang` | str | `en` | Not used for anything functional — it goes into the teacher prompt context you write yourself and into the report column. |
+| `lang` | str | `en` | The labeling prompt never sees it: it is the report column, and the language `openjev augment` asks the teacher to generate in. Write the prompt's language into `question` / `options` / `statement` yourself — a task in any other language works exactly the same way, as long as the teacher and the student checkpoint cover it. |
 | `options` | list[str] | `null` | **`choice` only, required.** The label set, in a fixed order that is the class order end to end. |
 | `rubric` | dict | `null` | **`score` only, required.** `{levels: [...], descriptions: [...]}` — see below. |
 | `statement` | str | `null` | **`noul` only, required.** The proposition the teacher judges true/false. |
@@ -51,7 +51,7 @@ over. `descriptions` only affect the teacher prompt: each option line becomes `"
 
 | field | type | default | what it does |
 |---|---|---|---|
-| `source` | mapping | **required** | Exactly one of `{hf: org/name}`, `{csv: path}`, `{jsonl: path}`. For `hf`, optional `config:` and `revision:` are passed to `datasets.load_dataset`. |
+| `source` | mapping | **required** | Exactly one of `{hf: org/name}`, `{csv: path}`, `{jsonl: path}`. For `hf`, optional `config:` and `revision:` are passed to `datasets.load_dataset`. Any other key is an error, as everywhere else. |
 | `text` | str | `"{text}"` | `str.format` template over the row's fields. Multi-field is fine: `"{title}\n{body}"`. A missing field raises. |
 | `max_chars` | int | `2000` | Truncation applied *before* both teacher and student, so both see exactly the same input. |
 | `gold` | str \| null | `null` | Column holding the ground-truth label. Optional: with no gold, everything still works — the temperature is fitted to the teacher's soft probabilities and the eval is reported against the teacher. |
@@ -73,11 +73,14 @@ and used as an index.
 |---|---|---|---|
 | `split` | str | `train` (`test` for `eval`) | The `datasets` split expression, slices included: `train[:60000]`. A plain CSV/JSONL file is always a single split named `train`. |
 | `n` | int | `1000` (`500` calib, `2000` eval) | Number of examples to draw. |
-| `balance` | bool | `false` | Draw `n // k` per gold class, then top up from the remaining rows. Requires `gold` (so a balanced split is not a zero-gold split). Use it on train for a skewed task; leave `calib` and `eval` at the natural distribution, or the fitted temperature is calibrated to the wrong prior. |
+| `balance` | bool | `false` | Draw `n // k` per gold class, then top up from the remaining rows. Requires `gold` (so a balanced split is not a zero-gold split), and is an error without it. Use it on train for a skewed task; leave `calib` and `eval` at the natural distribution, or the fitted temperature is calibrated to the wrong prior. A balanced role is drawn *after* the natural-rate ones (see below), so on a small pool the minority class can already be spent — the top-up then quietly makes the split less balanced than asked. |
 
-Roles are drawn in the fixed order train → calib → eval, each from the rows not yet taken from
-that source split. Two roles pointing at the same split are therefore guaranteed disjoint, and the
-draw is deterministic — re-running resumes rather than re-labels.
+Roles are drawn in the order train → calib → eval, each from the rows not yet taken from that
+source split, except that any role with `balance: true` is drawn **last**: a balanced draw picks rows
+by gold and depletes the minority class, which would otherwise shift the prior of the roles after it
+(this is exactly what happened to `toxic`, see below). Two roles pointing at the same split are
+guaranteed disjoint either way, and the draw is deterministic — re-running resumes rather than
+re-labels. A role that cannot get its `n` rows out of what is left is an error, not a short split.
 
 ## teacher
 
@@ -115,7 +118,7 @@ probability 0 (clamped to 1e-6 before the KL). Cost: `ceil(k/19) + 1` calls per 
 |---|---|---|---|
 | `model` | str | `jhu-clsp/mmBERT-small` | Any `AutoModelForSequenceClassification` checkpoint. `jhu-clsp/mmBERT-base` for a bigger run. Overridable per run with `--student`. |
 | `max_len` | int | `256` | Tokenizer truncation length for training, eval and serving. 512 for long-text tasks — see below. |
-| `epochs` | int | `5` | Upper bound; early stopping on calib KL with patience 2 usually stops sooner. |
+| `epochs` | int | `5` | Upper bound; early stopping (patience 2) on calib KL **never triggered in the seven runs in this repo** — the best epoch was the last one and calib KL was still falling every time, so `epochs` is the binding knob. Raise it, especially for large label sets (banking77 needed 12). |
 | `lr` | float | `5.0e-5` | AdamW learning rate, 6% linear warmup then linear decay. |
 | `batch_size` | int | `32` | Training batch size. Halve it if you OOM next to a running vLLM. |
 | `gold_weight` | float | `0.0` | Weight of a CE term on gold added to the distillation KL, applied only to rows that have gold. `0.0` = pure distillation, which is the headline setting. Overridable with `--gold-weight`. |
@@ -209,9 +212,13 @@ data:
 ```
 
 `labels = ["true", "false"]`, `k = 2`. The gold column is a fraction, so `gold_threshold` (0.5)
-turns it into a class and `gold_prob` keeps the fraction for a Brier score against it. Train is balanced because positives are ~8% of the data; calib and eval stay at the natural rate, so
-the temperature is fitted under the prior it is evaluated on. Note that `balance: true` selects rows by
-gold, so a balanced split does spend gold labels.
+turns it into a class and `gold_prob` keeps the fraction for a Brier score against it. Train is
+balanced because positives are ~8% of the data. Note that `balance: true` selects rows by gold, so a
+balanced split does spend gold labels — and that in the run recorded in the README it was drawn
+*first*, out of the same `train[:60000]` pool as calib, which left calib at **11/500 = 2.2%** positive
+against **8.1%** on eval: T = 0.25 was fitted on 11 positives. It still improved eval ECE
+(0.116 → 0.037), but fitting a temperature on a depleted pool is a weakness, which is why balanced
+roles are now drawn after the others.
 Response shape (illustrative numbers):
 
 ```json

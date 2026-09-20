@@ -60,6 +60,10 @@ def test_short_rubric_descriptions_are_padded(tmp_path):
 
 
 def test_parse_saved_response():
+    """Placebo: point the saved response's top logprob at another letter and the argmax must move.
+
+    The whole label is this path: response -> letter logprobs -> softmax -> probs[].
+    """
     resp = json.loads((ROOT / "tests/data/response_agnews.json").read_text())
     raw = parse_logprobs(resp, list("ABCD"))
     p = softmax_letters(raw, list("ABCD"))
@@ -148,3 +152,51 @@ def test_augment_parse_and_targets():
     ev = {"calib_split": {"recall": {"a": 0.9, "b": 0.5, "c": 0.7},
                           "confusion": [[9, 0, 1], [0, 5, 5], [0, 3, 7]]}}
     assert targets(ev, cap=4) == [(1, None), (2, None), (0, None), (1, 2)]  # weak classes, then pairs
+
+
+def _resume_task(tmp_path, question="q"):
+    p = tmp_path / "t.yaml"
+    p.write_text(f"name: x\ntype: choice\nquestion: {question}\noptions: [a, b]\n"
+                 "data: {source: {csv: f}}\n")
+    return load_task(p)
+
+
+def test_resume_refuses_a_changed_prompt(tmp_path, monkeypatch):
+    """Placebo: keep `question:` unchanged and the same call must resume silently.
+
+    Resume matches ids only, so without this guard `openjev run` would append labels made under a
+    new prompt to rows made under the old one and never say so.
+    """
+    from openjev import teacher as T
+    monkeypatch.setattr(T, "served_model", lambda: "some/model")
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "teacher.jsonl").write_text(json.dumps({"id": "a:0", "split": "train"}) + "\n")
+    (run_dir / "label.json").write_text(json.dumps(
+        {"model": "some/model", "prompt_sha": T.prompt_sha(_resume_task(tmp_path))}))
+
+    T.check_resume(_resume_task(tmp_path), run_dir, "vllm", force=False)          # placebo: fine
+    with pytest.raises(SystemExit, match="prompt_sha was"):
+        T.check_resume(_resume_task(tmp_path, "a different question?"), run_dir, "vllm", force=False)
+    monkeypatch.setattr(T, "served_model", lambda: "other/model")
+    with pytest.raises(SystemExit, match="model was some/model, now other/model"):
+        T.check_resume(_resume_task(tmp_path), run_dir, "vllm", force=False)
+
+    T.check_resume(_resume_task(tmp_path), run_dir, "vllm", force=True)           # --force label
+    assert not (run_dir / "teacher.jsonl").exists() and not (run_dir / "label.json").exists()
+    assert len(list(run_dir.glob("teacher.jsonl.bak-*"))) == 1
+
+
+def test_append_after_a_truncated_line_keeps_the_new_row(tmp_path):
+    """Placebo: drop the `seal()` call and the appended row is glued onto the partial line and lost."""
+    from openjev.data import append_jsonl, read_jsonl, seal
+    p = tmp_path / "teacher.jsonl"
+    with open(p, "w") as f:
+        append_jsonl(f, [{"id": i} for i in range(3)])
+    with open(p, "r+") as f:                      # crash mid-flush: last line cut inside the JSON
+        f.truncate(p.stat().st_size - 5)
+    assert len(read_jsonl(p)) == 2
+    seal(p)
+    with open(p, "a") as f:
+        append_jsonl(f, [{"id": 9}])
+    assert [r["id"] for r in read_jsonl(p)] == [0, 1, 9]

@@ -105,6 +105,18 @@ def read_rows(run_dir, split):
     return sorted(rows, key=lambda r: r["id"])
 
 
+def seal(path):
+    """Terminate a truncated last line before appending to it. `read_jsonl` drops the half-written
+    record a crash mid-flush leaves behind, but the bytes stay on disk and the next append would
+    glue a new record onto them, losing that one too (after r-ms/mini-jev `records.py`)."""
+    path = Path(path)
+    if path.exists() and path.stat().st_size:
+        with open(path, "r+b") as f:
+            f.seek(-1, 2)
+            if f.read(1) != b"\n":
+                f.write(b"\n")
+
+
 def append_jsonl(f, rows):
     for r in rows:
         f.write(json.dumps(r, ensure_ascii=False) + "\n")

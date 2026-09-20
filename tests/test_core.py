@@ -114,6 +114,9 @@ def test_end_to_end_tiny(tmp_path):
     er = [json.loads(l) for l in (run_dir / "eval_rows.jsonl").read_text().splitlines()]
     assert len(er) == 16 and set(er[0]) == {"id", "gold", "student_probs", "student_logits", "teacher_probs"}
     assert sum(er[0]["student_probs"]) == pytest.approx(1.0)
+    # A8: what produced the number. Placebo: drop `_env` from the res.update and this fails.
+    saved = json.loads((tmp_path / "results" / "toy.json").read_text())
+    assert saved["env"]["torch"] == torch.__version__ and saved["env"]["student_model"]
     evaluate.report(tmp_path / "results", tmp_path / "README.md")
     assert "| toy | choice | 2 |" in (tmp_path / "README.md").read_text()
     client = TestClient(serve.app_for([run_dir], "cpu"))
@@ -174,3 +177,36 @@ def test_jev_adapter_shape(monkeypatch):
     assert seen["body"]["questions"]["q"]["type"] == "choice"
     assert sorted(seen["body"]["questions"]["q"]["criteria"]) == ["a", "b"]
     assert seen["headers"]["Authorization"] == "Bearer k"
+
+
+def test_oracle_next_arm_is_exactly_wrong(tmp_path):
+    """Oracle placebo: point the teacher at gold instead of (gold+1)%K and both asserts flip.
+
+    A teacher that always answers the *next* option travels the real train/calibrate/eval path and
+    must come out at accuracy 0; for K=2 the student then agrees with it on exactly the rows it
+    gets wrong. Catches a gold/teacher mix-up anywhere in eval's scoring.
+    """
+    from openjev import calibrate, evaluate, train
+    from openjev.spec import load_task
+
+    (tmp_path / "t.yaml").write_text(
+        "name: oracle\ntype: choice\nquestion: sport or not?\noptions: [sport, other]\n"
+        "data: {source: {jsonl: x.jsonl}}\nstudent: {batch_size: 8, epochs: 1, max_len: 32}\n")
+    task = load_task(tmp_path / "t.yaml")
+    run_dir = tmp_path / "oracle"
+    run_dir.mkdir()
+    rng = random.Random(0)
+    with open(run_dir / "teacher.jsonl", "w") as f:
+        for split, n in (("train", 32), ("calib", 16), ("eval", 16)):
+            for j in range(n):
+                g = rng.randint(0, 1)
+                nxt = (g + 1) % task.k                       # the oracle-next arm
+                f.write(json.dumps({"id": f"{split}{j}", "split": split, "gold": g,
+                                    "text": ["the team won the match", "stocks fell today"][g],
+                                    "probs": [[0.9, 0.1], [0.1, 0.9]][nxt], "raw": {},
+                                    "source": "data"}) + "\n")
+    train.run(task, run_dir, max_steps=3)
+    calibrate.run(task, run_dir)
+    res = evaluate.run(task, run_dir, results_dir=tmp_path / "results", latency=False)
+    assert res["teacher"]["acc"] == 0.0
+    assert res["agreement"]["argmax"] == pytest.approx(1 - res["student"]["acc"])

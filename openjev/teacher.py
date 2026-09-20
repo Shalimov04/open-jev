@@ -9,18 +9,20 @@ Also writes runs/<name>/label.json {"model", "calls", "minutes", "n_labeled", "n
 """
 import asyncio
 import fcntl
+import hashlib
 import json
 import math
 import os
 import random
 import string
 import time
+import urllib.request
 
 from pathlib import Path
 
 import httpx
 
-from openjev.data import append_jsonl, examples, read_jsonl
+from openjev.data import append_jsonl, examples, read_jsonl, seal
 
 URL = os.environ.get("OPENJEV_TEACHER_URL", "http://localhost:8000/v1")
 JEV_URL = os.environ.get("OPENJEV_JEV_URL", "https://openrouter.ai/api/alpha/decisions")
@@ -54,6 +56,23 @@ def system_prompt(task, idx, with_none=False):
         letters.append(NONE)
         body.append(f"{NONE}: none of the above")
     return "\n".join([head, *body, "Answer with a single letter."]), letters
+
+
+def prompt_sha(task):
+    """Identity of the labeling prompt: the (first-chunk) system prompt, the full option list and
+    the chunk size. Stored in label.json so a resume cannot mix labels made under two prompts."""
+    head, _ = system_prompt(task, range(min(task.k, task.teacher.max_options_per_call)))
+    blob = "\n".join([head, *option_lines(task), str(task.teacher.max_options_per_call)])
+    return hashlib.sha256(blob.encode()).hexdigest()[:16]
+
+
+def served_model():
+    """The id vLLM is serving right now, or None if it is unreachable (localhost: no proxy)."""
+    try:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        return json.load(opener.open(f"{URL}/models", timeout=10))["data"][0]["id"]
+    except Exception:
+        return None
 
 
 def parse_logprobs(resp: dict, letters) -> dict:
@@ -181,6 +200,19 @@ class Teacher:
                 await asyncio.sleep(2 ** attempt)
         raise RuntimeError(f"teacher 5xx after retries: {r.status_code} {r.text[:200]}")
 
+    async def ask_open(self, system, text):
+        """The same request *without* `structured_outputs`. vLLM returns processed logprobs, so
+        under the grammar the letters always renormalise to 1.0 and a teacher that did not want to
+        answer with a letter still looks confident. This call is the only way to see that.
+        Returns the raw top-20 [{token, logprob}] at the answer position."""
+        body = {"model": self.model, "max_tokens": 1, "temperature": 0, "logprobs": True,
+                "top_logprobs": 20,
+                "messages": [{"role": "system", "content": system}, {"role": "user", "content": text}],
+                "chat_template_kwargs": {"enable_thinking": False}}
+        r = await self.client.post(f"{URL}/chat/completions", json=body)
+        r.raise_for_status()
+        return r.json()["choices"][0]["logprobs"]["content"][0]["top_logprobs"]
+
     async def label(self, text):
         """Returns (probs over all K labels, raw)."""
         k, m = self.task.k, self.task.teacher.max_options_per_call
@@ -208,6 +240,26 @@ class Teacher:
                               for idx, pr in chunk_results],
                    "final": {str(short[LETTERS.index(l)]): lp for l, lp in raw.items()}}
         return probs, raw_out
+
+
+def probe_open(task, texts, concurrency=8):
+    """Unconstrained next-token read for each text (mechanism probe, after r-ms/mini-jev).
+    Returns (letters, [top_logprobs list per text]). Never used for labels."""
+    system, letters = system_prompt(task, range(min(task.k, task.teacher.max_options_per_call)))
+
+    async def go():
+        async with httpx.AsyncClient(trust_env=False, timeout=120) as client:
+            model = (await client.get(f"{URL}/models")).json()["data"][0]["id"]
+            t = Teacher(task, client, model)
+            sem = asyncio.Semaphore(concurrency)
+
+            async def one(text):
+                async with sem:
+                    return await t.ask_open(system, text)
+
+            return letters, await asyncio.gather(*(one(x) for x in texts))
+
+    return asyncio.run(go())
 
 
 async def _run(task, todo, out_path, backend="vllm"):
@@ -247,9 +299,11 @@ async def _run(task, todo, out_path, backend="vllm"):
                 {"model": teacher.model, "calls": stats["calls"] + teacher.calls,
                  "minutes": stats["minutes"] + (time.time() - t0) / 60,
                  "n_labeled": stats["n_labeled"] + done, "n_failed": stats["n_failed"] + failed,
+                 **({"prompt_sha": prompt_sha(task)} if backend == "vllm" else {}),
                  **(getattr(teacher, "stats", dict)())}, indent=1))
 
         buf = []
+        seal(out_path)  # never append onto a line a previous crash left half-written
         with open(out_path, "a") as f:
             for fut in asyncio.as_completed([work(ex) for ex in todo]):
                 row = await fut
@@ -283,7 +337,37 @@ def jev_key():
     return key
 
 
-def run(task, run_dir, limit=None, extra=None, split=None, backend="vllm"):
+def check_resume(task, run_dir, backend, force):
+    """Refuse to append labels made under a different prompt or a different served model.
+
+    Resume matches rows by id only, so changing `question:`, an option or the served checkpoint
+    would silently mix two labelings in one file (after r-ms/mini-jev's `refuse_resume_on_mismatch`).
+    `force` backs the old file up and relabels from scratch.
+    """
+    out_path = run_dir / "teacher.jsonl"
+    stats_path = run_dir / "label.json"
+    if backend != "vllm" or not out_path.exists() or not stats_path.exists():
+        return
+    stats = json.loads(stats_path.read_text())
+    live = {"prompt_sha": prompt_sha(task), "model": served_model()}
+    bad = {k: (stats[k], live[k]) for k in live
+           if stats.get(k) and live[k] and stats[k] != live[k]}
+    if not bad:
+        return
+    if force:
+        bak = out_path.with_suffix(f".jsonl.bak-{int(time.time())}")
+        out_path.rename(bak)  # label.json is rewritten by the run; the old rows stay next to it
+        stats_path.unlink()
+        print(f"--force label: {', '.join(bad)} changed, moved the old rows to {bak.name}", flush=True)
+        return
+    raise SystemExit(
+        f"refusing to resume {out_path}: " +
+        "; ".join(f"{k} was {was}, now {now}" for k, (was, now) in bad.items()) +
+        "\nthose rows were labeled under a different prompt/model. Use a fresh run dir, or "
+        "`openjev label <task> --force label` to back them up and relabel.")
+
+
+def run(task, run_dir, limit=None, extra=None, split=None, backend="vllm", force=False):
     """Label all task examples not yet in run_dir/teacher.jsonl. `extra`: additional example dicts
     (e.g. synthetic, with "source": "synth") labeled the same way. `split`: only that role
     (`check --probe` labels calib rows into the same append-only file)."""
@@ -291,13 +375,15 @@ def run(task, run_dir, limit=None, extra=None, split=None, backend="vllm"):
     out_path = run_dir / "teacher.jsonl"
     with open(run_dir / "label.lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)  # a second labeler of the same task waits, then finds nothing to do
+        check_resume(task, run_dir, backend, force)
         have = {r["id"] for r in read_jsonl(out_path)}
-        if backend == "jev":  # reuse the vLLM run's rows: same ids, same splits, same texts
+        if backend == "jev" and (run_dir.parent / task.name / "teacher.jsonl").exists():
+            # reuse the vLLM run's rows: same ids, same splits, same texts
             base = run_dir.parent / task.name / "teacher.jsonl"
             exs = [{k: r[k] for k in ("id", "split", "text", "gold", "gold_prob", "source") if k in r}
                    for r in read_jsonl(base)]
             if not exs:
-                raise SystemExit(f"{base} is missing: label with the vLLM teacher first")
+                raise SystemExit(f"{base} is empty: label with the vLLM teacher first")
         else:
             exs = examples(task) + list(extra or [])
         if split:

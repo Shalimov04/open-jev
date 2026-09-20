@@ -5,6 +5,11 @@ Everything here is reproducible from the repo: every row names the command that 
 *improvement* only when the paired bootstrap 95 % CI excludes 0; otherwise the sentence is "no
 measurable difference". Anything fitted on eval is labelled **diagnostic** and is never a claim.
 
+From now on a comparison enters `findings.md` only if it has a preregistration file
+(`docs/prereg-template.md` → `docs/prereg/<id>.md`) whose commit predates the arms' `label.json` /
+`train.json` timestamps, and every amendment to it states what had been read when it was written.
+Not retrofitted: the sections below were written before the rule.
+
 What is held fixed in every comparison below: the teacher labels (`runs/<task>/teacher.jsonl` — the
 same ids and the same probabilities as the original runs, nothing was re-labelled), the split ids,
 the student checkpoint (`jhu-clsp/mmBERT-small`), `max_len`, `lr`, `batch_size`, and the calibration
@@ -32,6 +37,24 @@ positional. The Neutral collapse does not — it is 12.9 % against a gold 33.7 %
 12.0 % in the other, and averaging the two orders makes it *worse* (9.0 %). headlines is the same
 shape: политика is over-predicted and наука under-predicted in both orders. The student is
 distilled from these probabilities and faithfully inherits the shift.
+
+Two more readouts from the same two runs, no new teacher calls (`python scripts/perm_check.py
+kinopoisk`): **500 / 2000 kinopoisk rows (25.0 %) and 297 / 2500 headlines rows (11.9 %) change
+their argmax when the option list is reversed** — far from a near-tie effect (mini-jev measures
+3 / 50 on 15-token English utterances at k = 4). Accuracy per class, scored on the same rows in
+both orders, with the position that class occupied:
+
+| task | class | position → acc, original | position → acc, reversed |
+|---|---|---|---|
+| kinopoisk | Bad | 0 → 0.750 | 2 → 0.954 |
+| kinopoisk | Neutral | 1 → 0.209 | 1 → 0.242 |
+| kinopoisk | Good | 2 → 0.985 | 0 → 0.889 |
+| headlines | наука | 3 → 0.414 | 2 → 0.526 |
+| headlines | экономика | 5 → 0.780 | 0 → 0.626 |
+
+Bad and Good swing by 10–20 pts when their letter moves, which is positional; Neutral sits at the
+middle position in *both* orders and stays at 0.21 / 0.24, which is not. A chosen-position
+histogram cannot tell those two apart — the per-class readout can.
 
 A shift in the predicted marginal is exactly what a constant per-class bias on the logits removes,
 which is why vector scaling (`logits / T + b`, `b ∈ R^K`) is the right post-hoc tool here and an

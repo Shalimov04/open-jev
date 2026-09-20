@@ -47,7 +47,8 @@ def stage(name, task, run_dir, args):
         if run_dir.name != base:
             run_dir = run_dir.parent / base  # variants never label into their own dir
         return teacher.run(task, run_dir, limit=getattr(args, "limit", None),
-                           split=getattr(args, "split", None), backend=backend)
+                           split=getattr(args, "split", None), backend=backend,
+                           force="label" in getattr(args, "force", []))
     if name == "train":
         from openjev import train as mod
         return mod.run(task, run_dir, seed=getattr(args, "seed", 0) or 0,
@@ -91,8 +92,10 @@ def main(argv=None):
         if name == "label":  # a limit on `run` would label train rows only and leave calib/eval empty
             s.add_argument("--split", choices=["train", "calib", "eval"], help="label only this split")
             s.add_argument("--limit", type=int, help="label at most N examples")
-        if name == "run":
-            s.add_argument("--force", action="append", default=[], choices=STAGES, help="re-run STAGE")
+        if name in ("run", "label"):
+            s.add_argument("--force", action="append", default=[], choices=STAGES,
+                           help="re-run STAGE; `--force label` also backs up teacher.jsonl and "
+                                "relabels when the prompt or the served model changed")
         if name == "augment":
             s.add_argument("--rounds", type=int, default=1)
             s.add_argument("--per-class", type=int, default=100, help="texts asked for per prompt")

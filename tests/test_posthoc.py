@@ -128,3 +128,69 @@ def test_selective_coverage_falls_and_noul_precision_is_of_the_true_answers():
     # a choice task gets acc only; a score task gets mae, both on the covered rows
     assert "precision_true" not in evaluate.selective(_task(), student.repeat(1, 1), y)[0]
     assert "mae" in evaluate.selective(_task(type="score", k=2), student, y)[0]
+
+
+def test_shortlist_miss_counts_the_rows_whose_gold_never_reached_the_final_call():
+    """Placebo: put "2" back into row 2's `final` and the miss rate drops to 0.
+
+    K > 19 goes through a chunked shortlist, so a wrong label can be settled before the teacher
+    answers; without this number the teacher's ceiling is invisible.
+    """
+    rows = [{"gold": 1, "raw": {"chunks": [{"0": .1, "1": .8, "none": .1},
+                                           {"2": .1, "3": .1, "none": .8}],
+                                "final": {"1": -0.1, "3": -2.0}}},
+            {"gold": 2, "raw": {"chunks": [{"0": .1, "1": .1, "none": .8},
+                                           {"2": .3, "3": .1, "none": .6}],
+                                "final": {"0": -0.2, "3": -1.0}}},
+            {"gold": 0, "raw": {}}]                       # K <= 19 row: ignored
+    s = evaluate.shortlist_stats(rows)
+    assert s["shortlist_miss"] == 0.5 and s["shortlist_n"] == 2
+    assert s["p_none_chunk_with_gold"] == 0.35 and s["p_none_chunk_without_gold"] == 0.8
+    assert evaluate.shortlist_stats([{"gold": 0, "raw": {}}]) == {}
+
+
+def test_compare_reports_the_discordant_pairs_behind_a_null(tmp_path, capsys):
+    """Placebo: make the two arms disagree on more rows and the resolvable half-width must grow.
+
+    Only the rows where the arms disagree carry information about the delta, so a null with four
+    discordant rows is inconclusive, not a null.
+    """
+    n = 400
+    gold = [i % 2 for i in range(n)]
+    right = [[1.0, 0.0] if g == 0 else [0.0, 1.0] for g in gold]
+    flip = lambda k: [list(reversed(p)) if i < k else p for i, p in enumerate(right)]  # noqa: E731
+    _fake_run(tmp_path / "a", flip(2), gold)                                  # rows 0-1 wrong
+    _fake_run(tmp_path / "b", right[:2] + flip(4)[2:4] + right[4:], gold)     # rows 2-3 wrong
+    _fake_run(tmp_path / "c", right[:40] + flip(80)[40:80] + right[80:], gold)  # rows 40-79 wrong
+    r = evaluate.compare(tmp_path / "a", tmp_path / "b", n_boot=200)
+    assert r["discordant"] == [{"seed": 0, "a_only_right": 2, "b_only_right": 2,
+                                "resolvable": 1.96 * 4 ** 0.5 / n}]
+    assert "resolvable to ±1.0 pts" in r["verdict"] and r["verdict"].startswith("no measurable")
+    assert "discordant (seed 0): A-only-right 2, B-only-right 2 of 400" in capsys.readouterr().out
+    wide = evaluate.compare(tmp_path / "a", tmp_path / "c", n_boot=200)   # 42 discordant rows
+    assert wide["discordant"][0] == {"seed": 0, "a_only_right": 40, "b_only_right": 2,
+                                     "resolvable": 1.96 * 42 ** 0.5 / n}
+    assert "this design resolves ±3.2 pts" in capsys.readouterr().out
+
+
+def test_perm_check_flip_rate_and_positions_are_paired_per_class():
+    """Placebo: score the reversed arm against the reversed labels (forget the flip-back in
+    perm_check) and both columns become 0.
+
+    The two orders are compared on the *same* rows per class: class c sits at position c in the
+    original list and k-1-c in the reversed one.
+    """
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location(
+        "perm_check", Path(__file__).parent.parent / "scripts" / "perm_check.py")
+    pc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pc)
+    gold = [0, 0, 1, 1]
+    orig = [[.9, .1], [.9, .1], [.9, .1], [.2, .8]]     # class 0 right twice, class 1 right once
+    revp = [[.9, .1], [.1, .9], [.1, .9], [.1, .9]]     # row 1 and row 2 flip
+    r = pc.flips_and_positions(orig, revp, gold, 2)
+    assert r["n_flipped"] == 2 and r["flip_rate"] == 0.5
+    assert r["by_gold_position"] == [
+        {"class": 0, "n": 2, "pos_original": 0, "pos_reversed": 1, "acc_original": 1.0, "acc_reversed": 0.5},
+        {"class": 1, "n": 2, "pos_original": 1, "pos_reversed": 0, "acc_original": 0.5, "acc_reversed": 1.0}]

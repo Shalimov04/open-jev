@@ -3,6 +3,7 @@ Writes runs/<name>/eval.json, runs/<name>/openjev.json (export) and results/<run
 import dataclasses
 import json
 import os
+import platform
 import re
 import statistics
 import subprocess
@@ -107,6 +108,47 @@ def _latency(tok, model, texts, max_len, n=200, warmup=20):
     return ts[len(ts) // 2], ts[int(len(ts) * 0.99) - 1]
 
 
+def shortlist_stats(rows):
+    """K > max_options_per_call only: how often the chunk stage drops the gold option before the
+    final call ever sees it, and how loudly the chunks answer "none of the above" with and without
+    gold among their options. A miss caps the teacher's accuracy before it answers.
+    (Their out-of-scope finding, README:19 of r-ms/mini-jev, turned into a number for our shortlist.)"""
+    rows = [r for r in rows if r.get("gold") is not None
+            and isinstance(r.get("raw"), dict) and "final" in r["raw"]]
+    if not rows:
+        return {}
+    miss, with_gold, without = [], [], []
+    for r in rows:
+        g = str(r["gold"])
+        miss.append(g not in r["raw"]["final"])
+        for ch in r["raw"]["chunks"]:
+            (with_gold if g in ch else without).append(ch["none"])
+    return {"shortlist_miss": sum(miss) / len(miss), "shortlist_n": len(miss),
+            "p_none_chunk_with_gold": statistics.median(with_gold) if with_gold else None,
+            "p_none_chunk_without_gold": statistics.median(without) if without else None}
+
+
+def _hf_revision(model):
+    """The commit the HF cache has for `model` (its refs/main), or None when it is a local path."""
+    try:
+        home = Path(os.environ.get("HF_HOME") or Path.home() / ".cache" / "huggingface")
+        ref = home / "hub" / f"models--{model.replace('/', '--')}" / "refs" / "main"
+        return ref.read_text().strip() if ref.exists() else None
+    except OSError:
+        return None
+
+
+def _env(train, label):
+    """What produced this number: versions, model revisions, teacher and its prompt hash. Recorded
+    rather than pinned (their pyproject pins exact torch/transformers; that would hurt `pip install
+    -e .` here). Nothing reads it back — it is there when a number has to be explained."""
+    import transformers
+    return {"python": platform.python_version(), "torch": torch.__version__,
+            "transformers": transformers.__version__,
+            "student_model": train["student"], "student_revision": _hf_revision(train["student"]),
+            "teacher_model": label.get("model"), "label_prompt_sha": label.get("prompt_sha")}
+
+
 def _git():
     def git(*a):
         return subprocess.run(["git", *a], cwd=ROOT, capture_output=True, text=True).stdout.strip()
@@ -136,7 +178,7 @@ def run(task, run_dir, results_dir=None, latency=True):
            "augment_round": train.get("augment_round", 0), "gold_weight": train["gold_weight"],
            "balanced_train": task.data.train.balance,
            "eval_n": len(rows), "eval_target": eval_target,
-           "student": student, "teacher": _cls(teacher, y),
+           "student": student, "teacher": {**_cls(teacher, y), **shortlist_stats(rows)},
            "agreement": {"argmax": float((cal.argmax(-1) == teacher.argmax(-1)).float().mean()),
                          "mean_kl": float(F.kl_div(cal.log(), teacher, reduction="batchmean"))}}
     res["cascade"], res["cascade_parity"] = cascade(task, cal, teacher, y)
@@ -171,7 +213,8 @@ def run(task, run_dir, results_dir=None, latency=True):
     res.update({"teacher_calls": label.get("calls", calls * sum(1 for _ in open(run_dir / "teacher.jsonl"))),
                 "teacher_minutes": label.get("minutes"), "train_minutes": train["train_minutes"],
                 "peak_gpu_gb": train.get("peak_gpu_gb"), "temperature": T, "calib_target": calib["target"],
-                "ece_calib_split": [calib["ece_before"], calib["ece_after"]], "git": _git()})
+                "ece_calib_split": [calib["ece_before"], calib["ece_after"]], "git": _git(),
+                "env": _env(train, label)})
     prev = Path(results_dir or ROOT / "results") / f"{run_dir.name}.json"
     if not latency and prev.exists():  # a re-eval must not drop what `bench` measured on an idle teacher
         res.update({k: v for k, v in json.loads(prev.read_text()).items()
@@ -262,12 +305,13 @@ def compare(a, b, n_boot=2000, seed=0, out=print):
                               key=rows[0][i]["teacher_probs"].__getitem__) for i in ids])
     else:
         y = torch.tensor(gold)
-    fns = {}
+    fns, ok = {}, {}
     for k, s in enumerate(seeds):
         for off, arm in ((0, "A"), (len(seeds), "B")):
             p = torch.tensor([rows[k + off][i]["student_probs"] for i in ids])
             name, higher, f = metric_fn(task, p, y)
             fns[arm, s] = f
+            ok[arm, s] = (p.argmax(-1) == y).numpy()
     per_seed = [{"seed": s, "a": fns["A", s](), "b": fns["B", s]()} for s in seeds]
     for r in per_seed:
         r["delta"] = r["a"] - r["b"]
@@ -277,17 +321,30 @@ def compare(a, b, n_boot=2000, seed=0, out=print):
     scale, unit = (1.0, f" {name}") if name == "mae" else (100.0, " pts")
     fmt = (lambda v: f"{v * scale:+.3f}") if name == "mae" else (lambda v: f"{v * scale:+.1f}")
     d = f"Δ = {fmt(delta)} ± {fmt((hi - lo) / 2).lstrip('+')}{unit} (95 % CI {fmt(lo)}..{fmt(hi)})"
-    verdict = (f"no measurable difference ({d})" if lo <= 0 <= hi else
+    # McNemar's discordant pairs: only the rows where the arms disagree carry information, so
+    # b + c is the real sample size behind a null. Without it "no measurable difference" reads as
+    # "no difference" even when the design could not have resolved one (after r-ms/mini-jev
+    # `scoring.minimal_detectable_delta`).
+    disc = [{"seed": s, "a_only_right": int((ok["A", s] & ~ok["B", s]).sum()),
+             "b_only_right": int((~ok["A", s] & ok["B", s]).sum())} for s in seeds] \
+        if name == "acc" else []
+    for r in disc:
+        r["resolvable"] = 1.96 * (r["a_only_right"] + r["b_only_right"]) ** 0.5 / n
+    res = f"; resolvable to ±{100 * sum(r['resolvable'] for r in disc) / len(disc):.1f} pts" if disc else ""
+    verdict = (f"no measurable difference ({d}{res})" if lo <= 0 <= hi else
                f"{'A' if (delta > 0) == higher else 'B'} is better: {d}")
     out(f"A = {a}   B = {b}   metric: {name} ({'higher' if higher else 'lower'} is better), "
         f"{n} shared eval rows, {len(seeds)} seed(s), {n_boot} bootstrap resamples")
     out("| seed | A | B | Δ |\n|---|---|---|---|")
     for r in per_seed:
         out(f"| {r['seed']} | {r['a']:.4f} | {r['b']:.4f} | {r['delta']:+.4f} |")
+    for r in disc:
+        out(f"discordant (seed {r['seed']}): A-only-right {r['a_only_right']}, B-only-right "
+            f"{r['b_only_right']} of {n}; this design resolves ±{100 * r['resolvable']:.1f} pts")
     out(f"verdict: {verdict}")
     return {"a": str(a), "b": str(b), "metric": name, "higher_is_better": higher, "seeds": seeds,
             "n_rows": n, "per_seed": per_seed, "delta": delta, "ci": [lo, hi],
-            "n_boot": n_boot, "verdict": verdict}
+            "n_boot": n_boot, "discordant": disc, "verdict": verdict}
 
 
 def teacher_running():
@@ -379,6 +436,9 @@ def report(results_dir=None, readme=None):
             g = [c for c in r["selective"] if (c.get("precision_true") or 0) >= 0.9]
             extra += ("; gate: " + (f"{max(g, key=lambda c: c['coverage'])['coverage']:.0%} coverage at "
                                     f"90%+ precision(true)" if g else "no tau reaches 90% precision(true)"))
+        if r["teacher"].get("shortlist_miss") is not None:  # K > max_options_per_call only
+            extra += (f"; the chunked shortlist drops the gold option on "
+                      f"{r['teacher']['shortlist_miss']:.1%} of eval rows, capping the teacher there")
         gold = (f"gold CE weight {r['gold_weight']}" if r["gold_weight"] else
                 "no gold in the loss (but train rows picked 50/50 by gold)" if r.get("balanced_train") else
                 "zero gold labels")

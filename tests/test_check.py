@@ -51,10 +51,21 @@ def test_check_bad_source_is_one_line_and_exit_1(tmp_path):
     assert "missing.csv" in str(e.value) and "hint:" in str(e.value)
 
 
-def test_probe_warns_when_a_class_is_under_predicted(task_yaml, tmp_path, capsys):
+def fake_open(tops):
+    """Stand in for teacher.probe_open: one unconstrained top_logprobs list per row."""
+    def f(task, texts, concurrency=8):
+        return ["A", "B"], [tops] * len(texts)
+    return f
+
+
+def test_probe_warns_when_a_class_is_under_predicted(task_yaml, tmp_path, capsys, monkeypatch):
     """The kinopoisk case: gold is 50/50, the teacher answers `good` almost every time."""
+    from openjev import teacher as T
     from openjev.data import examples
     from openjev.spec import load_task
+    import math
+    monkeypatch.setattr(T, "probe_open", fake_open(
+        [{"token": "A", "logprob": math.log(0.9)}, {"token": "B", "logprob": math.log(0.09)}]))
     task = load_task(task_yaml)
     run_dir = tmp_path / "runs" / "t"
     run_dir.mkdir(parents=True)
@@ -67,3 +78,30 @@ def test_probe_warns_when_a_class_is_under_predicted(task_yaml, tmp_path, capsys
     assert "predicted marginal: good 75.0%  bad 25.0%" in out
     assert "mean max-p: 0.8" in out
     assert "WARNING the teacher under-predicts 'bad' (25% vs 50%)" in out
+
+
+def test_probe_warns_when_the_teacher_would_not_emit_a_letter(task_yaml, tmp_path, capsys, monkeypatch):
+    """Placebo: make the top unconstrained token 'A' again and the WARNING must disappear.
+
+    Our labeling call is constrained, so a teacher answering '\\n' still yields probs summing to 1.
+    """
+    import math
+
+    from openjev import teacher as T
+    from openjev.data import examples
+    from openjev.spec import load_task
+    monkeypatch.setattr(T, "probe_open", fake_open(
+        [{"token": "\n", "logprob": math.log(0.8)}, {"token": "A", "logprob": math.log(0.05)}]))
+    task = load_task(task_yaml)
+    run_dir = tmp_path / "runs" / "t"
+    run_dir.mkdir(parents=True)
+    exs = examples(task)
+    with open(run_dir / "teacher.jsonl", "w") as f:
+        for e in (e for e in exs if e["split"] == "calib"):
+            f.write(json.dumps({**e, "probs": [0.6, 0.4], "raw": {}}) + "\n")
+    check.probe(task, run_dir, 4, exs)
+    out = capsys.readouterr().out
+    assert "letter emission 0/4, candidate mass median 0.050 min 0.050" in out
+    assert "top-5 raw: '\\n' 0.80  'A' 0.05" in out
+    assert "WARNING this teacher does not want to answer with a letter" in out
+    assert out.index("WARNING this teacher") < out.index("teacher accuracy vs gold")

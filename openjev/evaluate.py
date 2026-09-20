@@ -2,8 +2,12 @@
 Writes runs/<name>/eval.json, runs/<name>/openjev.json (export) and results/<run>.json; `report()` rebuilds the README table."""
 import dataclasses
 import json
+import os
+import re
+import statistics
 import subprocess
 import time
+import urllib.request
 from pathlib import Path
 
 import torch
@@ -73,15 +77,16 @@ def run(task, run_dir, results_dir=None, latency=True):
         res["score"] = {"mae": float(((cal * v).sum(-1) - gold_v).abs().mean()),
                         "teacher_mae": float(((teacher * v).sum(-1) - gold_v).abs().mean())}
     if task.type == "noul":
-        is_true = (y == task.labels.index("true")).numpy()
+        ti = task.labels.index("true")  # C11: p(true) is a named column, not column 0 by luck
+        is_true = (y == ti).numpy()
         noul = {}
         if 0 < is_true.sum() < len(is_true):
-            noul["auroc"] = float(roc_auc_score(is_true, cal[:, 0]))
-            noul["teacher_auroc"] = float(roc_auc_score(is_true, teacher[:, 0]))
+            noul["auroc"] = float(roc_auc_score(is_true, cal[:, ti]))
+            noul["teacher_auroc"] = float(roc_auc_score(is_true, teacher[:, ti]))
         if all(r.get("gold_prob") is not None for r in rows):
             gp = torch.tensor([float(r["gold_prob"]) for r in rows])
-            noul["brier_vs_gold_prob"] = float(((cal[:, 0] - gp) ** 2).mean())
-            noul["teacher_brier_vs_gold_prob"] = float(((teacher[:, 0] - gp) ** 2).mean())
+            noul["brier_vs_gold_prob"] = float(((cal[:, ti] - gp) ** 2).mean())
+            noul["teacher_brier_vs_gold_prob"] = float(((teacher[:, ti] - gp) ** 2).mean())
         res["noul"] = noul
     if latency:
         p50, p99 = _latency(tok, model, texts, max_len)
@@ -107,6 +112,16 @@ def run(task, run_dir, results_dir=None, latency=True):
               examples=[dict(view(task.type, task.labels, cal[i].tolist(), task.values), text=texts[i][:200])
                         for i in range(min(5, len(rows)))])
     (run_dir / "eval.json").write_text(json.dumps(ev, indent=2, ensure_ascii=False))
+    # one line per eval row, so every post-hoc analysis (cascade, vector scaling, compare) is a
+    # file read instead of a re-inference.
+    with open(run_dir / "eval_rows.jsonl", "w") as f:
+        for i, r in enumerate(rows):
+            line = {"id": r["id"], "gold": r.get("gold"),
+                    "student_probs": cal[i].tolist(), "student_logits": logits[i].tolist(),
+                    "teacher_probs": teacher[i].tolist()}
+            if r.get("gold_prob") is not None:
+                line["gold_prob"] = float(r["gold_prob"])
+            f.write(json.dumps(line) + "\n")
     export = {"task": dataclasses.asdict(task), "labels": task.labels, "values": task.values,
               "temperature": T, "metrics": res}
     (run_dir / "openjev.json").write_text(json.dumps(export, indent=2, ensure_ascii=False))
@@ -116,7 +131,62 @@ def run(task, run_dir, results_dir=None, latency=True):
     return res
 
 
+def teacher_running():
+    """vllm:num_requests_running from the teacher's /metrics. Proxy-free: the teacher is localhost
+    and the dev box exports a SOCKS proxy that would swallow the call."""
+    url = os.environ.get("OPENJEV_TEACHER_URL", "http://localhost:8000/v1").rsplit("/v1", 1)[0] + "/metrics"
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    body = opener.open(url, timeout=10).read().decode()
+    n = [float(l.rsplit(" ", 1)[1]) for l in body.splitlines() if l.startswith("vllm:num_requests_running")]
+    if not n:
+        raise RuntimeError(f"no vllm:num_requests_running in {url}")
+    return sum(n)
+
+
+def bench(run_dir, results_dir=None, timeout=1800, poll=15):
+    """Latency + throughput only, on an idle teacher (they share the GPU), into the existing results
+    JSON. Everything else in that file stays as eval wrote it."""
+    run_dir = Path(run_dir)
+    meta = json.loads((run_dir / "openjev.json").read_text())
+    max_len = meta["task"]["student"]["max_len"]
+    texts = [r["text"] for r in read_rows(run_dir, "eval")]
+    t0 = time.time()
+    while teacher_running():
+        if time.time() - t0 > timeout:
+            raise SystemExit(f"teacher still busy after {timeout}s; not benching (numbers would be noise)")
+        print(f"teacher busy, waiting {poll}s", flush=True)
+        time.sleep(poll)
+    tok, model = load_student(run_dir / "student")
+    p50, p99 = _latency(tok, model, texts, max_len)
+    t1 = time.perf_counter()
+    predict_logits(tok, model, texts, max_len, batch_size=64)
+    thr = len(texts) / (time.perf_counter() - t1)
+    _, cpu_model = load_student(run_dir / "student", "cpu")
+    cpu_p50, _ = _latency(tok, cpu_model, texts, max_len, n=50, warmup=5)
+    lat = {"gpu_b1_p50": p50, "gpu_b1_p99": p99, "cpu_b1_p50": cpu_p50}
+    path = Path(results_dir or ROOT / "results") / f"{run_dir.name}.json"
+    res = json.loads(path.read_text())
+    res.update({"latency_ms": lat, "throughput_gpu_b64": thr})
+    path.write_text(json.dumps(res, indent=2, ensure_ascii=False))
+    print(f"{run_dir.name}: gpu b1 p50 {p50:.1f} ms p99 {p99:.1f} ms, cpu b1 p50 {cpu_p50:.1f} ms, "
+          f"{thr:.0f} ex/s -> {path}")
+    return res
+
+
 NOTES = {"choice": "argmax accuracy", "score": "expected level; MAE", "noul": "p(true); AUROC"}
+
+
+SEED = re.compile(r"-s\d+$")
+
+
+def _agg(vals, fmt="{:.3f}"):
+    """mean over the seeds of a group, ± sd when the seeds actually differ, '–' when nothing ran."""
+    vals = [v for v in vals if v is not None]
+    if not vals:
+        return "–"
+    m = fmt.format(sum(vals) / len(vals))
+    sd = statistics.stdev(vals) if len(vals) > 1 else 0.0
+    return m if sd == 0 else f"{m} ± {fmt.format(sd)}"
 
 
 def report(results_dir=None, readme=None):
@@ -125,13 +195,20 @@ def report(results_dir=None, readme=None):
     head = ("| task | type | K | lang | n_train | student acc / F1 | teacher acc / F1 | agree | ECE raw→cal | Brier "
             "| GPU p50 ms | ex/s |\n|" + "---|" * 12)
     lines, notes = [head], []
+    groups = {}  # results/<name>-s<k>.json is a seed of results/<name>.json, not a separate run
     for p in sorted(results_dir.glob("*.json")):
-        r = json.loads(p.read_text())
-        s, t, lat = r["student"], r["teacher"], r.get("latency_ms", {})
-        lines.append(f"| {p.stem} | {r['type']} | {r['k']} | {r['lang']} | {r['n_train']} "
-                     f"| {s['acc']:.3f} / {s['macro_f1']:.3f} | {t['acc']:.3f} / {t['macro_f1']:.3f} "
-                     f"| {r['agreement']['argmax']:.3f} | {s['ece_raw']:.3f}→{s['ece_cal']:.3f} | {s['brier']:.3f} "
-                     f"| {lat.get('gpu_b1_p50', 0):.1f} | {r.get('throughput_gpu_b64', 0):.0f} |")
+        groups.setdefault(SEED.sub("", p.stem), []).append(json.loads(p.read_text()))
+    for stem, g in sorted(groups.items()):
+        r = g[0]
+        st = lambda k: _agg([x["student"][k] for x in g])          # noqa: E731
+        te = lambda k: _agg([x["teacher"][k] for x in g])          # noqa: E731
+        name = stem + (f" (n={len(g)})" if len(g) > 1 else "")
+        lines.append(f"| {name} | {r['type']} | {r['k']} | {r['lang']} | {r['n_train']} "
+                     f"| {st('acc')} / {st('macro_f1')} | {te('acc')} / {te('macro_f1')} "
+                     f"| {_agg([x['agreement']['argmax'] for x in g])} "
+                     f"| {st('ece_raw')}→{st('ece_cal')} | {st('brier')} "
+                     f"| {_agg([x.get('latency_ms', {}).get('gpu_b1_p50') for x in g], '{:.1f}')} "
+                     f"| {_agg([x.get('throughput_gpu_b64') for x in g], '{:.0f}')} |")
         extra = ""
         if "score" in r:
             extra = f"; MAE {r['score']['mae']:.3f} (teacher {r['score']['teacher_mae']:.3f})"
@@ -144,7 +221,7 @@ def report(results_dir=None, readme=None):
         cal = (f"temperature kept at 1.0 (fitting it did not improve ECE on the calib split)"
                if target.endswith("-kept-1.0") else
                f"calibrated to {target} (T={r['temperature']:.2f})")
-        notes.append(f"- **{p.stem}**: {r['student_model']} distilled from the teacher with {gold}; "
+        notes.append(f"- **{stem}**: {r['student_model']} distilled from the teacher with {gold}; "
                      f"{NOTES[r['type']]} vs {r.get('eval_target', 'gold')} on {r['eval_n']} eval examples"
                      f"{extra}; {cal}.")
     block = f"{MARK}\n" + "\n".join(lines) + "\n\n" + "\n".join(notes) + f"\n{MARK}"
@@ -153,4 +230,5 @@ def report(results_dir=None, readme=None):
         text += f"\n## Results\n\n{MARK}\n{MARK}\n"
     a, b = text.index(MARK), text.index(MARK, text.index(MARK) + 1) + len(MARK)
     readme.write_text(text[:a] + block + text[b:])
+    print(block)
     return block

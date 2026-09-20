@@ -152,6 +152,13 @@ async def _run(task, todo, out_path):
                     return None
 
         done = failed = 0
+
+        def save_stats():  # B5: written as we go, so a crash mid-run does not lose calls/minutes
+            stats_path.write_text(json.dumps(
+                {"model": model, "calls": stats["calls"] + teacher.calls,
+                 "minutes": stats["minutes"] + (time.time() - t0) / 60,
+                 "n_labeled": stats["n_labeled"] + done, "n_failed": stats["n_failed"] + failed}, indent=1))
+
         buf = []
         with open(out_path, "a") as f:
             for fut in asyncio.as_completed([work(ex) for ex in todo]):
@@ -164,14 +171,13 @@ async def _run(task, todo, out_path):
                 if len(buf) >= 64:
                     append_jsonl(f, buf)
                     buf = []
+                    save_stats()
                     dt = time.time() - t0
                     print(f"{task.name}: {done}/{len(todo)} {done / dt:.1f} ex/s "
                           f"{teacher.calls / dt:.1f} calls/s failed={failed}", flush=True)
             append_jsonl(f, buf)
+        save_stats()
     dt = time.time() - t0
-    stats = {"model": model, "calls": stats["calls"] + teacher.calls, "minutes": stats["minutes"] + dt / 60,
-             "n_labeled": stats["n_labeled"] + done, "n_failed": failed}
-    stats_path.write_text(json.dumps(stats, indent=1))
     print(f"{task.name}: labeled {done} in {dt:.0f}s ({done / max(dt, 1e-9):.1f} ex/s), failed {failed}", flush=True)
 
 

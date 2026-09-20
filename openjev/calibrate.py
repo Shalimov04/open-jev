@@ -52,6 +52,7 @@ def run(task, run_dir):
     rows = read_rows(run_dir, "calib")
     tok, model = load_student(run_dir / "student")
     logits = predict_logits(tok, model, [r["text"] for r in rows], task.student.max_len)
+    torch.save({"ids": [r["id"] for r in rows], "logits": logits}, run_dir / "calib_logits.pt")
     y, target = targets_for(rows)
     if target == "gold":
         t = fit_temperature(logits, y)

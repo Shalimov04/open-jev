@@ -1,5 +1,7 @@
 # Open-Jev — implementation plan (overnight v0)
 
+> Historical: this is the overnight plan as written before the build. The live spec is `docs/task-spec.md`.
+
 Goal: `openjev run task.yaml` → teacher-labeled data → small calibrated encoder → eval report → servable
 `/v1/systemone`. Three primitives (choice / score / noul) are **one mechanism**: a K-way classifier over
 ordered labels plus a "view" that post-processes probabilities. Do not build three code paths.

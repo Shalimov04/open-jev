@@ -6,6 +6,7 @@
   "student_model": "jhu-clsp/mmBERT-small",
   "n_train": 4000,
   "n_synth": 0,
+  "augment_round": 0,
   "gold_weight": 0.0,
   "eval_n": 2000,
   "eval_target": "gold",
@@ -27,11 +28,11 @@
     "argmax": 0.9384999871253967,
     "mean_kl": 0.08823276311159134
   },
-  "throughput_gpu_b64": 381.86812428380114,
+  "throughput_gpu_b64": 868.5942079785718,
   "latency_ms": {
-    "gpu_b1_p50": 20.67150897346437,
-    "gpu_b1_p99": 21.751530992332846,
-    "cpu_b1_p50": 55.412410001736134
+    "gpu_b1_p50": 5.328222003299743,
+    "gpu_b1_p99": 6.425796949770302,
+    "cpu_b1_p50": 30.095082998741418
   },
   "teacher_calls": 6500,
   "teacher_minutes": 7.94195032119751,
@@ -43,5 +44,5 @@
     0.07866476476192474,
     0.04050881788134575
   ],
-  "git": "0a61cf8"
+  "git": "52a3730-dirty"
 }

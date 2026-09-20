@@ -391,6 +391,52 @@ share out of `runs/headlines/teacher.jsonl` with their probabilities untouched (
 teacher probabilities in both.
 
 
+### Result
+
+Three seeds per arm, both arms synth-free, metrics on the 2000 identical eval ids.
+
+| seed | headlines (4000) | headlines-8k (8000) | Δ |
+|---|---|---|---|
+| 0 | 0.8350 | 0.8515 | +0.0165 |
+| 1 | 0.8365 | 0.8530 | +0.0165 |
+| 2 | 0.8365 | 0.8490 | +0.0125 |
+
+`openjev compare runs/headlines-nosynth runs/headlines-8k` →
+**Δ = +1.3 ± 0.8 pts (95 % CI +0.6..+2.1)**, sign consistent across seeds. Against the
+augment-carrying `runs/headlines` arm the delta is the same to a tenth of a point.
+
+Doubling the teacher bill — 4434 new rows, 9 minutes — buys +1.3 pts, about a sixth of what the
+500-row calibration bias buys on this same task (+7.5). The calib re-draw described above is inside
+this interval and cannot be separated from it; the claim is "8000 labels and a re-drawn calib beat
+4000 labels", which is the choice a user actually faces.
+
+
+## Where to spend 500 gold labels: in the loss, or on the calibration bias?
+
+One task (kinopoisk), one factor, three seeds per arm, identical teacher labels and identical eval
+rows. Arm A is the normal run: gold never enters the loss, and the 500 calib rows fit `logits / T + b`.
+Arm B puts the same 500 rows into the CE term (`--gold-weight 1.0 --gold-n 500`) *and* still gets the
+vector calibration, so B is A's calibration plus supervision, not an alternative to it.
+
+| seed | A — bias only | B — 500 gold in the loss | Δ (A − B) |
+|---|---|---|---|
+| 0 | 0.6600 | 0.6033 | +0.0567 |
+| 1 | 0.6540 | 0.6220 | +0.0320 |
+| 2 | 0.6567 | 0.6233 | +0.0333 |
+
+`openjev compare runs/kinopoisk runs/kinopoisk-gold-n500` →
+**A is better: Δ = +4.1 ± 1.7 pts (95 % CI +2.4..+5.7)**.
+
+Adding the labels to the loss does not merely fail to help, it costs 4 points. All 4000 gold labels
+in the loss (`--gold-weight 1.0`, one seed) reach **0.672**, i.e. 8× the labels buy 1.2 pts over the
+500-row bias, and the teacher itself scores 0.652.
+
+Hypothesis, not a claim: a few hundred hard labels pull against 4000 soft ones inside the same loss
+(both gold-weighted arms early-stop at epoch 2, against epoch 4 for pure distillation), while the same
+rows spent post-hoc correct the marginal, which is the error that actually dominates here. Two points
+on one task is not an N-labels curve.
+
+
 ## Reproducing
 
 ```bash

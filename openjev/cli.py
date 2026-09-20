@@ -19,6 +19,9 @@ def setup(args):
         task.student.gold_weight = args.gold_weight
         if args.gold_weight:  # --gold-weight 0 is the default setting, not a variant
             suffix.append("gold")
+    for knob in ("batch_size", "epochs"):  # training-budget knobs: never part of the run-dir name
+        if getattr(args, knob, None) is not None:
+            setattr(task.student, knob, getattr(args, knob))
     run_dir = Path(args.runs) / "-".join([task.name, *suffix])
     run_dir.mkdir(parents=True, exist_ok=True)
     if suffix:  # variants share the base run's teacher labels
@@ -53,6 +56,8 @@ def main(argv=None):
         s.add_argument("--runs", default="runs")
         s.add_argument("--student", help="override student model; run dir gets a -<model name> suffix")
         s.add_argument("--gold-weight", type=float, help="override gold_weight; run dir gets a -gold suffix")
+        s.add_argument("--batch-size", type=int, help="override student.batch_size (run dir unchanged)")
+        s.add_argument("--epochs", type=int, help="override student.epochs (run dir unchanged)")
         if name == "label":  # a limit on `run` would label train rows only and leave calib/eval empty
             s.add_argument("--limit", type=int, help="label at most N examples")
         if name == "run":

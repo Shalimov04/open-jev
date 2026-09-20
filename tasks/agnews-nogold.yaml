@@ -1,0 +1,12 @@
+name: agnews-nogold
+type: choice
+question: "What is the topic of this news article?"
+options: [World, Sports, Business, Sci/Tech]
+lang: en
+data:
+  source: {hf: fancyzhx/ag_news}
+  text: "{text}"
+  max_chars: 2000
+  train: {split: train, n: 4000}
+  calib: {split: train, n: 500}
+  eval: {split: test, n: 2000}

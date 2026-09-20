@@ -74,16 +74,20 @@ is only a report column and the language `openjev augment` generates in.
 | task | type | K | lang | n_train | student acc / F1 | teacher acc / F1 | agree | ECE raw→cal | Brier | GPU p50 ms | ex/s |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | agnews-mmBERT-base | choice | 4 | en | 4000 | 0.883 / 0.884 | 0.880 / 0.881 | 0.945 | 0.081→0.053 | 0.194 | 6.3 | 435 |
+| agnews-nogold | choice | 4 | en | 4000 | 0.944 / 0.944 | 1.000 / 1.000 | 0.944 | 0.131→0.129 | 0.115 | 5.7 | 863 |
 | agnews | choice | 4 | en | 4000 | 0.879 / 0.880 | 0.880 / 0.881 | 0.938 | 0.071→0.042 | 0.198 | 5.3 | 869 |
 | banking77 | choice | 77 | en | 3000 | 0.748 / 0.736 | 0.764 / 0.749 | 0.836 | 0.017→0.028 | 0.357 | 5.2 | 2644 |
+| georeview-mmBERT-base | score | 5 | ru | 4000 | 0.433 / 0.409 | 0.470 / 0.455 | 0.820 | 0.242→0.065 | 0.661 | 7.1 | 115 |
 | georeview | score | 5 | ru | 4000 | 0.421 / 0.391 | 0.470 / 0.455 | 0.797 | 0.253→0.072 | 0.670 | 6.2 | 203 |
 | headlines | choice | 6 | ru | 4522 | 0.767 / 0.760 | 0.783 / 0.775 | 0.860 | 0.024→0.024 | 0.336 | 5.5 | 2644 |
 | kinopoisk | choice | 3 | ru | 4000 | 0.609 / 0.564 | 0.652 / 0.609 | 0.817 | 0.161→0.109 | 0.542 | 7.0 | 186 |
 | toxic | noul | 2 | en | 4000 | 0.917 / 0.626 | 0.893 / 0.624 | 0.925 | 0.116→0.037 | 0.129 | 5.7 | 437 |
 
 - **agnews-mmBERT-base**: jhu-clsp/mmBERT-base distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.73).
+- **agnews-nogold**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs teacher on 2000 eval examples; calibrated to teacher-soft (T=0.99).
 - **agnews**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.74).
 - **banking77**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=1.09).
+- **georeview-mmBERT-base**: jhu-clsp/mmBERT-base distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.771 (teacher 0.619); calibrated to gold (T=1.91).
 - **georeview**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.783 (teacher 0.619); calibrated to gold (T=1.95).
 - **headlines**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; temperature kept at 1.0 (fitting it did not improve ECE on the calib split).
 - **kinopoisk**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 1500 eval examples; calibrated to gold (T=2.35).
@@ -175,6 +179,32 @@ no repeat — it is consistent with the method working and equally consistent wi
 **Teacher cost.** 66,522 teacher calls, 144 minutes (2.4 h) of labeling wall-clock across the six tasks,
 of which banking77 alone is 61 minutes. Student training is 1.5–12 minutes per task. The teacher is the
 budget; everything else is rounding.
+
+**A task with no gold at all gets the same student.** `tasks/agnews-nogold.yaml` is `tasks/agnews.yaml`
+with the `data.gold` line deleted, so nothing in the pipeline ever sees a label: training was already
+gold-free, and now the temperature is fitted to the teacher's *soft* probabilities
+(`calib_target: teacher-soft`, T=0.99) and eval is reported against the teacher. Read its table row
+carefully — with no gold, "teacher acc" is the teacher scored against itself (1.000 by construction)
+and "student acc" 0.944 is just the agreement column under another name. The number that actually
+answers "what do you get with no labels at all" is not in the pipeline: scored offline against the
+real ag_news test labels, this student is **0.8825** against the teacher's **0.8815** on the same 2000
+rows — i.e. within noise of the gold-supervised-calibration run (`agnews` student 0.879 / teacher
+0.880). Removing gold from the loop cost nothing measurable here, but that is on a task where the
+teacher is strong and already well calibrated; the temperature it produced is ~1.0, so on a task where
+temperature scaling matters (georeview, kinopoisk) fitting to the teacher's soft labels is untested and
+would be calibrating to the teacher's confidence, not to the truth. `gold_acc_offline` and
+`teacher_gold_acc_offline` in `results/agnews-nogold.json` are written by `scripts/nogold_gold_acc.py`,
+which joins the eval rows back to `fancyzhx/ag_news` by row id — it is a hand-run measurement outside
+the pipeline, and re-running `openjev eval` on that task overwrites the file without them.
+
+**A bigger student does not close the georeview gap.** mmBERT-base (307M) at batch 16 gets MAE 0.771
+against mmBERT-small's 0.783, with the teacher at 0.619; accuracy 0.4335 vs 0.421 (teacher 0.4705) and
+agreement with the teacher 0.820 vs 0.797. That is 8% of a 0.164 MAE gap for 2.2x the parameters, 9.0
+minutes of training instead of 1.7, 9.9 GB of GPU memory instead of 5.5, and batch-64 throughput of 115
+ex/s instead of 203. The student is not capacity-limited on this task — it is already reproducing the
+teacher more faithfully than the small one does, and the teacher is what is wrong. Same conclusion as
+agnews-mmBERT-base, from the opposite end: on the easy task the bigger student had nothing left to
+learn, and on the hard one there is nothing better to learn from.
 
 ## Targeted synthetic data (`openjev augment`)
 

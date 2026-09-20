@@ -118,10 +118,15 @@ probability 0 (clamped to 1e-6 before the KL). Cost: `ceil(k/19) + 1` calls per 
 |---|---|---|---|
 | `model` | str | `jhu-clsp/mmBERT-small` | Any `AutoModelForSequenceClassification` checkpoint. `jhu-clsp/mmBERT-base` for a bigger run. Overridable per run with `--student`. |
 | `max_len` | int | `256` | Tokenizer truncation length for training, eval and serving. 512 for long-text tasks — see below. |
-| `epochs` | int | `5` | Upper bound; early stopping (patience 2) on calib KL **never triggered in the seven runs in this repo** — the best epoch was the last one and calib KL was still falling every time, so `epochs` is the binding knob. Raise it, especially for large label sets (banking77 needed 12). |
+| `epochs` | int | `5` | Overridable with `--epochs`. Upper bound; early stopping (patience 2) on calib KL **never triggered in the seven runs in this repo** — the best epoch was the last one and calib KL was still falling every time, so `epochs` is the binding knob. Raise it, especially for large label sets (banking77 needed 12). |
 | `lr` | float | `5.0e-5` | AdamW learning rate, 6% linear warmup then linear decay. |
-| `batch_size` | int | `32` | Training batch size. Halve it if you OOM next to a running vLLM. |
+| `batch_size` | int | `32` | Training batch size. Halve it if you OOM next to a running vLLM. Overridable with `--batch-size`. |
 | `gold_weight` | float | `0.0` | Weight of a CE term on gold added to the distillation KL, applied only to rows that have gold. `0.0` = pure distillation, which is the headline setting. Overridable with `--gold-weight`. |
+
+The CLI overrides apply to every stage subcommand (`run`, `label`, `train`, `calibrate`, `eval`,
+`augment`). `--student` and `--gold-weight` name a *variant* and add a `-<model>` / `-gold` suffix to
+the run directory; `--batch-size` and `--epochs` are training-budget knobs only and leave the run
+directory name alone, so they overwrite the run they are pointed at.
 
 Write floats in YAML as `5.0e-5`, not `5e-5` — YAML 1.1 parses the latter as a string.
 

@@ -23,9 +23,12 @@ class SplitSpec:
     balance: bool = False
 
 
+SOURCE_KEYS = {"hf": {"config", "revision"}, "csv": set(), "jsonl": set()}
+
+
 @dataclass
 class DataSpec:
-    source: dict  # {hf: id, config?, revision?, slice?} | {csv: path} | {jsonl: path}
+    source: dict  # {hf: id, config?, revision?} | {csv: path} | {jsonl: path}
     text: str = "{text}"
     max_chars: int = 2000
     seed: int = 0     # one sampling seed for all three splits (they are drawn in order)
@@ -84,15 +87,33 @@ def _build(cls, d):
     return cls(**d)
 
 
+def _check_source(src):
+    if not isinstance(src, dict):
+        raise ValueError("data.source must be a mapping: {hf: org/name} | {csv: path} | {jsonl: path}")
+    kinds = sorted(set(src) & set(SOURCE_KEYS))
+    if len(kinds) != 1:
+        raise ValueError(f"data.source needs exactly one of {sorted(SOURCE_KEYS)}, got {sorted(src) or 'nothing'}")
+    unknown = sorted(set(src) - {kinds[0]} - SOURCE_KEYS[kinds[0]])
+    if unknown:
+        raise ValueError(f"data.source: unknown keys {unknown} (with {kinds[0]!r}, "
+                         f"allowed: {sorted(SOURCE_KEYS[kinds[0]]) or 'none'})")
+
+
 def load_task(path) -> Task:
     raw = yaml.safe_load(Path(path).read_text())
     derived = sorted({"labels", "values", "path"} & set(raw))
     if derived:
         raise ValueError(f"Task: {derived} are derived from type/options/rubric, not settable")
+    if "data" not in (raw or {}):
+        raise ValueError(f"{path}: task needs a `data:` block with at least `source:` "
+                         "(see docs/task-spec.md#data)")
     data = dict(raw.pop("data"))
+    _check_source(data.get("source"))
     for s in ("train", "calib", "eval"):
         if s in data:
             data[s] = _build(SplitSpec, data[s])
+            if data[s].balance and not data.get("gold"):
+                raise ValueError(f"data.{s}.balance needs data.gold — balancing selects rows by gold label")
     t = _build(Task, {**raw, "data": _build(DataSpec, data), "path": str(path),
                       "teacher": _build(TeacherSpec, raw.get("teacher")),
                       "student": _build(StudentSpec, raw.get("student"))})
@@ -108,6 +129,8 @@ def load_task(path) -> Task:
             raise ValueError("score task needs rubric.levels")
         t.labels = [str(v) for v in levels]
         t.values = [float(v) for v in levels]
+        descs = list(t.rubric.get("descriptions") or [])  # pad: a short list means "level only"
+        t.rubric = {**t.rubric, "descriptions": descs + [""] * (len(levels) - len(descs))}
     elif t.type == "noul":
         if not t.statement:
             raise ValueError("noul task needs statement")

@@ -31,6 +31,34 @@ def test_spec_rejects_unknown_key(tmp_path):
         load_task(p)
 
 
+HEAD = "name: x\ntype: choice\nquestion: q\noptions: [a, b]\n"
+
+
+@pytest.mark.parametrize("body, msg", [
+    ("", "data:"),                                              # no data block at all
+    ("data: {source: {csv: f, bogus: 1}}\n", "unknown keys"),    # unknown key inside source
+    ("data: {source: {hf: x, csv: f}}\n", "exactly one"),        # two source kinds
+    ("data: {source: {csv: f}, train: {balance: true}}\n", "gold"),  # balance without gold
+])
+def test_spec_rejects_bad_data_block(tmp_path, body, msg):
+    p = tmp_path / "t.yaml"
+    p.write_text(HEAD + body)
+    with pytest.raises(ValueError, match=msg):
+        load_task(p)
+
+
+def test_short_rubric_descriptions_are_padded(tmp_path):
+    """Documented: a `descriptions` list shorter than `levels` means "level only" for the rest.
+    It used to zip short and IndexError in the prompt builder at label time."""
+    from openjev.teacher import option_lines
+    p = tmp_path / "t.yaml"
+    p.write_text("name: x\ntype: score\nquestion: q\nrubric: {levels: [1, 2, 3], descriptions: [bad]}\n"
+                 "data: {source: {csv: f}}\n")
+    t = load_task(p)
+    assert option_lines(t) == ["1: bad", "2", "3"]
+    assert system_prompt(t, range(3))[0].splitlines()[1:4] == ["A: 1: bad", "B: 2", "C: 3"]
+
+
 def test_parse_saved_response():
     resp = json.loads((ROOT / "tests/data/response_agnews.json").read_text())
     raw = parse_logprobs(resp, list("ABCD"))

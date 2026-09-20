@@ -62,6 +62,7 @@ def run(task, run_dir, results_dir=None, latency=True):
     res = {"task": task.name, "type": task.type, "k": task.k, "lang": task.lang, "student_model": train["student"],
            "n_train": train["n_train"], "n_synth": train["n_synth"],
            "augment_round": train.get("augment_round", 0), "gold_weight": train["gold_weight"],
+           "balanced_train": task.data.train.balance,
            "eval_n": len(rows), "eval_target": eval_target,
            "student": student, "teacher": _cls(teacher, y),
            "agreement": {"argmax": float((cal.argmax(-1) == teacher.argmax(-1)).float().mean()),
@@ -136,7 +137,9 @@ def report(results_dir=None, readme=None):
             extra = f"; MAE {r['score']['mae']:.3f} (teacher {r['score']['teacher_mae']:.3f})"
         if r.get("noul", {}).get("auroc") is not None:
             extra = f"; AUROC {r['noul']['auroc']:.3f} (teacher {r['noul']['teacher_auroc']:.3f})"
-        gold = "zero gold labels" if not r["gold_weight"] else f"gold CE weight {r['gold_weight']}"
+        gold = (f"gold CE weight {r['gold_weight']}" if r["gold_weight"] else
+                "no gold in the loss (but train rows picked 50/50 by gold)" if r.get("balanced_train") else
+                "zero gold labels")
         target = r["calib_target"]
         cal = (f"temperature kept at 1.0 (fitting it did not improve ECE on the calib split)"
                if target.endswith("-kept-1.0") else

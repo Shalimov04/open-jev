@@ -8,6 +8,9 @@ data:
   max_chars: 1500
   gold: toxicity       # fraction of raters; >= 0.5 -> true
   gold_prob: toxicity
-  train: {split: "train[:60000]", n: 4000, balance: true}
-  calib: {split: "train[:60000]", n: 500}   # natural rate: T is fit under the eval prior
+  train: {split: "train[:60000]", n: 4000, balance: true}   # positives are ~8% of the pool
+  # Same pool as train. The run in the README drew the balanced train split first, which left this
+  # split at 2.2% positive (11/500) vs 8.1% on eval; balanced roles are now drawn last, so a re-run
+  # gets calib at the natural rate (and re-labels it: different rows, different ids).
+  calib: {split: "train[:60000]", n: 500}
   eval: {split: test, n: 3000}

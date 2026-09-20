@@ -1,6 +1,8 @@
 [project]
 name = "openjev"
 version = "0.0.1"
+description = "Distill a prompt into a small, fast, calibrated classifier: an LLM teacher's soft labels train a ~140M encoder you can serve."
+readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["torch", "transformers", "datasets", "httpx", "pyyaml", "numpy", "scikit-learn", "fastapi", "uvicorn"]
 

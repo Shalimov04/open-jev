@@ -55,7 +55,10 @@ def examples(task):
     used = defaultdict(set)
     out = []
     cache = {}
-    for role in ROLES:
+    # A balanced draw takes rows *by gold* and depletes the pool, so the natural-rate roles are
+    # drawn first: otherwise calib/eval no longer carry the source prior. sorted() is stable, so
+    # with no balanced split this is train -> calib -> eval as before.
+    for role in sorted(ROLES, key=lambda r: getattr(d, r).balance):
         sp = getattr(d, role)
         if sp.split not in cache:
             cache[sp.split] = _load(d.source, sp.split)
@@ -63,6 +66,11 @@ def examples(task):
         golds = [gold_index(task, g) for g in ds[d.gold]] if d.gold else [None] * len(ds)
         pool = [i for i in range(len(ds)) if i not in used[sp.split]]
         idx = _pick(pool, golds, sp.n, sp.balance, task.k, random.Random(f"{d.seed}:{role}"))
+        if len(idx) < sp.n:
+            raise ValueError(
+                f"{role}: asked for {sp.n} rows from split {sp.split!r} but only {len(idx)} are left "
+                f"(the split has {len(ds)} rows and the other roles already took {len(used[sp.split])}). "
+                f"Lower data.{role}.n, or point the roles at different splits.")
         used[sp.split].update(idx)
         rows = ds.select(idx)
         for i, row in zip(idx, rows):
@@ -71,7 +79,7 @@ def examples(task):
             if d.gold_prob:
                 ex["gold_prob"] = float(row[d.gold_prob])
             out.append(ex)
-    return out
+    return sorted(out, key=lambda e: ROLES.index(e["split"]))  # drawn in pool order, returned in role order
 
 
 def read_jsonl(path):

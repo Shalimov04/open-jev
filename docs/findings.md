@@ -291,7 +291,12 @@ not distilled here, so nothing below says what a worse-but-softer teacher does t
   (0.784 original vs 0.768 reversed).
 - **K > 19 is approximate.** `top_logprobs` caps at 20, so large label sets go through a chunked
   shortlist: softness is exact only within the shortlist, and if every chunk misses the true class
-  the label is simply wrong. Cost is `ceil(K/19) + 1` calls per example.
+  the label is simply wrong. Cost is `ceil(K/19) + 1` calls per example. Now measured (`teacher.shortlist_miss`
+  in `results/*.json`, printed by `openjev check --probe`): on banking77 the gold option is outside
+  the final shortlist on **4.6 % of eval rows** (272 / 5500 = 4.9 % over all splits), which caps the
+  teacher at 0.954 before it answers; on swde-field it is 0 / 2000. The chunk that holds gold
+  answers `Z: none of the above` with median p 0.02, the chunks that do not with median 0.92 — the
+  `none` letter is doing its job, the misses are chunks that were confidently wrong.
 - **No ONNX / quantized export.** `serve` runs the PyTorch model; the export bundle is
   `student/` + `openjev.json` (+ `conformal.json`), which is what `openjev push` uploads.
 - **No recalibration under drift.** One `T` and one `b` per task, fitted once. Nothing here detects
@@ -302,3 +307,9 @@ not distilled here, so nothing below says what a worse-but-softer teacher does t
   the truth. `calib_target` in `results/*.json` says which path ran.
 - **The teacher is the cost.** Labeling dominates wall-clock; the student trains in minutes and every
   post-hoc step is CPU seconds.
+
+## Credits
+
+Probe, resume guard, shortlist miss rate, discordant counts, prereg template and the rotation
+readouts are after [r-ms/mini-jev](https://github.com/r-ms/mini-jev) (MIT, © 2026 Mikhail Rakutko),
+commit `ca61219`; reimplemented, not copied. Full review in `docs/mini-jev-review.md`.

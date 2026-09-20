@@ -45,6 +45,33 @@ def token_lengths(task, texts):
         return None
 
 
+def mechanism(task, rows):
+    """Does this teacher even want to answer with a letter? (idea: r-ms/mini-jev `smoke_letters`)
+
+    Our labeling call is grammar-constrained, so vLLM renormalises the letter logprobs to sum to
+    1.0 on every row — a teacher that would have answered "\\n" or "The" looks perfectly confident
+    in teacher.jsonl. Only an *unconstrained* call can see it, so this makes its own.
+    """
+    import math
+
+    from openjev import teacher as T
+    try:
+        letters, tops = T.probe_open(task, [r["text"] for r in rows])
+    except Exception as e:
+        print(f"  mechanism probe unavailable ({type(e).__name__}: {e})"[:200])
+        return
+    emit = [t and t[0]["token"].strip() in letters for t in tops]
+    mass = [sum(math.exp(x["logprob"]) for x in t if x["token"].strip() in letters) for t in tops]
+    print(f"  letter emission {sum(emit)}/{len(emit)}, candidate mass median "
+          f"{pct(mass, .5):.3f} min {min(mass):.3f}  (unconstrained call)")
+    for t in tops[:3]:
+        print("    top-5 raw: " + "  ".join(f"{x['token']!r} {math.exp(x['logprob']):.2f}" for x in t[:5]))
+    if sum(emit) / len(emit) < 0.9 or pct(mass, .5) < 0.5:
+        print("  WARNING this teacher does not want to answer with a letter (emission "
+              f"{sum(emit) / len(emit):.2f}, median mass {pct(mass, .5):.2f}); the constrained "
+              "labels will look confident anyway — the letter logprobs are renormalised to 1.0")
+
+
 def probe(task, run_dir, n, exs):
     from openjev import teacher as T
     task.teacher.concurrency = min(task.teacher.concurrency, 32)  # :8000 is production
@@ -56,7 +83,17 @@ def probe(task, run_dir, n, exs):
     pred = [max(range(task.k), key=lambda i: r["probs"][i]) for r in rows]
     maxp = sum(max(r["probs"]) for r in rows) / len(rows)
     stats = json.loads((run_dir / "label.json").read_text()) if (run_dir / "label.json").exists() else {}
+    live = T.prompt_sha(task)
     print(f"\nprobe: {len(rows)} calib rows, teacher {stats.get('model') or 'not recorded in label.json'}")
+    print(f"  prompt_sha {live} (label.json: {stats.get('prompt_sha', 'not recorded')})")
+    mechanism(task, rows)
+    from openjev.evaluate import shortlist_stats
+    sl = shortlist_stats(rows)
+    if sl:
+        print(f"  shortlist (K={task.k} > {task.teacher.max_options_per_call}): gold outside the final "
+              f"shortlist on {100 * sl['shortlist_miss']:.1f}% of rows — that is the teacher's ceiling; "
+              f"median p(none) {sl['p_none_chunk_with_gold']:.2f} in the chunk that holds gold, "
+              f"{sl['p_none_chunk_without_gold']:.2f} in the others")
     gold = [r["gold"] for r in rows if r.get("gold") is not None]
     if gold:
         acc = sum(p == r["gold"] for p, r in zip(pred, rows) if r.get("gold") is not None) / len(gold)

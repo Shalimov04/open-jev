@@ -51,6 +51,30 @@ def stats(probs, gold, labels):
     return acc, marg, maxp
 
 
+def argmax(p):
+    return max(range(len(p)), key=p.__getitem__)
+
+
+def flips_and_positions(orig, revp, gold, k):
+    """Two readouts the marginal cannot give (after r-ms/mini-jev PREREG v1.2 §G):
+
+    - the per-row flip rate between the two orders: a near-tie teacher flips a few rows, a teacher
+      with a whole-class shift flips many and in one direction;
+    - accuracy by the list position the gold option sat at. With only two orders position and class
+      are tied (class c sits at position c, then at k-1-c), so the comparison is *within* a class,
+      on the same rows: a class whose accuracy moves when its letter moves is a positional effect,
+      one that stays put (kinopoisk's Neutral, middle position in both orders) is semantic.
+    """
+    flip = [argmax(o) != argmax(r) for o, r in zip(orig, revp)]
+    by_pos = []
+    for c in range(k):
+        i = [j for j, g in enumerate(gold) if g == c]
+        acc = lambda p: sum(argmax(p[j]) == c for j in i) / len(i) if i else None  # noqa: E731
+        by_pos.append({"class": c, "n": len(i), "pos_original": c, "pos_reversed": k - 1 - c,
+                       "acc_original": acc(orig), "acc_reversed": acc(revp)})
+    return {"flip_rate": sum(flip) / len(flip), "n_flipped": sum(flip), "by_gold_position": by_pos}
+
+
 def show(name, probs, gold, labels):
     acc, marg, maxp = stats(probs, gold, labels)
     print(f"{name:<10} acc {acc:.3f}   mean max-p {maxp:.3f}   "
@@ -100,9 +124,19 @@ def main():
     print(f"{'gold':<10} {'':>32}" + "  ".join(f"{l} {m:.3f}" for l, m in zip(task.labels, gm)))
     for name, p in (("original", orig), ("reversed", revp), ("averaged", avg)):
         show(name, p, gold, task.labels)
+    fp = flips_and_positions(orig, revp, gold, k)
+    print(f"\nrows flipped under reversal: {fp['n_flipped']}/{len(rows)} "
+          f"({100 * fp['flip_rate']:.1f}%)  — a near-tie teacher flips few rows, a class shift many")
+    print("accuracy on the rows of each class, by the position that class occupied (A = 0):")
+    print("  class            |    n | position acc (original) | position acc (reversed)")
+    for r in fp["by_gold_position"]:
+        ao = "  –  " if r["acc_original"] is None else f"{r['acc_original']:.3f}"
+        ar = "  –  " if r["acc_reversed"] is None else f"{r['acc_reversed']:.3f}"
+        print(f"  {task.labels[r['class']]:<16} | {r['n']:>4} |"
+              f"       {r['pos_original']}  {ao}         |       {r['pos_reversed']}  {ar}")
     (dst / "perm_check.json").write_text(json.dumps(
         {"task": task.name, "n": len(rows), "labels": task.labels,
-         "gold_marginal": gm,
+         "gold_marginal": gm, **fp,
          **{name: dict(zip(("acc", "marginal", "mean_max_p"), stats(p, gold, task.labels)))
             for name, p in (("original", orig), ("reversed", revp), ("averaged", avg))}}, indent=2,
         ensure_ascii=False))

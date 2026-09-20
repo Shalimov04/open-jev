@@ -134,7 +134,7 @@ probability 0 (clamped to 1e-6 before the KL). Cost: `ceil(k/19) + 1` calls per 
 |---|---|---|---|
 | `model` | str | `jhu-clsp/mmBERT-small` | Any `AutoModelForSequenceClassification` checkpoint. `jhu-clsp/mmBERT-base` for a bigger run. Overridable per run with `--student`. |
 | `max_len` | int | `256` | Tokenizer truncation length for training, eval and serving. 512 for long-text tasks — see below. |
-| `epochs` | int | `5` | Overridable with `--epochs`. Upper bound, with early stopping (patience 2) on calib KL. 5 vs 12 epochs was measured on three tasks: **no measurable difference** — all three 12-epoch runs early-stopped (at 9, 7 and 5 epochs) and what `--epochs` mostly changes is the LR-decay horizon, not the training length (README Findings). banking77 (77 classes) asks for 12 in its YAML. |
+| `epochs` | int | `5` | Overridable with `--epochs`. Upper bound, with early stopping (patience 2) on calib KL. 5 vs 12 epochs was measured on three tasks: **no measurable difference** — all three 12-epoch runs early-stopped (at 9, 7 and 5 epochs) and what `--epochs` mostly changes is the LR-decay horizon, not the training length ([findings.md](findings.md)). banking77 (77 classes) asks for 12 in its YAML. |
 | `lr` | float | `5.0e-5` | AdamW learning rate, 6% linear warmup then linear decay. |
 | `batch_size` | int | `32` | Training batch size. Halve it if you OOM next to a running vLLM. Overridable with `--batch-size`. |
 | `gold_weight` | float | `0.0` | Weight of a CE term on gold added to the distillation KL, applied only to rows that have gold. `0.0` = pure distillation, which is the headline setting. Overridable with `--gold-weight`. |
@@ -172,7 +172,7 @@ and the overrides above. These are the rest:
 | `openjev compare A B` | Paired comparison of two run dirs over every seed they share: per-seed delta on the task's metric and one pooled 95 % bootstrap CI over eval rows, plus a verdict line. Nothing goes into the README without one. |
 | `openjev report` | Rebuild the README results table from `results/*.json` (and print it). `-s<k>` files are grouped into one `mean ± sd (n)` row. |
 | `openjev bench RUN_DIR` | Latency + throughput only, into the existing `results/<run>.json`. Waits for `vllm:num_requests_running == 0` first, so the number is not noise from a busy teacher. |
-| `openjev serve RUN_DIR... [--port P] [--device cpu\|cuda]` | Serve one or more run dirs at `POST /v1/systemone`. A run dir may be `hf:user/name`, which is downloaded once into `runs/hf--user--name`. See [Serving](../README.md#serving). |
+| `openjev serve RUN_DIR... [--port P] [--device cpu\|cuda]` | Serve one or more run dirs at `POST /v1/systemone`. A run dir may be `hf:user/name`, which is downloaded once into `runs/hf--user--name`. See [serving.md](serving.md). |
 | `openjev push RUN_DIR --repo user/name [--dry-run] [--public]` | Upload `student/`, `openjev.json`, `conformal.json` and a generated model card to the Hugging Face Hub. Private by default. `--dry-run` prints the file list and the card and uploads nothing. |
 
 ## Worked examples
@@ -285,14 +285,25 @@ Response shape (illustrative numbers):
    `max_chars` truncates more than a quarter of the rows, and when more than a quarter of them are
    longer than `student.max_len` — i.e. when the student reads less than the teacher did. Spec and
    data errors come back as one line and exit 1, which is the fastest way to debug a `data.text`
-   template.
+   template. That `max_len` warning is the trap kinopoisk fell into: the teacher reads
+   1500 characters, and a student left at the default `max_len: 256` would read about half of that.
 3. **`openjev check tasks/mytask.yaml --probe 100`** — the only step that costs teacher time (a
    minute at most). It labels the first 100 calib rows *into the real* `runs/mytask/teacher.jsonl`,
    so the full run reuses them, and prints what the teacher actually answers: accuracy against gold,
    the predicted marginal next to the gold marginal, mean max-p, and a warning for any class the
    teacher under-predicts by more than 10 points. A skewed marginal is the teacher's dominant error
    on hard tasks and the student copies it faithfully, so this is the moment to reword an option and
-   probe again — each iteration costs 100 calls, not 6000.
+   probe again — each iteration costs 100 calls, not 6000. On kinopoisk that warning is the whole story of
+   the task:
+
+   ```
+   probe: 100 calib rows, teacher Qwen/Qwen3.8-27B-FP8   # the id is read back from label.json
+     teacher accuracy vs gold: 0.710 on 100 rows
+     predicted marginal: Bad 30.0%  Neutral 9.0%  Good 61.0%
+     gold marginal:      Bad 34.0%  Neutral 24.0%  Good 42.0%
+     mean max-p: 0.812
+     WARNING the teacher under-predicts 'Neutral' (9% vs 24%): reword that option, or declare `prior:` ...
+   ```
 4. **Run it, then serve it.**
 
    ```bash

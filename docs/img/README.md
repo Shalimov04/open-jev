@@ -1,6 +1,9 @@
 # README figures
 
-Candidate illustrations for the top-level README. All hand-written SVG — no matplotlib, no
+Illustrations for the top-level README (`pipeline`, `response-card`, `student-vs-teacher`, `terminal`),
+for `README.ru.md` (the same set) and for `docs/findings.md` (`calibration`, `cascade`, `cost`).
+The `srcset`/`src` paths below are written for a file at the repo root; from inside `docs/` drop the
+`docs/` prefix. All hand-written SVG — no matplotlib, no
 browser, no fonts to download. Regenerate with:
 
 ```bash

@@ -18,10 +18,15 @@ mkdir -p runs
 log() { echo "$(date +%F' '%T) $*" | tee -a "$LOG"; }
 
 gate() {  # CUDA free GB (via torch: this box reports N/A to nvidia-smi) and host available GB
+  # Spark is a unified-memory box: CUDA memory *is* host memory, so cudaMemGetInfo's "free" counts
+  # only free pages and ignores the page cache the previous job left behind. After two jobs that is
+  # 16 GB of cache and the queue deadlocks with 21 GB actually available. The kernel reclaims that
+  # cache on demand (and before it OOM-kills anything), so `available` is the number that decides
+  # whether a job fits -- CUDA-free is accepted as a *shortcut* when it is already large enough.
   local cuda host
   cuda=$(python -c 'import torch;print(int(torch.cuda.mem_get_info()[0]/2**30))' 2>/dev/null || echo 0)
-  host=$(free -g | awk '/^Mem:/{print $7}')
-  [ "$cuda" -ge "$CUDA_GB" ] && [ "$host" -ge "$HOST_GB" ] && return 0
+  host=$(free -g | awk '/^Mem:/{print $7}')            # MemAvailable: free + reclaimable cache
+  { [ "$cuda" -ge "$CUDA_GB" ] || [ "$host" -ge "$CUDA_GB" ]; } && [ "$host" -ge "$HOST_GB" ] && return 0
   echo "$cuda $host"
   return 1
 }

@@ -164,6 +164,8 @@ and the overrides above. These are the rest:
 | `--gold-n N` | stage cmds | Put the CE term on the first N train rows in id order only. Needs `--gold-weight`; answers "what do 500 gold labels buy in the loss?". |
 | `--ignore-gold` | `run`, `calibrate` | Calibrate as if the calib split had no gold. With `prior:` declared, this is what makes a `prior-declared` number a genuine no-gold number. |
 | `--no-latency` | `run`, `eval` | Skip the latency/throughput measurement. Latency is only valid on an idle teacher (it shares the GPU), so every queued eval uses this and `openjev bench` measures later. |
+| `--teacher vllm\|jev` | `run`, `label` | Teacher backend. `vllm` (default) is the local OpenAI-compatible server. `jev` calls TypeSafe Jev's decision API (`POST https://openrouter.ai/api/alpha/decisions`, key `OPENROUTER_API_KEY` from the env or `.env.local`), labels into `runs/<task>-jev/` and reuses `runs/<task>/teacher.jsonl` for the row list, so ids and splits match row for row. 8 requests in flight, 3 retries on 429/5xx, and a hard $1.00 spend stop per command (`OPENJEV_JEV_BUDGET`); `label.json` records the served model id and the summed `usage.cost`. |
+| `--split ROLE` | `label` | Label only `train`/`calib`/`eval`. |
 | `--force STAGE` | `run` | Re-run one stage and everything after it. Repeatable. |
 
 | command | what it does |

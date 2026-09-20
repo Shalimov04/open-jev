@@ -1,0 +1,51 @@
+{
+  "task": "agnews-nogold",
+  "type": "choice",
+  "k": 4,
+  "lang": "en",
+  "student_model": "jhu-clsp/mmBERT-small",
+  "n_train": 4000,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 2000,
+  "eval_target": "teacher",
+  "student": {
+    "acc": 0.9440000057220459,
+    "macro_f1": 0.94429617076276,
+    "ece_raw": 0.1308462917804718,
+    "ece_cal": 0.12882857024669647,
+    "brier": 0.11538001149892807,
+    "nll": 0.26342225074768066
+  },
+  "teacher": {
+    "acc": 1.0,
+    "macro_f1": 1.0,
+    "ece": 0.1673734188079834,
+    "brier": 0.0791376531124115
+  },
+  "agreement": {
+    "argmax": 0.9440000057220459,
+    "mean_kl": 0.052458249032497406
+  },
+  "throughput_gpu_b64": 862.6689011595635,
+  "latency_ms": {
+    "gpu_b1_p50": 5.714753002393991,
+    "gpu_b1_p99": 6.624565983656794,
+    "cpu_b1_p50": 29.647688032127917
+  },
+  "teacher_calls": 6500,
+  "teacher_minutes": 7.642271745204925,
+  "train_minutes": 1.6182154337565104,
+  "peak_gpu_gb": 5.508098125457764,
+  "temperature": 0.9922838807106018,
+  "calib_target": "teacher-soft",
+  "ece_calib_split": [
+    0.1264873594045639,
+    0.12492035329341888
+  ],
+  "git": "019dab2-dirty",
+  "gold_acc_offline": 0.8824999928474426,
+  "teacher_gold_acc_offline": 0.8815000057220459
+}

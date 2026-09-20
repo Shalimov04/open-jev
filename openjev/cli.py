@@ -83,6 +83,12 @@ def main(argv=None):
             s.add_argument("--rounds", type=int, default=1)
             s.add_argument("--per-class", type=int, default=100, help="texts asked for per prompt")
             s.add_argument("--targets", type=int, default=6, help="prompts per round (weak classes + pairs)")
+    c = sub.add_parser("check", help="dry-run a task YAML: prompt, examples, splits, cost (no teacher calls)")
+    c.add_argument("task")
+    c.add_argument("--runs", default="runs")
+    c.add_argument("--probe", type=int, metavar="N", default=0,
+                   help="label N calib rows and report the teacher's accuracy and marginal "
+                        "(cached into runs/<task>/teacher.jsonl, so `run` reuses them)")
     s = sub.add_parser("serve")
     s.add_argument("run_dirs", nargs="+")
     s.add_argument("--host", default="127.0.0.1")
@@ -93,6 +99,10 @@ def main(argv=None):
     b.add_argument("--timeout", type=int, default=1800, help="give up waiting for an idle teacher after N s")
     args = p.parse_args(argv)
 
+    if args.cmd == "check":
+        from openjev import check
+        check.main(args.task, args.probe, args.runs)
+        return
     if args.cmd == "serve":
         from openjev import serve
         serve.main(args.run_dirs, args.host, args.port)
@@ -105,7 +115,11 @@ def main(argv=None):
         from openjev import evaluate
         evaluate.bench(args.run_dir, timeout=args.timeout)
         return
-    task, run_dir = setup(args)
+    try:  # spec errors are the newcomer's first wall: one line, and point at `check`
+        task, run_dir = setup(args)
+    except (ValueError, FileNotFoundError, KeyError) as e:
+        raise SystemExit(f"error: {e}\nhint: `openjev check {args.task}` prints the spec, the prompt "
+                         f"and the first examples before anything is spent")
     if args.cmd == "augment":
         from openjev import augment
         for _ in range(args.rounds):

@@ -8,8 +8,23 @@ instead of being silently ignored.
 Run a task file with:
 
 ```bash
-openjev run tasks/<name>.yaml
+openjev check tasks/<name>.yaml   # dry run: prompt, splits, cost. No teacher calls.
+openjev run   tasks/<name>.yaml   # label -> train -> calibrate -> eval
 ```
+
+## The task files in this repo
+
+Copy the one closest to your problem (`tasks/example.yaml` is the annotated blank template).
+
+| file | type | K | lang | what it demonstrates |
+|---|---|---|---|---|
+| `agnews.yaml` | choice | 4 | en | the plain case: HF dataset, 4 options, gold used only to score |
+| `agnews-nogold.yaml` | choice | 4 | en | the same task with `gold:` removed — distillation with zero labels, calibrated against the teacher |
+| `banking77.yaml` | choice | 77 | en | K > 19: the chunked shortlist path (`teacher.max_options_per_call`), 77 options written out |
+| `headlines.yaml` | choice | 6 | ru | non-English options — the prompt is Russian, the student is multilingual |
+| `kinopoisk.yaml` | choice | 3 | ru | long texts: `max_chars` 1500 with `student.max_len: 512` so both see the same review |
+| `georeview.yaml` | score | 5 | ru | `rubric` + `descriptions`; the served answer is an expectation over the levels, scored by MAE |
+| `toxic.yaml` | noul | 2 | en | truth of a `statement`, a fractional `gold_prob` column, and `balance: true` on a 8 %-positive pool |
 
 ## Top level
 
@@ -232,22 +247,28 @@ Response shape (illustrative numbers):
 
 `probability` is p(statement is true); `confidence` is `max(p, 1-p)`, i.e. how far from the fence.
 
-## Add your own task in 3 steps
+## Add your own task
 
-1. **Write the YAML.** Copy `tasks/example.yaml`, set `name`, `type`, the question (plus `options` /
-   `rubric` / `statement`), and point `data.source` at your HF dataset, CSV or JSONL. Set
-   `data.text` to a template over your columns. Gold is optional — leave `gold` out and the run
-   calibrates and reports against the teacher instead.
-2. **Check the draw before spending teacher time.**
-
-   ```bash
-   openjev label tasks/mytask.yaml --limit 20
-   head -c 400 runs/mytask/teacher.jsonl
-   ```
-
-   Look at the `text` field: if the template or truncation is wrong, you see it here for the price
-   of 20 calls. Labeling is append-only and resumable, so these 20 rows are reused by the full run.
-3. **Run it, then serve it.**
+1. **Write the YAML.** Copy `tasks/example.yaml` (or the closest row of the table above), set `name`,
+   `type`, the question (plus `options` / `rubric` / `statement`), and point `data.source` at your HF
+   dataset, CSV or JSONL. Set `data.text` to a template over your columns. Gold is optional — leave
+   `gold` out and the run calibrates and reports against the teacher instead.
+2. **`openjev check tasks/mytask.yaml`** — free, no teacher calls. It loads the spec, pings the
+   teacher, draws the splits and prints the gold distribution per split, the system prompt verbatim,
+   three examples exactly as the teacher will see them (after `data.text` and `max_chars`), the text
+   length in characters *and* in student tokens, and an estimated teacher cost (±2×). It warns when
+   `max_chars` truncates more than a quarter of the rows, and when more than a quarter of them are
+   longer than `student.max_len` — i.e. when the student reads less than the teacher did. Spec and
+   data errors come back as one line and exit 1, which is the fastest way to debug a `data.text`
+   template.
+3. **`openjev check tasks/mytask.yaml --probe 100`** — the only step that costs teacher time (a
+   minute at most). It labels the first 100 calib rows *into the real* `runs/mytask/teacher.jsonl`,
+   so the full run reuses them, and prints what the teacher actually answers: accuracy against gold,
+   the predicted marginal next to the gold marginal, mean max-p, and a warning for any class the
+   teacher under-predicts by more than 10 points. A skewed marginal is the teacher's dominant error
+   on hard tasks and the student copies it faithfully, so this is the moment to reword an option and
+   probe again — each iteration costs 100 calls, not 6000.
+4. **Run it, then serve it.**
 
    ```bash
    openjev run tasks/mytask.yaml      # label -> train -> calibrate -> eval

@@ -181,15 +181,18 @@ async def _run(task, todo, out_path):
     print(f"{task.name}: labeled {done} in {dt:.0f}s ({done / max(dt, 1e-9):.1f} ex/s), failed {failed}", flush=True)
 
 
-def run(task, run_dir, limit=None, extra=None):
+def run(task, run_dir, limit=None, extra=None, split=None):
     """Label all task examples not yet in run_dir/teacher.jsonl. `extra`: additional example dicts
-    (e.g. synthetic, with "source": "synth") labeled the same way."""
+    (e.g. synthetic, with "source": "synth") labeled the same way. `split`: only that role
+    (`check --probe` labels calib rows into the same append-only file)."""
     run_dir.mkdir(parents=True, exist_ok=True)
     out_path = run_dir / "teacher.jsonl"
     with open(run_dir / "label.lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)  # a second labeler of the same task waits, then finds nothing to do
         have = {r["id"] for r in read_jsonl(out_path)}
         exs = examples(task) + list(extra or [])
+        if split:
+            exs = [e for e in exs if e["split"] == split]
         if limit:
             exs = exs[:limit]
         todo = [e for e in exs if e["id"] not in have]

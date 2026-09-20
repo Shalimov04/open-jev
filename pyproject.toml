@@ -4,6 +4,13 @@ version = "0.0.1"
 description = "Distill a prompt into a small, fast, calibrated classifier: an LLM teacher's soft labels train a ~140M encoder you can serve."
 readme = "README.md"
 requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Intended Audience :: Developers",
+]
 dependencies = ["torch", "transformers", "datasets", "httpx", "pyyaml", "numpy", "scikit-learn", "fastapi", "uvicorn"]
 
 [project.scripts]

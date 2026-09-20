@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="312" viewBox="0 0 900 312" role="img" aria-label="open-jev pipeline: unlabeled text, LLM teacher soft labels, distilled encoder student, temperature calibration, typed JSON response">
+<title>open-jev pipeline: unlabeled text, LLM teacher soft labels, distilled encoder student, temperature calibration, typed JSON response</title>
+<rect x="0.0" y="0.0" width="900.0" height="312.0" fill="#ffffff"/>
+<text x="20.0" y="30.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="17" font-weight="700">open-jev: a prompt becomes a calibrated 140M classifier</text>
+<text x="20.0" y="51.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="12.5">one YAML task → soft labels from a local LLM → distilled encoder → one temperature → typed JSON</text>
+<rect x="20.0" y="72.0" width="156.0" height="136.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
+<rect x="20.0" y="72.0" width="156.0" height="4.0" fill="#59636e" rx="2"/>
+<circle cx="36.0" cy="96.0" r="9" fill="#59636e"/>
+<text x="36.0" y="100.0" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">1</text>
+<text x="52.0" y="100.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="14" font-weight="700">Task</text>
+<text x="32.0" y="124.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11">tasks/agnews.yaml</text>
+<text x="32.0" y="140.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">question + options</text>
+<text x="32.0" y="156.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">4,000 rows</text>
+<text x="32.0" y="172.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">zero gold labels</text>
+<line x1="180.0" y1="140.0" x2="186.0" y2="140.0" stroke="#afb8c1" stroke-width="2"/><polygon points="192.0,140.0 185.0,135.5 185.0,144.5" fill="#afb8c1"/>
+<rect x="196.0" y="72.0" width="156.0" height="136.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
+<rect x="196.0" y="72.0" width="156.0" height="4.0" fill="#bf8700" rx="2"/>
+<circle cx="212.0" cy="96.0" r="9" fill="#bf8700"/>
+<text x="212.0" y="100.0" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">2</text>
+<text x="228.0" y="100.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="14" font-weight="700">Teacher</text>
+<text x="208.0" y="124.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11">Qwen3.8-27B · vLLM</text>
+<text x="208.0" y="140.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">max_tokens: 1,</text>
+<text x="208.0" y="156.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">constrained letter</text>
+<text x="208.0" y="172.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">softmax(top_logprobs)</text>
+<text x="208.0" y="188.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">= soft label</text>
+<line x1="356.0" y1="140.0" x2="362.0" y2="140.0" stroke="#afb8c1" stroke-width="2"/><polygon points="368.0,140.0 361.0,135.5 361.0,144.5" fill="#afb8c1"/>
+<rect x="372.0" y="72.0" width="156.0" height="136.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
+<rect x="372.0" y="72.0" width="156.0" height="4.0" fill="#0969da" rx="2"/>
+<circle cx="388.0" cy="96.0" r="9" fill="#0969da"/>
+<text x="388.0" y="100.0" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">3</text>
+<text x="404.0" y="100.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="14" font-weight="700">Student</text>
+<text x="384.0" y="124.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11">mmBERT-small, 140M</text>
+<text x="384.0" y="140.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">KL(teacher ‖ student)</text>
+<text x="384.0" y="156.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">no gold in the loss</text>
+<text x="384.0" y="172.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">early stop on calib KL</text>
+<line x1="532.0" y1="140.0" x2="538.0" y2="140.0" stroke="#afb8c1" stroke-width="2"/><polygon points="544.0,140.0 537.0,135.5 537.0,144.5" fill="#afb8c1"/>
+<rect x="548.0" y="72.0" width="156.0" height="136.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
+<rect x="548.0" y="72.0" width="156.0" height="4.0" fill="#8250df" rx="2"/>
+<circle cx="564.0" cy="96.0" r="9" fill="#8250df"/>
+<text x="564.0" y="100.0" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">4</text>
+<text x="580.0" y="100.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="14" font-weight="700">Calibrate</text>
+<text x="560.0" y="124.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11">one temperature,</text>
+<text x="560.0" y="140.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">LBFGS on 500</text>
+<text x="560.0" y="156.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">held-out rows</text>
+<text x="560.0" y="172.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">kept only if ECE</text>
+<text x="560.0" y="188.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">improves</text>
+<line x1="708.0" y1="140.0" x2="714.0" y2="140.0" stroke="#afb8c1" stroke-width="2"/><polygon points="720.0,140.0 713.0,135.5 713.0,144.5" fill="#afb8c1"/>
+<rect x="724.0" y="72.0" width="156.0" height="136.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
+<rect x="724.0" y="72.0" width="156.0" height="4.0" fill="#1a7f37" rx="2"/>
+<circle cx="740.0" cy="96.0" r="9" fill="#1a7f37"/>
+<text x="740.0" y="100.0" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">5</text>
+<text x="756.0" y="100.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="14" font-weight="700">Serve</text>
+<text x="736.0" y="124.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11">POST /v1/systemone</text>
+<text x="736.0" y="140.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">typed JSON decision</text>
+<text x="736.0" y="156.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">+ probabilities</text>
+<text x="736.0" y="172.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">you can threshold</text>
+<rect x="196.0" y="220.0" width="332.0" height="22.0" fill="#bf8700" rx="6" opacity="0.14"/>
+<text x="206.0" y="236.0" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="700">paid once: 66,522 calls · 2.4 h</text>
+<rect x="724.0" y="220.0" width="156.0" height="22.0" fill="#1a7f37" rx="6" opacity="0.14"/>
+<text x="734.0" y="236.0" fill="#1a7f37" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="700">paid per call: ~5 ms</text>
+<text x="20.0" y="298.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11">6 tasks: 66,522 teacher calls in 144 min · training 1.5–12 min/task · serving 5.2–7.1 ms p50 batch-1, up to 2,644 ex/s batch-64</text>
+</svg>

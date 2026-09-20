@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="404" viewBox="0 0 900 404" role="img" aria-label="The typed JSON decision returned by POST /v1/systemone">
+<title>The typed JSON decision returned by POST /v1/systemone</title>
+<rect x="0.0" y="0.0" width="900.0" height="404.0" fill="#0d1117"/>
+<text x="20.0" y="30.0" fill="#e6edf3" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="17" font-weight="700">The output is a typed decision, not a string to parse</text>
+<text x="20.0" y="51.0" fill="#9198a1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="12.5">POST /v1/systemone against runs/agnews</text>
+<rect x="20.0" y="66.0" width="530.0" height="70.0" fill="#161b22" stroke="#30363d" stroke-width="1" rx="8"/>
+<text x="34.0" y="88.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">curl -s localhost:8099/v1/systemone \</text>
+<text x="34.0" y="106.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">  -d '{"model":"agnews","input":</text>
+<text x="34.0" y="124.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">  "Shares of the airline fell 8% after it cut its forecast."}'</text>
+<line x1="285.0" y1="140.0" x2="285.0" y2="152.0" stroke="#484f58" stroke-width="2"/>
+<polygon points="285.0,158.0 280.0,150.0 290.0,150.0" fill="#484f58"/>
+<rect x="20.0" y="166.0" width="530.0" height="180.0" fill="#161b22" stroke="#30363d" stroke-width="1" rx="8"/>
+<text x="36.0" y="190.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">{</text>
+<text x="36.0" y="205.0" fill="#58a6ff" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">  "model"</text>
+<text x="98.6" y="205.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">: </text>
+<text x="112.5" y="205.0" fill="#3fb950" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">"agnews"</text>
+<text x="168.1" y="205.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">,</text>
+<text x="36.0" y="220.0" fill="#58a6ff" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">  "choice"</text>
+<text x="105.5" y="220.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">: </text>
+<text x="119.4" y="220.0" fill="#3fb950" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">"Business"</text>
+<text x="188.9" y="220.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">,</text>
+<text x="36.0" y="235.0" fill="#58a6ff" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">  "probabilities"</text>
+<text x="154.2" y="235.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">: {</text>
+<text x="36.0" y="250.0" fill="#58a6ff" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">    "World"</text>
+<text x="112.5" y="250.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">:    </text>
+<text x="147.2" y="250.0" fill="#a371f7" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">0.0058</text>
+<text x="188.9" y="250.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">,</text>
+<text x="36.0" y="265.0" fill="#58a6ff" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">    "Sports"</text>
+<text x="119.4" y="265.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">:   </text>
+<text x="147.2" y="265.0" fill="#a371f7" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">0.0051</text>
+<text x="188.9" y="265.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">,</text>
+<text x="36.0" y="280.0" fill="#58a6ff" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">    "Business"</text>
+<text x="133.3" y="280.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">: </text>
+<text x="147.2" y="280.0" fill="#a371f7" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">0.9872</text>
+<text x="188.9" y="280.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">,</text>
+<text x="36.0" y="295.0" fill="#58a6ff" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">    "Sci/Tech"</text>
+<text x="133.3" y="295.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">: </text>
+<text x="147.2" y="295.0" fill="#a371f7" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">0.0018</text>
+<text x="36.0" y="310.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">  },</text>
+<text x="36.0" y="325.0" fill="#58a6ff" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">  "confidence"</text>
+<text x="133.3" y="325.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">: </text>
+<text x="147.2" y="325.0" fill="#a371f7" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">0.9872</text>
+<text x="36.0" y="340.0" fill="#9198a1" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11.5">}</text>
+<line x1="554.0" y1="216.0" x2="568.0" y2="192.0" stroke="#484f58" stroke-width="1" stroke-dasharray="3 3"/>
+<text x="576.0" y="196.0" fill="#e6edf3" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" font-weight="700">choice</text>
+<text x="576.0" y="212.0" fill="#9198a1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">the argmax, already decoded to your option</text>
+<text x="576.0" y="225.0" fill="#9198a1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">label — no parsing, no regex, no retry loop</text>
+<line x1="554.0" y1="231.0" x2="568.0" y2="252.0" stroke="#484f58" stroke-width="1" stroke-dasharray="3 3"/>
+<text x="576.0" y="256.0" fill="#e6edf3" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" font-weight="700">probabilities</text>
+<text x="576.0" y="272.0" fill="#9198a1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">calibrated by the fitted temperature; these</text>
+<text x="576.0" y="285.0" fill="#9198a1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">are the numbers you threshold on or feed to</text>
+<text x="576.0" y="298.0" fill="#9198a1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">a cascade</text>
+<line x1="554.0" y1="321.0" x2="568.0" y2="318.0" stroke="#484f58" stroke-width="1" stroke-dasharray="3 3"/>
+<text x="576.0" y="322.0" fill="#e6edf3" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" font-weight="700">confidence</text>
+<text x="576.0" y="338.0" fill="#9198a1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">max(p). Below your threshold → escalate to</text>
+<text x="576.0" y="351.0" fill="#9198a1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">the teacher, ask a human, or abstain</text>
+<text x="20.0" y="376.0" fill="#9198a1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">Other task types return the same shape from openjev/views.py: score → {"score", "probabilities", "confidence"}, noul → {"probability", "confidence"}.</text>
+<text x="20.0" y="390.0" fill="#9198a1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">Request and response are verbatim from the README quickstart; probabilities abridged to 4 dp.</text>
+</svg>

@@ -11,7 +11,8 @@ DONE = {"train": "train.json", "calibrate": "calib.json", "eval": "eval.json"}  
 
 def setup(args):
     task = load_task(args.task)
-    suffix = []
+    jev = getattr(args, "teacher", "vllm") == "jev"
+    suffix = ["jev"] if jev else []
     if getattr(args, "student", None):
         task.student.model = args.student
         suffix.append(args.student.split("/")[-1])  # full model name: mmBERT-base != ModernBERT-base
@@ -30,7 +31,7 @@ def setup(args):
         suffix.append(f"s{args.seed}")
     run_dir = Path(args.runs) / "-".join([task.name, *suffix])
     run_dir.mkdir(parents=True, exist_ok=True)
-    if suffix:  # variants share the base run's teacher labels
+    if suffix and not jev:  # variants share the base run's teacher labels
         for f in ("teacher.jsonl", "label.json"):
             if not (run_dir / f).is_symlink():
                 (run_dir / f).symlink_to(Path("..") / task.name / f)
@@ -40,9 +41,11 @@ def setup(args):
 def stage(name, task, run_dir, args):
     if name == "label":
         from openjev import teacher
-        if run_dir.name != task.name:
+        backend = getattr(args, "teacher", "vllm")
+        if run_dir.name != task.name and backend != "jev":
             run_dir = run_dir.parent / task.name  # variants never label into their own dir
-        return teacher.run(task, run_dir, limit=getattr(args, "limit", None))
+        return teacher.run(task, run_dir, limit=getattr(args, "limit", None),
+                           split=getattr(args, "split", None), backend=backend)
     if name == "train":
         from openjev import train as mod
         return mod.run(task, run_dir, seed=getattr(args, "seed", 0) or 0,
@@ -79,7 +82,12 @@ def main(argv=None):
             s.add_argument("--no-latency", action="store_true",
                            help="skip the latency/throughput measurement (it needs an idle teacher; "
                                 "use `openjev bench RUN_DIR` later)")
+        if name in ("run", "label"):
+            s.add_argument("--teacher", choices=["vllm", "jev"], default="vllm",
+                           help="teacher backend; `jev` labels into runs/<task>-jev/ from the "
+                                "existing runs/<task>/ rows (same ids and splits)")
         if name == "label":  # a limit on `run` would label train rows only and leave calib/eval empty
+            s.add_argument("--split", choices=["train", "calib", "eval"], help="label only this split")
             s.add_argument("--limit", type=int, help="label at most N examples")
         if name == "run":
             s.add_argument("--force", action="append", default=[], choices=STAGES, help="re-run STAGE")

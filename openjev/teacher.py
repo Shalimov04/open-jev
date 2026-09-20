@@ -1,4 +1,5 @@
-"""Label examples with the teacher LLM (vLLM, OpenAI-compatible) via single-letter logprobs.
+"""Label examples with a teacher: vLLM (default, single-letter logprobs) or TypeSafe Jev
+(`backend="jev"`, POST /alpha/decisions on OpenRouter; label.json then also carries "cost").
 
 Writes runs/<name>/teacher.jsonl (append-only, resumable) rows:
   {"id","split","text","gold","probs":[K],"raw":{letter:logprob},"source":"data", ["gold_prob"]}
@@ -11,14 +12,23 @@ import fcntl
 import json
 import math
 import os
+import random
 import string
 import time
+
+from pathlib import Path
 
 import httpx
 
 from openjev.data import append_jsonl, examples, read_jsonl
 
 URL = os.environ.get("OPENJEV_TEACHER_URL", "http://localhost:8000/v1")
+JEV_URL = os.environ.get("OPENJEV_JEV_URL", "https://openrouter.ai/api/alpha/decisions")
+JEV_MODEL = os.environ.get("OPENJEV_JEV_MODEL", "typesafe/jev-1.13")
+JEV_BUDGET = float(os.environ.get("OPENJEV_JEV_BUDGET", "1.0"))  # USD per command, hard stop
+JEV_CONCURRENCY = int(os.environ.get("OPENJEV_JEV_CONCURRENCY", "8"))
+# ALL_PROXY here is socks5h, which httpx cannot use without extras; the http proxy reaches openrouter.
+JEV_PROXY = os.environ.get("OPENJEV_JEV_PROXY") or os.environ.get("HTTPS_PROXY")
 LETTERS = string.ascii_uppercase[:19]  # A..S; "Z" is reserved for "none of the above"
 NONE = "Z"
 
@@ -77,6 +87,75 @@ def shortlist(chunk_results, top):
     return sorted(scores, key=lambda i: -scores[i])[:top]
 
 
+class BudgetExceeded(Exception):
+    pass
+
+
+class JevTeacher:
+    """TypeSafe Jev via OpenRouter's /alpha/decisions. Same interface as Teacher: `.label(text)`
+    -> (probs in task.labels order, raw answer). One call per example, no chunking (Jev takes the
+    whole criteria set). `choice` criteria use the option text as key *and* description: our task
+    YAMLs carry no per-option gloss, and inventing one would change the question."""
+
+    def __init__(self, task, client, key):
+        self.task, self.client = task, client
+        self.headers = {"Authorization": f"Bearer {key}"}
+        self.question = jev_question(task)
+        self.calls = 0
+        self.cost = 0.0
+        self.model = JEV_MODEL  # replaced by the served id from the first response
+
+    def stats(self):
+        return {"cost": round(self.cost, 6)}
+
+    async def label(self, text):
+        if self.cost > JEV_BUDGET:
+            raise BudgetExceeded(f"jev: budget stop, ${self.cost:.4f} > ${JEV_BUDGET:.2f}")
+        body = {"model": JEV_MODEL, "state": text, "questions": {"q": self.question}}
+        for attempt in range(4):
+            self.calls += 1
+            try:
+                r = await self.client.post(JEV_URL, json=body, headers=self.headers)
+                if r.status_code not in (429, 408) and r.status_code < 500:
+                    r.raise_for_status()
+                    d = r.json()
+                    self.model = d.get("model", self.model)
+                    self.cost += float(d.get("usage", {}).get("cost", 0.0))
+                    if self.calls % 200 == 0:
+                        print(f"  jev: {self.calls} calls, ${self.cost:.4f}", flush=True)
+                    return jev_probs(self.task, d["answers"]["q"]), d["answers"]["q"]
+            except (httpx.TimeoutException, httpx.TransportError):
+                if attempt == 3:
+                    raise
+            if attempt < 3:
+                await asyncio.sleep(2 ** attempt + random.random())
+            else:
+                raise RuntimeError(f"jev {r.status_code}: {r.text[:200]}")
+
+
+def jev_question(task):
+    if task.type == "choice":
+        return {"type": "choice", "instructions": task.question,
+                "criteria": {o: o for o in task.options}}
+    if task.type == "score":
+        return {"type": "score", "instructions": task.question, "criteria": option_lines(task)}
+    return {"type": "noul", "instructions": task.statement}
+
+
+def jev_probs(task, a):
+    """Jev answer -> probabilities in *our* label order."""
+    if a["type"] == "noul":
+        p = float(a["noul"])
+        return [p, 1 - p]  # labels are ["true", "false"]
+    probs = a["probabilities"]
+    if a["type"] == "score":  # keys are criteria indices as strings; legend maps them to our lines
+        lines, out = option_lines(task), [0.0] * task.k
+        for i, p in probs.items():
+            out[lines.index(a["legend"][str(i)])] = float(p)
+        return out
+    return [float(probs.get(l, 0.0)) for l in task.labels]
+
+
 class Teacher:
     def __init__(self, task, client, model):
         self.task, self.client, self.model = task, client, model
@@ -131,22 +210,32 @@ class Teacher:
         return probs, raw_out
 
 
-async def _run(task, todo, out_path):
+async def _run(task, todo, out_path, backend="vllm"):
     stats_path = out_path.parent / "label.json"
     stats = json.loads(stats_path.read_text()) if stats_path.exists() else \
         {"calls": 0, "minutes": 0.0, "n_labeled": 0, "n_failed": 0}
-    sem = asyncio.Semaphore(task.teacher.concurrency)
+    conc = JEV_CONCURRENCY if backend == "jev" else task.teacher.concurrency
+    sem = asyncio.Semaphore(conc)
     t0 = time.time()
+    halted = []
     async with httpx.AsyncClient(trust_env=False, timeout=120,
-                                 limits=httpx.Limits(max_connections=task.teacher.concurrency * 5)) as client:
-        model = (await client.get(f"{URL}/models")).json()["data"][0]["id"]
-        teacher = Teacher(task, client, model)
+                                 proxy=JEV_PROXY if backend == "jev" else None,
+                                 limits=httpx.Limits(max_connections=conc * 5)) as client:
+        if backend == "jev":
+            teacher = JevTeacher(task, client, jev_key())
+        else:
+            model = (await client.get(f"{URL}/models")).json()["data"][0]["id"]
+            teacher = Teacher(task, client, model)
 
         async def work(ex):
             async with sem:
                 try:
                     probs, raw = await teacher.label(ex["text"])
                     return {**ex, "probs": probs, "raw": raw, "source": ex.get("source", "data")}
+                except BudgetExceeded as e:  # stop spending; the rest of the rows are left unlabeled
+                    if not halted:
+                        halted.append(print(str(e), flush=True))
+                    return None
                 except Exception as e:  # logged and skipped, not fatal
                     print(f"FAILED {ex['id']}: {e!r}"[:300], flush=True)
                     return None
@@ -155,9 +244,10 @@ async def _run(task, todo, out_path):
 
         def save_stats():  # B5: written as we go, so a crash mid-run does not lose calls/minutes
             stats_path.write_text(json.dumps(
-                {"model": model, "calls": stats["calls"] + teacher.calls,
+                {"model": teacher.model, "calls": stats["calls"] + teacher.calls,
                  "minutes": stats["minutes"] + (time.time() - t0) / 60,
-                 "n_labeled": stats["n_labeled"] + done, "n_failed": stats["n_failed"] + failed}, indent=1))
+                 "n_labeled": stats["n_labeled"] + done, "n_failed": stats["n_failed"] + failed,
+                 **(getattr(teacher, "stats", dict)())}, indent=1))
 
         buf = []
         with open(out_path, "a") as f:
@@ -181,7 +271,19 @@ async def _run(task, todo, out_path):
     print(f"{task.name}: labeled {done} in {dt:.0f}s ({done / max(dt, 1e-9):.1f} ex/s), failed {failed}", flush=True)
 
 
-def run(task, run_dir, limit=None, extra=None, split=None):
+def jev_key():
+    """OPENROUTER_API_KEY from the env or .env.local (gitignored). Never printed."""
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key:
+        for line in Path(".env.local").read_text().splitlines():
+            if line.startswith("OPENROUTER_API_KEY"):
+                key = line.split("=", 1)[1].strip().strip("'\"")
+    if not key:
+        raise SystemExit("no OPENROUTER_API_KEY (env or .env.local)")
+    return key
+
+
+def run(task, run_dir, limit=None, extra=None, split=None, backend="vllm"):
     """Label all task examples not yet in run_dir/teacher.jsonl. `extra`: additional example dicts
     (e.g. synthetic, with "source": "synth") labeled the same way. `split`: only that role
     (`check --probe` labels calib rows into the same append-only file)."""
@@ -190,7 +292,14 @@ def run(task, run_dir, limit=None, extra=None, split=None):
     with open(run_dir / "label.lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)  # a second labeler of the same task waits, then finds nothing to do
         have = {r["id"] for r in read_jsonl(out_path)}
-        exs = examples(task) + list(extra or [])
+        if backend == "jev":  # reuse the vLLM run's rows: same ids, same splits, same texts
+            base = run_dir.parent / task.name / "teacher.jsonl"
+            exs = [{k: r[k] for k in ("id", "split", "text", "gold", "gold_prob", "source") if k in r}
+                   for r in read_jsonl(base)]
+            if not exs:
+                raise SystemExit(f"{base} is missing: label with the vLLM teacher first")
+        else:
+            exs = examples(task) + list(extra or [])
         if split:
             exs = [e for e in exs if e["split"] == split]
         if limit:
@@ -198,4 +307,4 @@ def run(task, run_dir, limit=None, extra=None, split=None):
         todo = [e for e in exs if e["id"] not in have]
         print(f"{task.name}: {len(exs)} examples, {len(exs) - len(todo)} cached, {len(todo)} to label", flush=True)
         if todo:
-            asyncio.run(_run(task, todo, out_path))
+            asyncio.run(_run(task, todo, out_path, backend))

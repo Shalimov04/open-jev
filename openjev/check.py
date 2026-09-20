@@ -72,7 +72,8 @@ def probe(task, run_dir, n, exs):
         gap = 100 * (ref.get(i, 0) - pc[i] / len(rows)) if ref else 0
         if gap > 10:
             print(f"  WARNING the teacher under-predicts {lab!r} ({100 * pc[i] / len(rows):.0f}% vs "
-                  f"{100 * ref[i]:.0f}%): reword that option, or declare `prior:` and let calibration fix it")
+                  f"{100 * ref[i]:.0f}%): reword that option, or declare `prior:` and let calibration fix it "
+                  f"(only if you actually know the deployment prior)")
 
 
 def declared_prior(task):

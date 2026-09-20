@@ -35,6 +35,9 @@ THEMES = {
 
 
 ALL = {p.stem: json.loads(p.read_text()) for p in sorted((ROOT / "results").glob("*.json"))}
+# `openjev eval` rewrites results/agnews-nogold.json, so the offline-against-real-labels score
+# is kept out of its way (scripts/nogold_gold_acc.py).
+NOGOLD = json.loads((ROOT / "results/variants/agnews-nogold-goldacc.json").read_text())
 # the six distinct labeling jobs (one teacher pass each); variants reuse teacher.jsonl
 BASE = ["agnews", "banking77", "georeview", "headlines", "kinopoisk", "toxic"]
 TEACHER_CALLS = sum(ALL[t]["teacher_calls"] for t in BASE)
@@ -141,7 +144,7 @@ def fig_pipeline(th):
     W, H = 900, 312
     b = head(th, "open-jev: a prompt becomes a calibrated 140M classifier",
              "one YAML task → soft labels from a local LLM → distilled encoder "
-             "→ one temperature → typed JSON")
+             "→ temperature + per-class bias → typed JSON")
     steps = [
         ("1", "Task", th["muted"], ["tasks/agnews.yaml", "question + options", "4,000 rows",
                                     "zero gold labels"]),
@@ -150,8 +153,8 @@ def fig_pipeline(th):
                                          "= soft label"]),
         ("3", "Student", th["student"], ["mmBERT-small, 140M", "KL(teacher ‖ student)",
                                          "no gold in the loss", "early stop on calib KL"]),
-        ("4", "Calibrate", th["accent"], ["one temperature,", "LBFGS on 500", "held-out rows",
-                                          "kept only if ECE", "improves"]),
+        ("4", "Calibrate", th["accent"], ["logits / T + b,", "LBFGS on 500", "held-out gold rows",
+                                          "kept on a 2-fold", "held-out NLL test"]),
         ("5", "Serve", th["good"], ["POST /v1/systemone", "typed JSON decision",
                                     "+ probabilities", "you can threshold"]),
     ]
@@ -189,14 +192,14 @@ def fig_pipeline(th):
 
 def fig_bars(th):
     W, H = 900, 482
-    hl = ALL["headlines"]["student"]["acc"], ALL["headlines-s1"]["student"]["acc"]
-    ng = ALL["agnews-nogold"]
+    hl = [ALL[k]["student"]["acc"] for k in ("headlines", "headlines-s1", "headlines-s2")]
+    ng = NOGOLD
     rows = [
         ("agnews", ALL["agnews"]["student"]["acc"], ALL["agnews"]["teacher"]["acc"], ""),
         ("agnews-nogold", ng["gold_acc_offline"], ng["teacher_gold_acc_offline"], "*"),
         ("banking77", ALL["banking77"]["student"]["acc"], ALL["banking77"]["teacher"]["acc"], ""),
         ("georeview", ALL["georeview"]["student"]["acc"], ALL["georeview"]["teacher"]["acc"], ""),
-        ("headlines", sum(hl) / 2, ALL["headlines"]["teacher"]["acc"], "†"),
+        ("headlines", sum(hl) / len(hl), ALL["headlines"]["teacher"]["acc"], "†"),
         ("kinopoisk", ALL["kinopoisk"]["student"]["acc"], ALL["kinopoisk"]["teacher"]["acc"], ""),
         ("toxic", ALL["toxic"]["student"]["acc"], ALL["toxic"]["teacher"]["acc"], "‡"),
     ]
@@ -233,7 +236,7 @@ def fig_bars(th):
         ("*", "agnews-nogold: no gold label is used anywhere in the pipeline — not in "
               "training, not for the temperature. Both bars are scored offline against the real "
               "ag_news test labels."),
-        ("†", "headlines: mean of 2 seeds (0.768, 0.763)."),
+        ("†", "headlines: mean of 3 seeds (" + ", ".join(f"{v:.3f}" for v in hl) + ")."),
         ("‡", "toxic: accuracy is misleading on an 8.1%-positive split — always "
                    "answering “not toxic” scores 0.919. The student wins on AUROC "
                    "(0.856 vs 0.817) and Brier (0.035 vs 0.048)."),
@@ -257,12 +260,14 @@ def fig_cascade(th):
     # one series per task: several seeds of the same task carry the same curve shape
     by_task = {}
     for k, v in sorted(ALL.items()):
-        if "cascade" in v:
+        # accuracy tasks only: the georeview (mae) and toxic (auroc) curves are not on this axis,
+        # and agnews-nogold is scored against the teacher, so its curve walks to 1.000 by definition
+        if "cascade" in v and "acc" in v["cascade"][0] and v["task"] != "agnews-nogold":
             by_task.setdefault(v["task"], v)
     series = [(name, v, cols[i % len(cols)]) for i, (name, v) in enumerate(by_task.items())]
     b = head(th, "Escalating the uncertain cases to the teacher buys a point or two, at most",
              "send a prediction to the teacher when the student's max-p < τ — "
-             "x = fraction escalated, y = accuracy of the pair (12-epoch runs)")
+             "x = fraction escalated, y = accuracy of the pair (baseline runs, seed 0)")
     px, py, pw, ph = 70, 78, 700, 250
     accs = [c["acc"] for _, r, _ in series for c in r["cascade"]]
     lo = (min(accs) // 0.03) * 0.03
@@ -314,7 +319,7 @@ def fig_cascade(th):
         b.append(t(20, py + ph + 62 + j * 14, note, col, 10.5))
     b.append(t(20, H - 14,
                "τ = 1.0 escalates everything and collapses onto the teacher. "
-               "Source: cascade[] in results/*-e12.json.", th["muted"], 10.5))
+               "Source: cascade[] in results/*.json.", th["muted"], 10.5))
     return doc(W, H, th, b, "Cascade curves: escalation rate versus accuracy for agnews and headlines")
 
 
@@ -329,9 +334,9 @@ def fig_calibration(th):
         key=lambda r: -r[1])
     px, py, pw = 196, 104, 420
     H = py + len(rows) * 30 + 90
-    b = head(th, "Temperature scaling helps exactly where the model is overconfident",
-             "expected calibration error on the eval split, before → after one scalar "
-             "fitted on 500 held-out rows")
+    b = head(th, "Calibration is fitted for accuracy, and ECE does not always follow",
+             "expected calibration error on the eval split, before → after the fit "
+             "(logits / T + b) on 500 held-out rows")
     mx = 0.28
 
     def xv(v):
@@ -365,11 +370,10 @@ def fig_calibration(th):
     b.append(t(px + 160, ly + 4, "made worse", th["bad"], 11))
     b.append(circ(px + 244, ly, 5.5, th["flat"]))
     b.append(t(px + 256, ly + 4, "no-op", th["flat"], 11))
-    foot = ("banking77 is the cautionary row: a temperature that improved ECE on the 500-row "
-            "calib split made it worse on eval. calibrate now keeps T = 1.0 whenever the fit "
-            "does not improve the calib split — which is why headlines is a flat no-op. "
-            "agnews-nogold has no gold at all, so its T is fitted to the teacher's soft "
-            "probabilities instead.")
+    foot = ("Red rows are not failures: the per-class bias is selected on held-out NLL and "
+            "accuracy, not on ECE, so a run can gain accuracy and lose ECE — headlines goes "
+            "0.024 -> 0.036 ECE while gaining 7.5 accuracy points. agnews-nogold has no gold "
+            "at all, so its fit is made against the teacher's soft probabilities instead.")
     for j, w in enumerate(wrap(foot, 148)):
         b.append(t(20, ly + 32 + j * 14, w, th["muted"], 10.5))
     return doc(W, H, th, b, "ECE before and after temperature scaling for every run")

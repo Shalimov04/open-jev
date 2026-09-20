@@ -5,7 +5,8 @@ The agnews-nogold task has no `data.gold`, so the pipeline never sees gold: the 
 fitted to the teacher's soft labels and eval is reported against the teacher. This script joins the
 eval rows back to the dataset by row id ("test:<idx>") and scores the calibrated student and the
 teacher against the true labels. Writes `gold_acc_offline` (and `teacher_gold_acc_offline`) into
-results/agnews-nogold.json. Not part of the pipeline; run it by hand:
+results/variants/agnews-nogold-goldacc.json -- a file `openjev eval` never writes, so the number
+survives a re-eval. Not part of the pipeline; run it by hand:
 
     python scripts/nogold_gold_acc.py
 """
@@ -36,9 +37,8 @@ acc = float((probs.argmax(-1) == gold).float().mean())
 t_acc = float((teacher.argmax(-1) == gold).float().mean())
 print(f"n={len(rows)} student vs gold {acc:.4f}  teacher vs gold {t_acc:.4f}")
 
-res_path = ROOT / "results/agnews-nogold.json"
-res = json.loads(res_path.read_text())
-res["gold_acc_offline"] = acc
-res["teacher_gold_acc_offline"] = t_acc
-res_path.write_text(json.dumps(res, indent=2, ensure_ascii=False))
+res_path = ROOT / "results/variants/agnews-nogold-goldacc.json"
+res_path.write_text(json.dumps(
+    {"run": "agnews-nogold", "n": len(rows), "gold_acc_offline": acc,
+     "teacher_gold_acc_offline": t_acc}, indent=2) + "\n")
 print(f"wrote gold_acc_offline to {res_path}")

@@ -151,6 +151,88 @@ training is 1.5–12 minutes per task, and every post-hoc result above — the b
 the cascade curves — is CPU seconds on logits already on disk. The teacher is the budget; everything
 else is rounding.
 
+## A better teacher, distilled: Jev's labels against our Qwen teacher's
+
+The head-to-head above scored the two *teachers*. This section swaps the teacher inside the pipeline
+and measures the *students*, on the two tasks where the teacher gap was real: georeview and
+kinopoisk. Both arms share the task YAML, the split ids, the texts, the eval rows, the student
+checkpoint (`jhu-clsp/mmBERT-small`), `max_len`, `lr`, `batch_size`, epochs, the early-stopping rule
+and the calibration method-selection rule. The only factor that varies is who produced the training
+labels. Three seeds per arm, `openjev compare` over the 2000 (georeview) / 1500 (kinopoisk) shared
+eval rows.
+
+Labeling the two remaining splits cost **$0.1966** for 9000 rows at 23 ex/s and 0 failures
+($0.0617 georeview, $0.1348 kinopoisk; $0.313 including the eval rows the head-to-head already
+paid for). Training was 8 queue jobs, 5–7 minutes each.
+
+| task | metric | n | Qwen teacher | Qwen student | Jev teacher | Jev student |
+|---|---|---|---|---|---|---|
+| georeview | mae ↓ | 2000 | 0.619 | 0.607 ± 0.003 | **0.502** | 0.555 ± 0.002 |
+| kinopoisk | acc ↑ | 1500 | 0.652 | 0.657 ± 0.003 | **0.694** | 0.659 ± 0.003 |
+
+Students are the mean over three seeds ± sd; teachers are their own `teacher.jsonl` eval rows.
+Same rows, same gold, same metric code (`results/api/jev-student.json`, from
+`scripts/jev_student_report.py`).
+
+**Only one of the two teacher wins survives distillation.** On georeview the Jev-distilled student
+is better: **Δ MAE = −0.052 ± 0.010 (95 % CI −0.062..−0.042)**, consistent across all three seeds
+(−0.056, −0.048, −0.051). On kinopoisk there is **no measurable difference**: Δ = +0.2 ± 1.2 pts
+(95 % CI −1.0..+1.4), with the seeds straddling zero (−0.13, +0.27, +0.53 pts). The teacher was
+4.2 points better and none of it reached the student.
+
+**Why: the 500-gold calibration bias had already bought what the better teacher offers.** Before
+calibration the Jev student wins on *both* tasks — georeview MAE −0.111 (CI −0.135..−0.085),
+kinopoisk **+4.7 pts** (CI +3.0..+6.3), which is the teacher gap almost exactly. The vector fit then
+lifts the Qwen student by 4.9 pts on kinopoisk and the Jev student by 0.5, and they meet:
+
+| task | arm | uncalibrated | calibrated |
+|---|---|---|---|
+| georeview (mae ↓) | Qwen student | 0.674 | 0.607 |
+| georeview (mae ↓) | Jev student | 0.564 | 0.555 |
+| kinopoisk (acc ↑) | Qwen student | 0.608 | 0.657 |
+| kinopoisk (acc ↑) | Jev student | 0.654 | 0.659 |
+
+On kinopoisk the two teachers fail the same way — both starve *Neutral* (Qwen 12.7 %, Jev 7.7 %,
+against a gold 33.3 %) and split the rest between *Bad* and *Good* (Qwen 30.7/56.5, Jev 43.4/48.9).
+That is a marginal shift, and a per-class bias fitted on 500 gold rows removes a marginal shift
+whoever caused it. Paying a better teacher to fix it is paying for something 500 labels and a
+few CPU seconds already fix. georeview is the case where the better teacher is better *per example*
+— its MAE gap is 0.117 and about 45 % of it (0.052) survives into the student — and there the money
+buys something the bias cannot.
+
+**Near-hard labels change what the calibration step has to do, not which method it picks.** Jev's
+probabilities are rounded to 0.01 and frequently a single spike: on the training splits,
+17.6 % of georeview rows and **60.3 % of kinopoisk rows** carry a max probability above 0.999, against
+0.0 % for both Qwen splits (mean label entropy 0.38 vs 0.75 and 0.17 vs 0.49). All six arms still
+selected `method: vector` and the 2-fold held-out NLL test accepted it in every one. What moved is
+the temperature: the Jev students come out badly overconfident and need roughly twice the
+temperature to fix — georeview T = 1.78/2.06/2.03 against 1.09/1.09/1.09, kinopoisk
+T = 2.19/2.26/2.20 against 1.21/1.28/1.20. Calibrated ECE lands in the same place either way
+(georeview 0.029–0.057 vs 0.035–0.062; kinopoisk 0.042–0.054 vs 0.041–0.060), so the spikiness cost
+nothing here — but only because a calibration step was there to undo it. Distilling Jev's labels
+*without* the calibration step would ship a student whose confidence is worth less than our
+softer teacher's.
+
+**Training on near-hard targets is measurably harder to fit, and it did not hurt.** The KL floor is
+roughly double: best calib KL 0.32 vs 0.13 (georeview) and 0.22 vs 0.11 (kinopoisk), with the
+training-loss floor 0.047 vs 0.021 and 0.037 vs 0.018. georeview's Jev arm early-stopped at epoch 2
+instead of 4. Argmax agreement with its own teacher is unchanged (georeview 0.647 vs 0.649,
+kinopoisk 0.702 vs 0.693) while mean KL to the teacher is higher (0.49 vs 0.33, 0.48 vs 0.39) —
+the student copies the spiky teacher's *decisions* as faithfully as the smooth one's and its
+*distribution* less faithfully, which is the expected shape and did not cost accuracy on either
+task.
+
+**What makes this comparison honest, and what limits it.** Honest: everything except the labels is
+identical — same YAML, same split ids, same texts, same eval rows and gold, same student, same
+hyperparameters, same calibration rule, three seeds per arm, paired bootstrap over the shared rows.
+Limiting: Jev is a closed hosted model, so nothing here explains *why* it is better and the result
+is not reproducible from weights; its probabilities are quantised to 0.01, which is a property of the
+API and not of the model, so the softness comparison is a comparison with a rounded teacher rather
+than a hard one; and two tasks, both Russian, both ordinal-ish, is two tasks. The one arm where
+the head-to-head said Jev ranks *worse* than our student (arb-success, AUROC 0.822 vs 0.843) was
+not distilled here, so nothing below says what a worse-but-softer teacher does to a student.
+
+
 ## What the numbers mean
 
 - **The student sees zero gold labels.** `gold_weight` is 0 by default, so training uses only the

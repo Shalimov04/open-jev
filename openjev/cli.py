@@ -51,7 +51,7 @@ def stage(name, task, run_dir, args):
         from openjev import evaluate as mod
         return mod.run(task, run_dir, latency=not getattr(args, "no_latency", False))
     from openjev import calibrate as mod
-    return mod.run(task, run_dir)
+    return mod.run(task, run_dir, ignore_gold=getattr(args, "ignore_gold", False))
 
 
 def main(argv=None):
@@ -69,6 +69,10 @@ def main(argv=None):
         s.add_argument("--seed", type=int, default=0, help="training seed; run dir gets a -sN suffix for N > 0")
         s.add_argument("--tag", help="free-form run-dir suffix")
         s.add_argument("--no-synth", action="store_true", help="drop synthetic (augmented) train rows")
+        if name in ("run", "calibrate"):
+            s.add_argument("--ignore-gold", action="store_true",
+                           help="calibrate as if the calib split had no gold labels; with `prior:` in the "
+                                "YAML this gives a genuine no-gold calibration")
         s.add_argument("--gold-n", type=int,
                        help="CE term on the first N train rows in id order only (needs --gold-weight)")
         if name in ("run", "eval"):
@@ -94,6 +98,10 @@ def main(argv=None):
     s.add_argument("--host", default="127.0.0.1")
     s.add_argument("--port", type=int, default=8080)
     sub.add_parser("report")
+    c = sub.add_parser("compare", help="paired-bootstrap comparison of two run dirs, over all seeds")
+    c.add_argument("a")
+    c.add_argument("b")
+    c.add_argument("--boot", type=int, default=2000, help="bootstrap resamples")
     b = sub.add_parser("bench")
     b.add_argument("run_dir")
     b.add_argument("--timeout", type=int, default=1800, help="give up waiting for an idle teacher after N s")
@@ -110,6 +118,10 @@ def main(argv=None):
     if args.cmd == "report":
         from openjev import evaluate
         evaluate.report()
+        return
+    if args.cmd == "compare":
+        from openjev import evaluate
+        evaluate.compare(args.a, args.b, n_boot=args.boot)
         return
     if args.cmd == "bench":
         from openjev import evaluate

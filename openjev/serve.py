@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from openjev.train import load_student, predict_logits
+from openjev.calibrate import apply
 from openjev.views import view
 
 
@@ -46,7 +47,8 @@ def app_for(run_dirs):
                 raise HTTPException(422, f"input object missing field {e}")
         text = text[:task["data"]["max_chars"]]
         logits = predict_logits(m["tok"], m["model"], [text], task["student"]["max_len"])[0]
-        probs = torch.softmax(logits / meta["temperature"], -1).tolist()
+        calib = meta.get("calib", {"temperature": meta["temperature"]})
+        probs = apply(logits, calib).softmax(-1).tolist()
         return {"model": req.model, **view(task["type"], meta["labels"], probs, meta["values"])}
 
     return app

@@ -67,6 +67,7 @@ class Task:
     options: list[str] | None = None
     rubric: dict | None = None
     statement: str | None = None
+    prior: str | dict | None = None  # "uniform" | {label: weight}: declared class prior for calibration
     teacher: TeacherSpec = field(default_factory=TeacherSpec)
     student: StudentSpec = field(default_factory=StudentSpec)
     labels: list[str] = field(default_factory=list)

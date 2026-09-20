@@ -9,12 +9,14 @@ import subprocess
 import time
 import urllib.request
 from pathlib import Path
+from types import SimpleNamespace
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from sklearn.metrics import confusion_matrix, f1_score, roc_auc_score
 
-from openjev.calibrate import brier, ece, targets_for
+from openjev.calibrate import apply, brier, ece, targets_for
 from openjev.data import read_rows
 from openjev.train import load_student, predict_logits
 from openjev.views import view
@@ -27,6 +29,47 @@ def _cls(probs, y):
     pred = probs.argmax(-1)
     return {"acc": float((pred == y).float().mean()), "macro_f1": float(f1_score(y, pred, average="macro")),
             "ece": ece(probs, y), "brier": brier(probs, y)}
+
+
+def metric_fn(task, probs, y):
+    """The task's headline metric as (name, higher_is_better, f(row_idx=None) -> float).
+    Everything post-hoc (cascade, compare) scores through this one definition."""
+    if task.type == "score":
+        v = torch.tensor(task.values)
+        err = ((probs * v).sum(-1) - v[y]).abs().numpy()
+        return "mae", False, lambda i=None: float(err.mean() if i is None else err[i].mean())
+    if task.type == "noul":
+        ti = task.labels.index("true")
+        t, s = (y == ti).numpy(), probs[:, ti].numpy()
+
+        def auroc(i=None):
+            tt, ss = (t, s) if i is None else (t[i], s[i])
+            return float(roc_auc_score(tt, ss)) if 0 < tt.sum() < len(tt) else float("nan")
+
+        return "auroc", True, auroc
+    ok = (probs.argmax(-1) == y).numpy().astype(float)
+    return "acc", True, lambda i=None: float(ok.mean() if i is None else ok[i].mean())
+
+
+TAUS = [round(0.30 + 0.05 * i, 2) for i in range(15)]
+
+
+def cascade(task, student, teacher, y, taus=TAUS, slack=0.005):
+    """Student answers when its confidence >= tau, else the row is escalated to the teacher. Purely
+    offline: both probability matrices are already on disk, so the sweep costs no teacher call.
+    An escalated row takes the teacher's probabilities (= the teacher's argmax, for accuracy).
+    -> (curve, parity), parity = the cheapest tau whose metric is within `slack` of the teacher's."""
+    conf = student.max(-1).values
+    name, higher, tm = metric_fn(task, teacher, y)
+    t_val, curve = tm(), []
+    for tau in taus:
+        esc = conf < tau
+        p = torch.where(esc[:, None], teacher, student)
+        curve.append({"tau": tau, "escalation": float(esc.float().mean()),
+                      name: metric_fn(task, p, y)[2]()})
+    within = [c for c in curve if ((c[name] - t_val) if higher else (t_val - c[name])) >= -slack]
+    return curve, {"metric": name, "teacher": t_val, "slack": slack,
+                   "parity": min(within, key=lambda c: c["escalation"]) if within else None}
 
 
 def _latency(tok, model, texts, max_len, n=200, warmup=20):
@@ -56,7 +99,7 @@ def run(task, run_dir, results_dir=None, latency=True):
     T = calib["temperature"]
     tok, model = load_student(run_dir / "student")
     logits = predict_logits(tok, model, texts, max_len)
-    raw, cal = logits.softmax(-1), (logits / T).softmax(-1)
+    raw, cal = logits.softmax(-1), apply(logits, calib).softmax(-1)
     teacher = torch.tensor([r["probs"] for r in rows]).clamp_min(1e-6)
     teacher = teacher / teacher.sum(-1, keepdim=True)
     y, eval_target = targets_for(rows)  # gold, or teacher argmax when gold is missing
@@ -71,6 +114,7 @@ def run(task, run_dir, results_dir=None, latency=True):
            "student": student, "teacher": _cls(teacher, y),
            "agreement": {"argmax": float((cal.argmax(-1) == teacher.argmax(-1)).float().mean()),
                          "mean_kl": float(F.kl_div(cal.log(), teacher, reduction="batchmean"))}}
+    res["cascade"], res["cascade_parity"] = cascade(task, cal, teacher, y)
     if task.type == "score":
         v = torch.tensor(task.values)
         gold_v = v[y]
@@ -102,10 +146,14 @@ def run(task, run_dir, results_dir=None, latency=True):
                 "teacher_minutes": label.get("minutes"), "train_minutes": train["train_minutes"],
                 "peak_gpu_gb": train.get("peak_gpu_gb"), "temperature": T, "calib_target": calib["target"],
                 "ece_calib_split": [calib["ece_before"], calib["ece_after"]], "git": _git()})
+    prev = Path(results_dir or ROOT / "results") / f"{run_dir.name}.json"
+    if not latency and prev.exists():  # a re-eval must not drop what `bench` measured on an idle teacher
+        res.update({k: v for k, v in json.loads(prev.read_text()).items()
+                    if k in ("latency_ms", "throughput_gpu_b64")})
     # per-class recall + confusions on the calib split (never eval) for augment
     crows = read_rows(run_dir, "calib")
     cy, ctarget = targets_for(crows)
-    cpred = predict_logits(tok, model, [r["text"] for r in crows], max_len).argmax(-1)
+    cpred = apply(predict_logits(tok, model, [r["text"] for r in crows], max_len), calib).argmax(-1)
     cm = confusion_matrix(cy, cpred, labels=list(range(task.k)))
     ev = dict(res, calib_split={"target": ctarget, "confusion": cm.tolist(),
                                 "recall": dict(zip(task.labels, (cm.diagonal() / cm.sum(1).clip(min=1)).tolist()))},
@@ -122,13 +170,98 @@ def run(task, run_dir, results_dir=None, latency=True):
             if r.get("gold_prob") is not None:
                 line["gold_prob"] = float(r["gold_prob"])
             f.write(json.dumps(line) + "\n")
+    parity = res["cascade_parity"]["parity"]
     export = {"task": dataclasses.asdict(task), "labels": task.labels, "values": task.values,
-              "temperature": T, "metrics": res}
+              "temperature": T, "calib": calib, "metrics": res,
+              # the cheapest tau that buys the teacher's metric; serve's default escalate_below
+              "escalate_below": parity["tau"] if parity else None}
     (run_dir / "openjev.json").write_text(json.dumps(export, indent=2, ensure_ascii=False))
-    results_dir = Path(results_dir or ROOT / "results")
-    results_dir.mkdir(exist_ok=True)
-    (results_dir / f"{run_dir.name}.json").write_text(json.dumps(res, indent=2, ensure_ascii=False))
+    prev.parent.mkdir(parents=True, exist_ok=True)
+    prev.write_text(json.dumps(res, indent=2, ensure_ascii=False))
     return res
+
+
+SEEDED = re.compile(r"-s(\d+)$")
+
+
+def paired_ci(f_a, f_b, n, n_boot=2000, seed=0):
+    """Bootstrap the paired delta f_a - f_b over the *same* resampled rows -> (delta, lo, hi).
+    `f(idx=None)` scores an arm on those rows. Paired is the whole point: the rows are identical in
+    both arms, so the row-to-row noise cancels and only the difference is resampled (PLAN-2 §5)."""
+    draws = np.random.default_rng(seed).integers(0, n, (n_boot, n))
+    boot = sorted(f_a(i) - f_b(i) for i in draws)
+    return f_a() - f_b(), boot[int(0.025 * n_boot)], boot[int(0.975 * n_boot) - 1]
+
+
+def _seed_dirs(run_dir):
+    """{seed: dir} for a run dir and its -sN siblings, keeping only the ones that have been eval'd."""
+    run_dir = Path(run_dir)
+    out = {0: run_dir} if (run_dir / "eval_rows.jsonl").exists() else {}
+    for p in sorted(run_dir.parent.glob(run_dir.name + "-s*")):
+        m = SEEDED.fullmatch(p.name[len(run_dir.name):])
+        if m and (p / "eval_rows.jsonl").exists():
+            out[int(m.group(1))] = p
+    return out
+
+
+def _eval_rows(d):
+    return {r["id"]: r for r in (json.loads(l) for l in open(Path(d) / "eval_rows.jsonl") if l.strip())}
+
+
+def _task_view(d):
+    """Enough of the task to score with, straight out of the run dir's export."""
+    m = json.loads((Path(d) / "openjev.json").read_text())
+    return SimpleNamespace(type=m["task"]["type"], labels=m["labels"], values=m["values"])
+
+
+def compare(a, b, n_boot=2000, seed=0, out=print):
+    """Paired comparison of two arms, seed by seed, on the eval rows they share.
+
+    Per-seed delta on the task's metric, then one pooled 95 % bootstrap CI over *rows* (the same
+    resampled rows for both arms and every seed -- that is what makes it paired). The verdict line
+    is the only thing allowed into the README (PLAN-2 §5)."""
+    A, B = _seed_dirs(a), _seed_dirs(b)
+    seeds = sorted(set(A) & set(B))
+    if not seeds:
+        raise SystemExit(f"no seed is eval'd in both arms: {sorted(A)} vs {sorted(B)} "
+                         f"(need eval_rows.jsonl -- run `openjev eval`)")
+    task = _task_view(A[seeds[0]])
+    rows = [_eval_rows(A[s]) for s in seeds] + [_eval_rows(B[s]) for s in seeds]
+    ids = sorted(set.intersection(*(set(r) for r in rows)))
+    if not ids:
+        raise SystemExit("the two arms share no eval ids")
+    gold = [rows[0][i]["gold"] for i in ids]
+    if any(g is None for g in gold):  # no gold: score both arms against the teacher, as eval does
+        y = torch.tensor([max(range(len(rows[0][i]["teacher_probs"])),
+                              key=rows[0][i]["teacher_probs"].__getitem__) for i in ids])
+    else:
+        y = torch.tensor(gold)
+    fns = {}
+    for k, s in enumerate(seeds):
+        for off, arm in ((0, "A"), (len(seeds), "B")):
+            p = torch.tensor([rows[k + off][i]["student_probs"] for i in ids])
+            name, higher, f = metric_fn(task, p, y)
+            fns[arm, s] = f
+    per_seed = [{"seed": s, "a": fns["A", s](), "b": fns["B", s]()} for s in seeds]
+    for r in per_seed:
+        r["delta"] = r["a"] - r["b"]
+    n = len(ids)
+    arm = lambda a: (lambda i=None: sum(fns[a, s](i) for s in seeds) / len(seeds))  # noqa: E731
+    delta, lo, hi = paired_ci(arm("A"), arm("B"), n, n_boot, seed)
+    scale, unit = (1.0, f" {name}") if name == "mae" else (100.0, " pts")
+    fmt = (lambda v: f"{v * scale:+.3f}") if name == "mae" else (lambda v: f"{v * scale:+.1f}")
+    d = f"Δ = {fmt(delta)} ± {fmt((hi - lo) / 2).lstrip('+')}{unit} (95 % CI {fmt(lo)}..{fmt(hi)})"
+    verdict = (f"no measurable difference ({d})" if lo <= 0 <= hi else
+               f"{'A' if (delta > 0) == higher else 'B'} is better: {d}")
+    out(f"A = {a}   B = {b}   metric: {name} ({'higher' if higher else 'lower'} is better), "
+        f"{n} shared eval rows, {len(seeds)} seed(s), {n_boot} bootstrap resamples")
+    out("| seed | A | B | Δ |\n|---|---|---|---|")
+    for r in per_seed:
+        out(f"| {r['seed']} | {r['a']:.4f} | {r['b']:.4f} | {r['delta']:+.4f} |")
+    out(f"verdict: {verdict}")
+    return {"a": str(a), "b": str(b), "metric": name, "higher_is_better": higher, "seeds": seeds,
+            "n_rows": n, "per_seed": per_seed, "delta": delta, "ci": [lo, hi],
+            "n_boot": n_boot, "verdict": verdict}
 
 
 def teacher_running():

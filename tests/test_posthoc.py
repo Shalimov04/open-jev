@@ -109,3 +109,22 @@ def test_compare_pairs_seeds_and_shared_rows_only(tmp_path):
     r = evaluate.compare(tmp_path / "a", tmp_path / "b", n_boot=50)
     assert r["seeds"] == [0, 1]           # b-s2 has no partner in arm A
     assert r["n_rows"] == len(gold)
+
+
+def test_selective_coverage_falls_and_noul_precision_is_of_the_true_answers():
+    task = evaluate.SimpleNamespace(type="noul", labels=["false", "true"], values=None, k=2)
+    # 3 rows: a confident correct "true", a confident WRONG "true", an unsure "false"
+    student = torch.tensor([[0.1, 0.9], [0.2, 0.8], [0.55, 0.45]])
+    y = torch.tensor([1, 0, 0])
+    curve = evaluate.selective(task, student, y)
+    assert [c["tau"] for c in curve][:3] == [0.5, 0.55, 0.6]
+    assert [c["coverage"] for c in curve] == sorted((c["coverage"] for c in curve), reverse=True)
+    at = {c["tau"]: c for c in curve}
+    assert at[0.5]["coverage"] == 1.0 and at[0.5]["acc"] == 2 / 3  # only the wrong "true" row misses
+    assert at[0.5]["precision_true"] == 0.5          # two "true" answers, one of them right
+    assert at[0.85]["coverage"] == 1 / 3             # only the 0.9 row survives
+    assert at[0.85]["precision_true"] == 1.0
+    assert at[0.95]["coverage"] == 0.0 and at[0.95]["acc"] is None and at[0.95]["precision_true"] is None
+    # a choice task gets acc only; a score task gets mae, both on the covered rows
+    assert "precision_true" not in evaluate.selective(_task(), student.repeat(1, 1), y)[0]
+    assert "mae" in evaluate.selective(_task(type="score", k=2), student, y)[0]

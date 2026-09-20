@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="509" viewBox="0 0 900 509" role="img" aria-label="Student vs teacher on five agent-shaped tasks, one metric per panel">
+<title>Student vs teacher on five agent-shaped tasks, one metric per panel</title>
+<rect x="0.0" y="0.0" width="900.0" height="509.0" fill="#ffffff"/>
+<text x="20.0" y="30.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="17" font-weight="700">Five agent-shaped tasks, five different metrics</text>
+<text x="20.0" y="51.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="12.5">small multiples: each panel has its own metric and its own axis — the bars are student vs teacher within a panel, never across panels</text>
+<rect x="20.0" y="58.0" width="11.0" height="11.0" fill="#0969da" rx="2"/>
+<text x="36.0" y="68.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5">student (mmBERT-small, 140M)</text>
+<rect x="250.0" y="58.0" width="11.0" height="11.0" fill="#bf8700" rx="2"/>
+<text x="266.0" y="68.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5">teacher (Qwen3.8-27B, zero-shot)</text>
+<rect x="20.0" y="80.0" width="164.0" height="316.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
+<text x="32.0" y="102.0" fill="#1f2328" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" font-weight="700">arb-success</text>
+<text x="32.0" y="118.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10.5">noul</text>
+<rect x="32.0" y="126.0" width="56.0" height="19.0" fill="#8250df" rx="9" opacity="0.14"/>
+<text x="40.0" y="140.0" fill="#8250df" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="700">AUROC</text>
+<text x="92.0" y="140.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5">↑ higher</text>
+<line x1="54.0" y1="326.0" x2="172.0" y2="326.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="48.0" y="329.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">0.0</text>
+<line x1="54.0" y1="241.0" x2="172.0" y2="241.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="48.0" y="244.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">0.5</text>
+<line x1="54.0" y1="156.0" x2="172.0" y2="156.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="48.0" y="159.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">1.0</text>
+<rect x="66.0" y="182.2" width="42.0" height="143.8" fill="#0969da" rx="3"/>
+<text x="87.0" y="176.2" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.846</text>
+<rect x="120.0" y="183.7" width="42.0" height="142.3" fill="#bf8700" rx="3"/>
+<text x="141.0" y="177.7" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.837</text>
+<line x1="54.0" y1="326.0" x2="172.0" y2="326.0" stroke="#afb8c1" stroke-width="1.5"/>
+<text x="32.0" y="352.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10">acc 0.780 / 0.743</text>
+<text x="32.0" y="367.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10" font-weight="600">n=3 seeds (mean)</text>
+<text x="32.0" y="381.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10">300 eval rows</text>
+<rect x="194.0" y="80.0" width="164.0" height="316.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
+<text x="206.0" y="102.0" fill="#1f2328" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" font-weight="700">m2w-target</text>
+<text x="206.0" y="118.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10.5">noul</text>
+<rect x="206.0" y="126.0" width="56.0" height="19.0" fill="#8250df" rx="9" opacity="0.14"/>
+<text x="214.0" y="140.0" fill="#8250df" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="700">AUROC</text>
+<text x="266.0" y="140.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5">↑ higher</text>
+<line x1="228.0" y1="326.0" x2="346.0" y2="326.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="222.0" y="329.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">0.0</text>
+<line x1="228.0" y1="241.0" x2="346.0" y2="241.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="222.0" y="244.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">0.5</text>
+<line x1="228.0" y1="156.0" x2="346.0" y2="156.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="222.0" y="159.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">1.0</text>
+<rect x="240.0" y="173.1" width="42.0" height="152.9" fill="#0969da" rx="3"/>
+<text x="261.0" y="167.1" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.899</text>
+<rect x="294.0" y="169.8" width="42.0" height="156.2" fill="#bf8700" rx="3"/>
+<text x="315.0" y="163.8" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.919</text>
+<line x1="228.0" y1="326.0" x2="346.0" y2="326.0" stroke="#afb8c1" stroke-width="1.5"/>
+<text x="206.0" y="352.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10">acc 0.857 / 0.783</text>
+<text x="206.0" y="367.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10" font-weight="600">n=3 seeds (mean)</text>
+<text x="206.0" y="381.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10">2000 eval rows</text>
+<rect x="368.0" y="80.0" width="164.0" height="316.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
+<text x="380.0" y="102.0" fill="#1f2328" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" font-weight="700">swde-field</text>
+<text x="380.0" y="118.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10.5">choice K=33</text>
+<rect x="380.0" y="126.0" width="80.0" height="19.0" fill="#8250df" rx="9" opacity="0.14"/>
+<text x="388.0" y="140.0" fill="#8250df" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="700">macro-F1</text>
+<text x="464.0" y="140.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5">↑ higher</text>
+<line x1="402.0" y1="326.0" x2="520.0" y2="326.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="396.0" y="329.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">0.0</text>
+<line x1="402.0" y1="241.0" x2="520.0" y2="241.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="396.0" y="244.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">0.5</text>
+<line x1="402.0" y1="156.0" x2="520.0" y2="156.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="396.0" y="159.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">1.0</text>
+<rect x="414.0" y="169.0" width="42.0" height="157.0" fill="#0969da" rx="3"/>
+<text x="435.0" y="163.0" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.924</text>
+<rect x="468.0" y="177.1" width="42.0" height="148.9" fill="#bf8700" rx="3"/>
+<text x="489.0" y="171.1" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.876</text>
+<line x1="402.0" y1="326.0" x2="520.0" y2="326.0" stroke="#afb8c1" stroke-width="1.5"/>
+<text x="380.0" y="352.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10">acc 0.868 / 0.803</text>
+<text x="380.0" y="367.0" fill="#1f2328" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10" font-weight="600">n=3 seeds (mean)</text>
+<text x="380.0" y="381.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10">2000 eval rows</text>
+<rect x="542.0" y="80.0" width="164.0" height="316.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
+<text x="554.0" y="102.0" fill="#cf222e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" font-weight="700">m2w-element</text>
+<text x="554.0" y="118.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10.5">choice K=16</text>
+<rect x="554.0" y="126.0" width="80.0" height="19.0" fill="#cf222e" rx="9" opacity="0.14"/>
+<text x="562.0" y="140.0" fill="#cf222e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="700">accuracy</text>
+<text x="638.0" y="140.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5">↑ higher</text>
+<line x1="576.0" y1="326.0" x2="694.0" y2="326.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="570.0" y="329.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">0.0</text>
+<line x1="576.0" y1="241.0" x2="694.0" y2="241.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="570.0" y="244.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">0.5</text>
+<line x1="576.0" y1="156.0" x2="694.0" y2="156.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="570.0" y="159.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">1.0</text>
+<rect x="588.0" y="316.0" width="42.0" height="10.0" fill="#0969da" rx="3"/>
+<text x="578.0" y="310.0" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700">0.059</text>
+<rect x="642.0" y="215.7" width="42.0" height="110.3" fill="#bf8700" rx="3"/>
+<text x="663.0" y="209.7" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.649</text>
+<line x1="576.0" y1="315.4" x2="694.0" y2="315.4" stroke="#cf222e" stroke-width="1.5" stroke-dasharray="4 3"/>
+<rect x="617.8" y="298.4" width="76.2" height="15.0" fill="#f6f8fa" rx="3"/>
+<text x="691.0" y="309.4" fill="#cf222e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" font-weight="700" text-anchor="end">1/16 = 0.0625</text>
+<line x1="576.0" y1="326.0" x2="694.0" y2="326.0" stroke="#afb8c1" stroke-width="1.5"/>
+<text x="554.0" y="352.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10">macro-F1 0.007 / 0.652</text>
+<text x="554.0" y="367.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10" font-weight="600">n=1 seed</text>
+<text x="554.0" y="381.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10">900 eval rows</text>
+<rect x="716.0" y="80.0" width="164.0" height="316.0" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1" rx="8"/>
+<text x="728.0" y="102.0" fill="#1f2328" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" font-weight="700">arb-quality</text>
+<text x="728.0" y="118.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10.5">score 1–4</text>
+<rect x="728.0" y="126.0" width="40.0" height="19.0" fill="#8250df" rx="9" opacity="0.14"/>
+<text x="736.0" y="140.0" fill="#8250df" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="700">MAE</text>
+<text x="772.0" y="140.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5">↓ lower better</text>
+<line x1="750.0" y1="156.0" x2="868.0" y2="156.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="744.0" y="159.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">0.0</text>
+<line x1="750.0" y1="241.0" x2="868.0" y2="241.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="744.0" y="244.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">0.5</text>
+<line x1="750.0" y1="326.0" x2="868.0" y2="326.0" stroke="#d1d9e0" stroke-width="1"/>
+<text x="744.0" y="329.5" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" text-anchor="end">1.0</text>
+<rect x="762.0" y="156.0" width="42.0" height="132.0" fill="#0969da" rx="3"/>
+<text x="783.0" y="301.0" fill="#0969da" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.776</text>
+<rect x="816.0" y="156.0" width="42.0" height="137.5" fill="#bf8700" rx="3"/>
+<text x="837.0" y="306.5" fill="#bf8700" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="700" text-anchor="middle">0.809</text>
+<line x1="864.0" y1="182.0" x2="864.0" y2="318.0" stroke="#59636e" stroke-width="1.5"/>
+<polygon points="864.0,326.0 859.5,317.0 868.5,317.0" fill="#59636e"/>
+<text x="868.0" y="340.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="9.5" font-weight="600" text-anchor="end">better ↓</text>
+<line x1="750.0" y1="156.0" x2="868.0" y2="156.0" stroke="#afb8c1" stroke-width="1.5"/>
+<text x="728.0" y="352.0" fill="#59636e" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10">acc 0.343 / 0.360</text>
+<text x="728.0" y="367.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10" font-weight="600">n=1 seed</text>
+<text x="728.0" y="381.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10">300 eval rows</text>
+<text x="20.0" y="418.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">• AUROC on arb-success, not accuracy: the teacher answers “no” on almost every row, so its accuracy (0.743) is just the majority-class rate and</text>
+<text x="28.0" y="431.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">its macro-F1 is 0.426. The probabilities still rank runs, which is what AUROC measures — and what an agent gate consumes.</text>
+<text x="20.0" y="447.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">• m2w-element is the failed task. 0.059 is below the 0.0625 chance floor of a 16-way choice (dashed): the student collapsed onto one slot — slot</text>
+<text x="28.0" y="460.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">“G” means something different on every row, so there is nothing row-independent to learn. Same task as m2w-target, wrong primitive.</text>
+<text x="20.0" y="476.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">• arb-quality is MAE on a 1–4 score, where lower is better — its bars hang from the top for that reason, and its axis is not the same quantity as</text>
+<text x="28.0" y="489.0" fill="#59636e" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10.5">any other panel's. Both models are weak here.</text>
+</svg>

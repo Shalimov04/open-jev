@@ -37,6 +37,7 @@ Copy the one closest to your problem (`tasks/example.yaml` is the annotated blan
 | `options` | list[str] | `null` | **`choice` only, required.** The label set, in a fixed order that is the class order end to end. |
 | `rubric` | dict | `null` | **`score` only, required.** `{levels: [...], descriptions: [...]}` — see below. |
 | `statement` | str | `null` | **`noul` only, required.** The proposition the teacher judges true/false. |
+| `prior` | `uniform` \| {label: weight} | `null` | The class distribution you expect at deployment. It is used *only* by calibration, and only when the calib split has no gold (or `--ignore-gold` forces that): after fitting the temperature to the teacher's soft probabilities, a per-class bias is fitted so the mean calibrated probability over the calib rows matches this prior. That is a debiasing step with **zero gold labels**, which is the point — the teacher's dominant error on a hard task is a shifted marginal, and a K-dim bias is exactly the shape that fixes it. Weights are normalised, so `{Bad: 1, Neutral: 1, Good: 1}` and `uniform` are the same thing. Declare it only when you actually know it: a wrong prior moves the argmax the wrong way, and on a benchmark that is balanced by construction "knowing" it is a leak a real deployment does not get. `calib.json` records `target: prior-declared` when this path ran. |
 | `data` | mapping | **required** | See [data](#data). |
 | `teacher` | mapping | defaults | See [teacher](#teacher). |
 | `student` | mapping | defaults | See [student](#student). |
@@ -149,6 +150,30 @@ Write floats in YAML as `5.0e-5`, not `5e-5` — YAML 1.1 parses the latter as a
 teacher and student alike, and `student.max_len` then cuts the student's *tokens*. If `max_len` binds
 first the student never sees text the teacher was labelling (long Russian reviews: ~1500 chars is well
 over 256 tokens), which caps agreement — raise `max_len` or lower `max_chars` so the two roughly meet.
+
+## Command reference
+
+Every stage subcommand (`run`, `label`, `train`, `calibrate`, `eval`, `augment`) takes a task YAML
+and the overrides above. These are the rest:
+
+| flag | on | what it does |
+|---|---|---|
+| `--seed N` | stage cmds | Training seed (head init + batch order). `N > 0` adds a `-sN` run-dir suffix; seed 0 *is* the baseline dir. Three seeds is the floor for any claim — CUDA is not bit-exact, so one seed is not a measurement. |
+| `--tag X` | stage cmds | Free-form run-dir suffix (`runs/<task>-X`). Use it for a named variant; it replaces ad-hoc suffix rules. |
+| `--no-synth` | stage cmds | Drop `source == "synth"` rows from training — the control arm for `openjev augment`. |
+| `--gold-n N` | stage cmds | Put the CE term on the first N train rows in id order only. Needs `--gold-weight`; answers "what do 500 gold labels buy in the loss?". |
+| `--ignore-gold` | `run`, `calibrate` | Calibrate as if the calib split had no gold. With `prior:` declared, this is what makes a `prior-declared` number a genuine no-gold number. |
+| `--no-latency` | `run`, `eval` | Skip the latency/throughput measurement. Latency is only valid on an idle teacher (it shares the GPU), so every queued eval uses this and `openjev bench` measures later. |
+| `--force STAGE` | `run` | Re-run one stage and everything after it. Repeatable. |
+
+| command | what it does |
+|---|---|
+| `openjev check TASK.yaml [--probe N]` | Dry-run a task before spending teacher time: splits, gold distribution, the prompt verbatim, three formatted examples, length stats, cost estimate. `--probe N` labels N calib rows into the real `teacher.jsonl` and reports the teacher's accuracy, marginal and under-predicted classes. See [Add your own task](#add-your-own-task). |
+| `openjev compare A B` | Paired comparison of two run dirs over every seed they share: per-seed delta on the task's metric and one pooled 95 % bootstrap CI over eval rows, plus a verdict line. Nothing goes into the README without one. |
+| `openjev report` | Rebuild the README results table from `results/*.json` (and print it). `-s<k>` files are grouped into one `mean ± sd (n)` row. |
+| `openjev bench RUN_DIR` | Latency + throughput only, into the existing `results/<run>.json`. Waits for `vllm:num_requests_running == 0` first, so the number is not noise from a busy teacher. |
+| `openjev serve RUN_DIR... [--port P] [--device cpu\|cuda]` | Serve one or more run dirs at `POST /v1/systemone`. A run dir may be `hf:user/name`, which is downloaded once into `runs/hf--user--name`. See [Serving](../README.md#serving). |
+| `openjev push RUN_DIR --repo user/name [--dry-run] [--public]` | Upload `student/`, `openjev.json`, `conformal.json` and a generated model card to the Hugging Face Hub. Private by default. `--dry-run` prints the file list and the card and uploads nothing. |
 
 ## Worked examples
 

@@ -69,6 +69,81 @@ The tasks here are English and Russian, but nothing is language-specific: `quest
 long as the teacher and the student checkpoint (mmBERT is multilingual) both cover it. `lang` itself
 is only a report column and the language `openjev augment` generates in.
 
+## Serving
+
+`openjev serve runs/agnews runs/kinopoisk --port 8099` loads every run dir it is given and routes on
+the `model` field. `--device cpu` forces CPU (the default is CUDA when it is there). The forward
+pass is 5 ms on GPU and 30 ms on CPU for mmBERT-small (the table below); measured end to end through
+HTTP on a busy box, one request is ~21 ms on GPU and ~160 ms on CPU, so most of the CPU number is
+tokenisation and framing, not the model. Either way CPU-only serving is a real option, not a
+fallback.
+
+**Batch.** `input` may be a list. One forward pass, one list back, same order:
+
+```bash
+curl -s localhost:8099/v1/systemone -H 'Content-Type: application/json' \
+  -d '{"model":"agnews","input":["Shares of the airline fell 8% after it cut its forecast.",
+                                 "Manchester United beat Arsenal 2-1."]}'
+```
+
+**Escalation.** `eval` writes the cascade *parity point* into `openjev.json` as `escalate_below`: the
+lowest confidence threshold at which "student answers when confident, teacher answers the rest"
+matches the teacher's own metric. Serve returns `"escalate": true/false` against it, and
+`escalate_below` in the request overrides it. **The server never calls the teacher** — that is your
+decision to make, and it keeps the teacher's URL, key and concurrency out of this process:
+
+```python
+r = httpx.post(f"{OPENJEV}/v1/systemone", json={"model": "kinopoisk", "input": text}).json()
+answer = ask_the_llm(text) if r["escalate"] else r["choice"]
+```
+
+**Prediction sets.** `"coverage": 0.9` adds `"set": [...]`, a split-conformal (LAC) set built from
+the calib split's `1 − p_true` quantile — it contains the right label ~90 % of the time, and it is
+wider exactly where the model is unsure. `"set_target"` says what "right" was measured against:
+`gold`, or `teacher` when the calib split had no gold labels, in which case the set covers *the
+teacher's* answer and not the truth.
+
+```bash
+curl -s localhost:8099/v1/systemone -H 'Content-Type: application/json' \
+  -d '{"model":"kinopoisk","input":"Ну такое. Актёры старались, но сценарий провальный.","coverage":0.9}'
+# {"model":"kinopoisk","choice":"Bad",
+#  "probabilities":{"Bad":0.6697,"Neutral":0.2994,"Good":0.0309},"confidence":0.6697,
+#  "escalate":false,"set":["Bad","Neutral"],"set_target":"gold"}
+```
+
+`GET /v1/models` lists what is loaded, with each model's `escalate_below` and whether it has a
+conformal calibration.
+
+### Share a trained student
+
+```bash
+openjev push runs/agnews --repo you/openjev-agnews --dry-run   # prints the file list and the card
+openjev push runs/agnews --repo you/openjev-agnews             # private; --public to publish
+openjev serve hf:you/openjev-agnews --port 8099                # snapshot_download, then as usual
+```
+
+`push` uploads `student/`, `openjev.json`, `conformal.json` and a generated model card — the task
+YAML, the teacher id, the results row, the calibration method, and the "no gold in the loss"
+sentence when that is what the run actually did. It does **not** upload `teacher.jsonl`, so the
+teacher's labels stay yours. Needs a Hugging Face token with write access (`hf auth login`).
+
+### Comparing against another endpoint
+
+`scripts/compare_api.py` scores any `/v1/systemone`-shaped endpoint on the same eval rows this
+repo's numbers come from, and writes `results/api/api-<name>-<task>.json` with accuracy, argmax
+agreement with our student, and p50 latency:
+
+```bash
+python scripts/compare_api.py --adapter openjev --url http://localhost:8099 --task agnews --limit 200
+JEV_API_KEY=... python scripts/compare_api.py --adapter jev --task agnews --limit 200
+```
+
+The `jev` adapter targets [TypeSafe's Jev](https://docs.typesafe.ai/api.md), whose request shape
+(`state` + a `questions` map of Choice/Score/Noul) this project's own endpoint deliberately mirrors.
+It is written from the published docs and has not been run against the live API — there is no key
+here. Latency across two providers is two different machines and is not a comparison; accuracy and
+agreement on identical rows are.
+
 ## Add your own task
 
 Write the YAML → `check` → `check --probe 100` → `run` → `serve`. The teacher is the ceiling of
@@ -112,24 +187,32 @@ way to debug a `data.text` template. Full field reference: `docs/task-spec.md`.
 <!-- results -->
 | task | type | K | lang | n_train | student acc / F1 | teacher acc / F1 | agree | ECE raw→cal | Brier | GPU p50 ms | ex/s |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| agnews | choice | 4 | en | 4000 | 0.879 / 0.880 | 0.880 / 0.881 | 0.938 | 0.071→0.042 | 0.198 | 5.3 | 869 |
-| agnews-mmBERT-base | choice | 4 | en | 4000 | 0.883 / 0.884 | 0.880 / 0.881 | 0.945 | 0.081→0.053 | 0.194 | 6.3 | 435 |
+| agnews (n=3) | choice | 4 | en | 4000 | 0.888 ± 0.006 / 0.888 ± 0.006 | 0.880 / 0.881 | 0.916 ± 0.004 | 0.075 ± 0.005→0.030 ± 0.004 | 0.177 ± 0.006 | 5.3 | 869 |
+| agnews-e12 | choice | 4 | en | 4000 | 0.889 / 0.889 | 0.880 / 0.881 | 0.914 | 0.079→0.023 | 0.174 | – | – |
+| agnews-mmBERT-base | choice | 4 | en | 4000 | 0.891 / 0.892 | 0.880 / 0.881 | 0.916 | 0.081→0.023 | 0.175 | 6.3 | 435 |
 | agnews-nogold | choice | 4 | en | 4000 | 0.944 / 0.944 | 1.000 / 1.000 | 0.944 | 0.131→0.129 | 0.115 | 5.7 | 863 |
-| banking77 | choice | 77 | en | 3000 | 0.748 / 0.736 | 0.764 / 0.749 | 0.836 | 0.017→0.028 | 0.357 | 5.2 | 2644 |
-| georeview | score | 5 | ru | 4000 | 0.421 / 0.391 | 0.470 / 0.455 | 0.797 | 0.253→0.072 | 0.670 | 6.2 | 203 |
-| georeview-mmBERT-base | score | 5 | ru | 4000 | 0.433 / 0.409 | 0.470 / 0.455 | 0.820 | 0.242→0.065 | 0.661 | 7.1 | 115 |
-| headlines (n=2) | choice | 6 | ru | 4522 | 0.765 ± 0.003 / 0.759 ± 0.002 | 0.783 / 0.775 | 0.861 ± 0.001 | 0.025 ± 0.002→0.025 ± 0.002 | 0.338 ± 0.002 | 5.5 | 2644 |
-| kinopoisk | choice | 3 | ru | 4000 | 0.609 / 0.564 | 0.652 / 0.609 | 0.817 | 0.161→0.109 | 0.542 | 7.0 | 186 |
+| banking77 | choice | 77 | en | 3000 | 0.751 / 0.741 | 0.764 / 0.749 | 0.766 | 0.017→0.042 | 0.363 | 5.2 | 2644 |
+| georeview | score | 5 | ru | 4000 | 0.558 / 0.567 | 0.470 / 0.455 | 0.649 | 0.253→0.025 | 0.556 | 6.2 | 203 |
+| georeview-mmBERT-base | score | 5 | ru | 4000 | 0.564 / 0.573 | 0.470 / 0.455 | 0.648 | 0.242→0.027 | 0.544 | 7.1 | 115 |
+| headlines (n=3) | choice | 6 | ru | 4522 | 0.838 ± 0.005 / 0.838 ± 0.005 | 0.783 / 0.775 | 0.816 ± 0.002 | 0.025 ± 0.001→0.029 ± 0.007 | 0.248 ± 0.001 | 5.5 | 2644 |
+| headlines-e12 | choice | 6 | ru | 4522 | 0.836 / 0.836 | 0.783 / 0.775 | 0.813 | 0.034→0.023 | 0.250 | – | – |
+| headlines-nosynth (n=3) | choice | 6 | ru | 4000 | 0.838 ± 0.004 / 0.838 ± 0.004 | 0.783 / 0.775 | 0.818 ± 0.006 | 0.024 ± 0.006→0.030 ± 0.005 | 0.247 ± 0.004 | – | – |
+| kinopoisk (n=3) | choice | 3 | ru | 4000 | 0.657 ± 0.003 / 0.656 ± 0.004 | 0.652 / 0.609 | 0.693 ± 0.006 | 0.154 ± 0.006→0.040 ± 0.005 | 0.460 ± 0.001 | 7.0 | 186 |
+| kinopoisk-e12 | choice | 3 | ru | 4000 | 0.660 / 0.657 | 0.652 / 0.609 | 0.681 | 0.173→0.033 | 0.463 | – | – |
 | toxic | noul | 2 | en | 4000 | 0.917 / 0.626 | 0.893 / 0.624 | 0.925 | 0.116→0.037 | 0.129 | 5.7 | 437 |
 
-- **agnews**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.74).
-- **agnews-mmBERT-base**: jhu-clsp/mmBERT-base distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.73).
+- **agnews**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.64).
+- **agnews-e12**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.62).
+- **agnews-mmBERT-base**: jhu-clsp/mmBERT-base distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.63).
 - **agnews-nogold**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs teacher on 2000 eval examples; calibrated to teacher-soft (T=0.99).
-- **banking77**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=1.09).
-- **georeview**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.783 (teacher 0.619); calibrated to gold (T=1.95).
-- **georeview-mmBERT-base**: jhu-clsp/mmBERT-base distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.771 (teacher 0.619); calibrated to gold (T=1.91).
-- **headlines**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; temperature kept at 1.0 (fitting it did not improve ECE on the calib split).
-- **kinopoisk**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 1500 eval examples; calibrated to gold (T=2.35).
+- **banking77**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.82).
+- **georeview**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.609 (teacher 0.619); calibrated to gold (T=1.09).
+- **georeview-mmBERT-base**: jhu-clsp/mmBERT-base distilled from the teacher with zero gold labels; expected level; MAE vs gold on 2000 eval examples; MAE 0.594 (teacher 0.619); calibrated to gold (T=1.07).
+- **headlines**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.81).
+- **headlines-e12**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.78).
+- **headlines-nosynth**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 2000 eval examples; calibrated to gold (T=0.81).
+- **kinopoisk**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 1500 eval examples; calibrated to gold (T=1.28).
+- **kinopoisk-e12**: jhu-clsp/mmBERT-small distilled from the teacher with zero gold labels; argmax accuracy vs gold on 1500 eval examples; calibrated to gold (T=1.27).
 - **toxic**: jhu-clsp/mmBERT-small distilled from the teacher with no gold in the loss (but train rows picked 50/50 by gold); p(true); AUROC vs gold on 3000 eval examples; AUROC 0.856 (teacher 0.817); calibrated to gold (T=0.25).
 <!-- results -->
 

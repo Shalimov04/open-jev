@@ -68,6 +68,11 @@ def run(task, run_dir, student=None, epochs=None, batch_size=None, max_steps=Non
     opt = torch.optim.AdamW(model.parameters(), lr=s.lr, weight_decay=0.01)
     sched = get_linear_schedule_with_warmup(opt, int(0.06 * steps), steps)
     calib_texts, calib_p = [r["text"] for r in calib], _targets(calib)
+    # Model selection scores the objective that is actually being trained. With gold_weight > 0 the
+    # student is *meant* to move away from the teacher's soft labels, so selecting on calib KL alone
+    # penalises the gold term for working: it picked epoch 1 of 5 on kinopoisk --gold-n 500.
+    calib_y = ([r["gold"] for r in calib] if s.gold_weight and all(r.get("gold") is not None for r in calib)
+               else None)
     if dev == "cuda":
         torch.cuda.reset_peak_memory_stats()
     t0, step, best, best_epoch, bad, history = time.time(), 0, float("inf"), -1, 0, []
@@ -99,10 +104,14 @@ def run(task, run_dir, student=None, epochs=None, batch_size=None, max_steps=Non
         model.eval()
         q = F.log_softmax(predict_logits(tok, model, calib_texts, s.max_len), -1)
         kl = F.kl_div(q, calib_p, reduction="batchmean").item()
-        history.append({"epoch": epoch, "train_loss": sum(losses) / len(losses), "calib_kl": kl})
-        print(f"epoch {epoch} train_loss {history[-1]['train_loss']:.4f} calib_kl {kl:.4f}", flush=True)
-        if kl < best:
-            best, best_epoch, bad = kl, epoch, 0
+        sel = kl if calib_y is None else kl + s.gold_weight * F.nll_loss(
+            q, torch.tensor(calib_y, device=q.device)).item()
+        history.append({"epoch": epoch, "train_loss": sum(losses) / len(losses), "calib_kl": kl,
+                        **({} if calib_y is None else {"calib_loss": sel})})
+        print(f"epoch {epoch} train_loss {history[-1]['train_loss']:.4f} calib_kl {kl:.4f}"
+              + ("" if calib_y is None else f" calib_loss {sel:.4f}"), flush=True)
+        if sel < best:
+            best, best_epoch, bad = sel, epoch, 0
             model.save_pretrained(run_dir / "student")
             tok.save_pretrained(run_dir / "student")
         else:
@@ -115,7 +124,8 @@ def run(task, run_dir, student=None, epochs=None, batch_size=None, max_steps=Non
     info = {"student": name, "n_train": len(train), "n_synth": len(synth),
             "augment_round": max((int(r["id"].split(":")[1]) for r in synth), default=0),
             "gold_weight": s.gold_weight, "gold_n": gold_n, "no_synth": no_synth, "seed": seed,
-            "epochs": epochs, "best_epoch": best_epoch, "best_calib_kl": best, "history": history,
+            "epochs": epochs, "best_epoch": best_epoch, "history": history,
+            "best_calib_kl": history[best_epoch]["calib_kl"], "best_calib_loss": best,
             "train_minutes": (time.time() - t0) / 60,
             "peak_gpu_gb": torch.cuda.max_memory_allocated() / 2**30 if dev == "cuda" else 0.0}
     (run_dir / "train.json").write_text(json.dumps(info, indent=2))

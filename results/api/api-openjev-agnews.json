@@ -1,0 +1,13 @@
+{
+  "adapter": "openjev",
+  "url": "http://localhost:8099",
+  "model": "agnews",
+  "task": "agnews",
+  "n": 200,
+  "n_failed": 0,
+  "acc": 0.915,
+  "n_gold": 200,
+  "agreement_with_student": 1.0,
+  "latency_ms_p50": 20.788533991435543,
+  "student_acc": 0.8889999985694885
+}

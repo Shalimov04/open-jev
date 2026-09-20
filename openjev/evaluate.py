@@ -356,7 +356,9 @@ def report(results_dir=None, readme=None):
     lines, notes = [head], []
     groups = {}  # results/<name>-s<k>.json is a seed of results/<name>.json, not a separate run
     for p in sorted(results_dir.glob("*.json")):
-        groups.setdefault(SEED.sub("", p.stem), []).append(json.loads(p.read_text()))
+        # seed 0 first: its file has no -sN suffix, and the note line quotes g[0]
+        groups.setdefault(SEED.sub("", p.stem), []).append((p.stem, json.loads(p.read_text())))
+    groups = {k: [r for _, r in sorted(v, key=lambda t: len(t[0]))] for k, v in groups.items()}
     for stem, g in sorted(groups.items()):
         r = g[0]
         st = lambda k: _agg([x["student"][k] for x in g])          # noqa: E731

@@ -1,0 +1,13 @@
+name: trec-coarse
+type: choice
+question: "What kind of answer does this question ask for?"
+options: [abbreviation, description and abstract concepts, entities, human beings, locations, numeric values]
+lang: en
+data:
+  source: {hf: SetFit/TREC-QC}
+  text: "{text}"
+  max_chars: 400
+  gold: label_coarse_text
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: test, n: 500}

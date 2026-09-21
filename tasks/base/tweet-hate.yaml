@@ -1,0 +1,12 @@
+name: tweet-hate
+type: noul
+statement: "This tweet is hateful towards women or immigrants."
+lang: en
+data:
+  source: {hf: cardiffnlp/tweet_eval, config: hate}
+  text: "{text}"
+  max_chars: 600
+  gold: label
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: test, n: 500}

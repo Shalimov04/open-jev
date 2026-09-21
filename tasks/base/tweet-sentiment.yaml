@@ -1,0 +1,13 @@
+name: tweet-sentiment
+type: choice
+question: "What is the sentiment of this tweet?"
+options: [negative, neutral, positive]
+lang: en
+data:
+  source: {hf: cardiffnlp/tweet_eval, config: sentiment}
+  text: "{text}"
+  max_chars: 600
+  gold: label
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: test, n: 500}

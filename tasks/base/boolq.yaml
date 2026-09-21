@@ -1,0 +1,15 @@
+name: boolq
+type: noul
+question: "Read the passage, then judge the statement about the question below it."
+statement: "The correct answer to the question at the end of the passage is yes."
+lang: en
+data:
+  source: {hf: google/boolq}
+  text: "{passage}\n\nQuestion: {question}"
+  max_chars: 1800
+  gold: answer          # bool; True -> the statement is true
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: validation, n: 500}
+student:
+  max_len: 512

@@ -48,10 +48,21 @@ def run_dirs(runs: Path):
     return keep, dupes
 
 
-def pairs(task, rows):
+def task_path(tasks: Path, run_name: str) -> Path:
+    """Run dir -> its task YAML. `<name>-jev` is the same task labelled by Jev, and S1's tasks
+    (PLAN-4 §2) live in tasks/base/."""
+    stem = run_name[: -len("-jev")] if run_name.endswith("-jev") else run_name
+    for p in (tasks / f"{stem}.yaml", tasks / "base" / f"{stem}.yaml"):
+        if p.exists():
+            return p
+    raise FileNotFoundError(f"no task YAML for run dir {run_name} (looked for {stem}.yaml)")
+
+
+def pairs(task, rows, name=None):
     """Yield one pair row per (example, option)."""
     opts = option_lines(task) if task.type == "score" else list(task.labels)
     question = task.statement if task.type == "noul" else task.question
+    name = name or task.name
     for r in rows:
         if len(r["probs"]) != task.k:
             raise ValueError(f"{task.name}/{r['id']}: {len(r['probs'])} probs, task has k={task.k}")
@@ -62,7 +73,7 @@ def pairs(task, rows):
         chunk_p = {int(i): p for c in (chunks or []) for i, p in c.items() if i != "none"}
         final = {int(i) for i in r["raw"].get("final", {})} if chunks is not None else set()
         for i, p in enumerate(r["probs"]):
-            row = {"task": task.name, "source_id": r["id"], "pair_id": f"{task.name}|{r['id']}|{i}",
+            row = {"task": name, "source_id": r["id"], "pair_id": f"{task.name}|{r['id']}|{i}",
                    "primitive": task.type, "k": task.k, "question": question,
                    "option": opts[i], "option_index": i, "text": r["text"], "p": p,
                    "gold": None if r["gold"] is None else int(r["gold"] == i),
@@ -95,10 +106,10 @@ def build(runs: Path, tasks: Path, out: Path, stats_path: Path, force=False, qui
 
     with open(out, "a") as f:
         for name in todo:
-            task = load_task(tasks / f"{name}.yaml")
+            task = load_task(task_path(tasks, name))
             rows = read_jsonl(keep[name] / "teacher.jsonl")
             n = hi = 0
-            for pr in pairs(task, rows):
+            for pr in pairs(task, rows, name):
                 f.write(json.dumps(pr, ensure_ascii=False) + "\n")
                 n += 1
                 hi += pr["p"] > 0.5

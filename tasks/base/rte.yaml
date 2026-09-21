@@ -1,0 +1,15 @@
+name: rte
+type: noul
+statement: "Sentence B follows from sentence A."
+lang: en
+data:
+  source: {hf: nyu-mll/glue, config: rte}
+  text: "A: {sentence1}\nB: {sentence2}"
+  max_chars: 1500
+  gold: label
+  gold_map: [1, 0]      # 0 = entailment -> statement true
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: validation, n: 277}
+student:
+  max_len: 512

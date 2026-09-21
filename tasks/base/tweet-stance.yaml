@@ -1,0 +1,13 @@
+name: tweet-stance
+type: choice
+question: "What stance does the tweet take towards the target named in the first line?"
+options: [none, against, in favour of]
+lang: en
+data:
+  source: {jsonl: data/base/tweet-stance.jsonl}   # scripts/prep_base.py, tweet_eval's 5 stance configs
+  text: "{text}"
+  max_chars: 600
+  gold: stance
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: train, n: 500}

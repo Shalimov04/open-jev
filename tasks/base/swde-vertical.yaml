@@ -1,0 +1,13 @@
+name: swde-vertical
+type: choice
+question: "This is one text node from a product or listing page. Which kind of site is the page from?"
+options: [auto, book, camera, job, movie, nbaplayer, restaurant, university]
+lang: en
+data:
+  source: {jsonl: data/base/swde-vertical.jsonl}   # scripts/prep_base.py, 2 nodes per SWDE page
+  text: "{text}"
+  max_chars: 600
+  gold: vertical
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: train, n: 500}

@@ -1,0 +1,13 @@
+name: fin-sentiment
+type: choice
+question: "From an investor's point of view, what is the sentiment of this financial news sentence?"
+options: [negative, neutral, positive]
+lang: en
+data:
+  source: {hf: FinanceInc/auditor_sentiment}
+  text: "{sentence}"
+  max_chars: 600
+  gold: label
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: test, n: 500}

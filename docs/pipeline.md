@@ -4,7 +4,7 @@ What `openjev run` does between a task YAML and a served endpoint. Field referen
 
 
 1. **Task** — one YAML: type (`choice` / `score` / `noul`), the question, the option set, where the
-   text comes from, split sizes. `task-spec.md` is the full reference.
+   text comes from, split sizes.
 2. **Teacher** — a local vLLM endpoint (`OPENJEV_TEACHER_URL`, default `http://localhost:8000/v1`)
    is asked one constrained question per example; the request is exactly:
 
@@ -23,8 +23,8 @@ What `openjev run` does between a task YAML and a served endpoint. Field referen
    `KL(teacher ‖ student)`, optionally plus a gold CE term; early stop on calibration-split KL.
 4. **Calibrate** — `logits / T` fitted by LBFGS on the calib split's NLL, or `logits / T + b` with a
    per-class bias `b ∈ R^K` when that wins a 2-fold held-out NLL test on the same rows. The bias is
-   what removes the teacher's shifted marginal, and on the hard tasks it is worth more than anything
-   else in this pipeline (see [findings.md](findings.md)). With no gold it targets a declared `prior:`.
+   what removes the teacher's shifted marginal ([findings.md](findings.md#the-calibration-bias)).
+   With no gold it targets a declared `prior:`.
 5. **Serve** — `openjev serve runs/<task>`: the calibrated probability vector goes through one view
    per type (`openjev/views.py`) and comes back as a typed JSON decision.
 

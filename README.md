@@ -7,21 +7,19 @@
   <img alt="open-jev pipeline: text to teacher soft labels to distilled student to typed JSON" src="docs/img/pipeline-light.svg" width="900">
 </picture>
 
-Turn a prompt into a small, fast, calibrated classifier. You describe a decision in a YAML file — a
-choice between options, a score on a rubric, or the truth of a statement — and `openjev` has a local
-LLM teacher (here Qwen3.8-27B on vLLM) label a few thousand examples with *soft* labels (per-option probabilities read off the
-logprobs of a single constrained letter token), distills those into a ~140M encoder, calibrates it
-on a held-out split, and serves the result at `POST /v1/systemone`. The output is a typed
-decision with probabilities you can threshold on, not a string you have to parse. It is an open
-reimplementation of the idea behind TypeSafe's Jev — Jev itself is a closed hosted API, so its
-published claims cannot be checked from outside and none of them are repeated here; the only numbers
-in this repo are the ones produced by the code in this repo.
+Turn a prompt into a small, fast, calibrated classifier. You describe a decision in one YAML file —
+a choice between options, a score on a rubric, or the truth of a statement — and `openjev` has a
+local LLM teacher label a few thousand examples with *soft* labels (the softmax over the logprobs of
+one constrained letter token), distills them into a ~140M encoder, calibrates it on a held-out
+split, and serves the result at `POST /v1/systemone` as a typed decision with probabilities you can
+threshold on. It is an open reimplementation of the idea behind TypeSafe's Jev. Jev is a closed
+hosted API whose published claims cannot be checked from outside, so none are repeated here: every
+number in this repo was produced by the code in this repo.
 
-**Task** (one YAML) → **teacher** (one constrained letter per example, softmax over its logprobs)
-→ **student** (`mmBERT-small` trained on `KL(teacher ‖ student)`) → **calibrate** (`logits / T + b`
-on a 500-row split) → **serve** (typed JSON at `/v1/systemone`). Everything lands in
-`runs/<task>/`. Stage-by-stage detail, the exact teacher request and `openjev augment`:
-[`docs/pipeline.md`](docs/pipeline.md). The task YAML reference and a walkthrough for your own task:
+**Task** (YAML) → **teacher** (one constrained letter per example) → **student** (`mmBERT-small`
+trained on `KL(teacher ‖ student)`) → **calibrate** (`logits / T + b` on 500 held-out rows) →
+**serve**. Everything lands in `runs/<task>/`. Stage detail and the exact teacher request:
+[`docs/pipeline.md`](docs/pipeline.md). The YAML reference and how to add your own task:
 [`docs/task-spec.md`](docs/task-spec.md).
 
 <picture>
@@ -40,7 +38,7 @@ curl -s localhost:8099/v1/systemone -H 'Content-Type: application/json' \
   -d '{"model":"agnews","input":"Shares of the airline fell 8% after it cut its full-year profit forecast."}'
 ```
 
-That last line, run against `runs/agnews`, prints:
+The last line, against `runs/agnews`, prints:
 
 ```json
 {"model":"agnews","choice":"Business","probabilities":{"World":0.005825810134410858,
@@ -50,20 +48,13 @@ That last line, run against `runs/agnews`, prints:
 
 ![openjev run tasks/agnews.yaml](docs/img/terminal.svg)
 
-`GET /v1/models` lists the loaded runs. Each served model is one trained student with a fixed type
-and a fixed label set — this is not a general model that takes arbitrary options at request time.
-Batching, the escalation flag, conformal prediction sets, `openjev push` and comparing against
-another endpoint: [`docs/serving.md`](docs/serving.md).
+Each served model is one trained student with a fixed type and a fixed label set — not a general
+model that takes options at request time; `GET /v1/models` lists what is loaded. Batching, the
+escalation flag, conformal prediction sets and `openjev push`: [`docs/serving.md`](docs/serving.md).
 
-Run everything from the repo root (`results/` and this README are resolved relative to it). Tests:
-`pytest -q tests` — under a minute on CPU, no GPU and no teacher needed (also run on every push by
-`.github/workflows/test.yml`); two of them want
-`jhu-clsp/mmBERT-small` and `fancyzhx/ag_news` in the Hugging Face cache.
-
-The tasks here are English and Russian, but nothing is language-specific: `question`, `options` and
-`statement` are free text, so write them in whatever language you want the teacher prompted in, as
-long as the teacher and the student checkpoint (mmBERT is multilingual) both cover it. `lang` itself
-is only a report column and the language `openjev augment` generates in.
+Run everything from the repo root. `pytest -q tests` takes under a minute on CPU with no GPU and no
+teacher (two tests want `jhu-clsp/mmBERT-small` and `fancyzhx/ag_news` in the Hugging Face cache).
+The tasks here are English and Russian; nothing in the code is language-specific.
 
 ## Results
 
@@ -124,106 +115,104 @@ is only a report column and the language `openjev augment` generates in.
 - **toxic**: jhu-clsp/mmBERT-small distilled from the teacher with no gold in the loss (but train rows picked 50/50 by gold); p(true); AUROC vs gold on 3000 eval examples; AUROC 0.856 (teacher 0.817); gate: 80% coverage at 90%+ precision(true); calibrated to gold (T=0.25).
 <!-- results -->
 
-Teacher for every row: **Qwen3.8-27B**, 3-bit GSQ quantisation (ISTA-DASLab) with MTP, served by vLLM
-on the same box under the id `Qwen/Qwen3.8-27B-FP8`, called with `max_tokens: 1` and
-`enable_thinking: false`. Every "teacher" number in the table is that model zero-shot; the students
-cannot do better than it except by denoising it. Runs from before 2026-09-20 do not record the model
-id in `runs/<task>/label.json` — newer ones do.
-
-The table is regenerated by `openjev report` between its HTML comment markers — do not hand-edit
-it. What each column means, and what it does not: [`docs/findings.md#what-the-numbers-mean`](docs/findings.md#what-the-numbers-mean).
+Teacher for every row: **Qwen3.8-27B** zero-shot, the model described under
+[Requirements](#requirements), called with `max_tokens: 1` and `enable_thinking: false`. The
+students cannot do better than it except by denoising it. `openjev report` regenerates the table
+between its HTML comment markers — do not hand-edit it. What each column means, and what it does
+not: [`docs/findings.md#what-the-numbers-mean`](docs/findings.md#what-the-numbers-mean).
 
 ## What we learned
 
-Nine runs, one teacher, two nights. Every delta below is a paired bootstrap over shared eval rows
-(`openjev compare`, 2000 resamples); a CI that includes 0 is written as *no measurable difference*,
-never as a gain. The prose, with the numbers and the caveats behind each line, is in
-[`docs/findings.md`](docs/findings.md); the tables and commands are in
-[`docs/experiments.md`](docs/experiments.md).
+Every delta is a paired bootstrap over shared eval rows (`openjev compare`, 2000 resamples), three
+seeds wherever a training factor varies; a 95 % CI that includes 0 is written as *no measurable
+difference*, never as a gain. The prose with every CI: [`docs/findings.md`](docs/findings.md); the
+tables and commands: [`docs/experiments.md`](docs/experiments.md).
 
 - **500 gold labels buy more as a per-class calibration bias than as training signal.** `logits / T + b`
   fitted on the 500-row calib split: headlines 0.767 → **0.843**, kinopoisk 0.609 → **0.660**,
-  georeview MAE 0.783 → **0.609**. CPU seconds, no retraining, no teacher calls. On agnews and
-  banking77 it does nothing — the teacher's marginal there is already right.
+  georeview MAE 0.783 → **0.609**. CPU seconds, no retraining, no teacher calls. The same 500 rows
+  put into the loss instead leave kinopoisk 4.1 pts *worse*. On agnews and banking77 the bias does
+  nothing — the teacher's marginal there is already right.
 - **With the bias, two students beat their own teacher and two match it.** The teacher's dominant
   error on the hard tasks is a shifted marginal, and a K-dim bias is exactly the shape that removes it.
-- **The caveat: you have to know your prior.** The no-gold path (`prior:` declared) lands within half
-  a point — but only because these benchmarks are balanced by construction.
-- **Two knobs that turned out not to matter**, once measured with a control arm: 12 epochs vs 5, and
-  the `openjev augment` (PGKD-lite) round. Both are *no measurable difference*.
+- **You have to know your prior.** The no-gold path (`prior:` declared) lands within half a point —
+  only because these benchmarks are balanced by construction.
+- **A better teacher pays only where it is better per example.** Distilling from Jev instead of Qwen
+  wins on georeview (MAE 0.555 vs 0.607) and is *no measurable difference* on kinopoisk, although
+  Jev the teacher is 4.2 pts better there: both teachers starve the same class, and the bias had
+  already removed that.
+- **Two knobs that did not matter**, once measured with a control arm: 12 epochs vs 5, and the
+  `openjev augment` (PGKD-lite) round. Both *no measurable difference*.
 - **The teacher is the budget.** 66,522 calls and 2.4 h of labeling across six tasks; the students
   train in 1.5–12 minutes and every post-hoc result is CPU seconds on logits already on disk.
 - **The cascade is offline and often unnecessary.** Four of nine runs reach teacher parity at 0 %
   escalation. `serve` returns `"escalate": true/false` and never calls the teacher itself.
 
-Where the method stops working — a wrong prior, per-example errors, drift, `K > 19` —
+Where the method stops working — a wrong prior, per-example errors, drift, `K > 19`:
 [`docs/findings.md#limitations-and-follow-ups`](docs/findings.md#limitations-and-follow-ups).
 
 ## Real tasks
 
-Five more tasks, same pipeline, on agent-shaped inputs: judging a web-agent run from its action log,
-picking the element to click, labelling a DOM node with a schema field. Four work, one fails
-informatively — the numbers, the gate tables and the limits are in
-[`docs/use-cases.md`](docs/use-cases.md).
+Five more tasks, same pipeline, on agent-shaped inputs: judging a web-agent run from its action
+log, picking the element to click, labelling a DOM node with a schema field. Four work, one fails
+informatively. Numbers, gate tables and limits: [`docs/use-cases.md`](docs/use-cases.md).
 
 - **A degenerate teacher can still be a usable scorer.** On `arb-success` the teacher answers *not
-  successful* for 99.9 % of rows (gold: 26.6 % succeed) — macro-F1 0.426 — yet its probabilities
-  rank runs at AUROC 0.837. The student lands at AUROC 0.843, macro-F1 0.695, ECE 0.214 → 0.064.
-  But precision on *true* is 0.56 at the 80 %-coverage gate: a filter for a human, not an auto-accept.
+  successful* for 99.9 % of rows (gold: 26.6 % succeed), macro-F1 0.426 — yet its probabilities
+  rank runs at AUROC 0.837. The student: AUROC 0.843, macro-F1 0.705 ± 0.018. But precision on
+  *true* is 0.56 at the 80 %-coverage gate: a filter for a human, not an auto-accept.
 - **On held-out websites the students beat their own teachers.** `swde-field` (33 fields, 3 teacher
-  calls per row) 0.864 acc / 0.917 macro-F1 vs 0.803 / 0.876; `m2w-target` (act-or-ask on one
-  element) 0.863 acc vs 0.783, AUROC 0.904, and the gate answers 87 % of elements at 0.870
+  calls per row) 0.868 acc / 0.924 macro-F1 vs 0.803 / 0.876; `m2w-target` (act-or-ask on one
+  element) 0.857 acc vs 0.783, AUROC 0.904, and the gate answers 87 % of elements at 0.870
   precision. 6 ms per decision, 714–1054 ex/s at batch 64.
-- **`choice` is the wrong primitive for per-row candidates, and that is the finding.**
-  `m2w-element` — "which of these 16 candidate elements" — collapses to 0.059 accuracy against a
-  0.0625 chance floor: slot `G` means something different on every row, so there is nothing
-  row-independent for a fixed head to learn. Ranking per candidate (`m2w-target`) is the same task
-  and works.
-- Weak result, reported as such: `arb-quality` (1–4 optimality) MAE 0.776 vs the teacher's 0.809 —
+- **`choice` is the wrong primitive for per-row candidates.** `m2w-element` — "which of these 16
+  candidates" — collapses to 0.059 accuracy against a 0.0625 chance floor: slot `G` means something
+  different on every row, so a fixed head has nothing row-independent to learn. Ranking each
+  candidate (`m2w-target`) is the same task and works.
+- **Weak, reported as such:** `arb-quality` (1–4 optimality) MAE 0.776 vs the teacher's 0.809 —
   the teacher is barely above chance, and the teacher is the ceiling.
 
 Whole track: 35,900 teacher calls, 118 minutes of labeling, three seeds where it mattered
-(`openjev compare` says *no measurable difference* between seeds on all three).
+(*no measurable difference* between seeds on all three).
 
 ## Requirements
 
-- A vLLM (or other OpenAI-compatible) endpoint serving the teacher, reachable at
-  `OPENJEV_TEACHER_URL`, supporting `logprobs` + `top_logprobs` and the vLLM `structured_outputs`
-  field. Developed against Qwen3.8-27B (3-bit GSQ + MTP, alias `Qwen/Qwen3.8-27B-FP8`) served by vLLM
-  on the same box. Any instruct model that returns letter logprobs works; it sets the ceiling.
-- One NVIDIA GPU for training. Measured peaks for mmBERT-small at batch 32: **5.5 GB at
-  `max_len: 256`, 8.9 GB at `max_len: 512`**. mmBERT-base is **9.9 GB**, which does not fit beside a
-  resident 84 GB vLLM on this box — a run was killed that way, so base is not trained next to the
-  teacher here. CPU-only works for `serve`, `calibrate`, `eval` and `compare`.
+- **A teacher**: a vLLM (or other OpenAI-compatible) endpoint at `OPENJEV_TEACHER_URL` that
+  supports `logprobs` + `top_logprobs` and vLLM's `structured_outputs` field. Every number here
+  comes from Qwen3.8-27B, 3-bit GSQ quantisation (ISTA-DASLab) with MTP, served by vLLM on the same
+  box under the id `Qwen/Qwen3.8-27B-FP8`. Any instruct model that returns letter logprobs works;
+  it sets the ceiling.
+- **One NVIDIA GPU for training.** mmBERT-small at batch 32 peaks at **5.5 GB at `max_len: 256`,
+  8.9 GB at `max_len: 512`**; mmBERT-base at **9.9 GB**, which does not fit beside a resident 84 GB
+  vLLM on this box (a run was killed that way). `serve`, `calibrate`, `eval` and `compare` run on CPU.
 - **Do not let a training job OOM the teacher.** On a unified-memory box the trainer and vLLM share
-  the same pool, and the host OOM killer will happily take the 84 GB process. Every training run in
-  this repo goes through `scripts/gpu_queue.sh`: one job at a time behind `flock`, each under
-  `choom -n 1000` so the killer picks the trainer, and a memory gate that *waits* before starting a
-  job instead of shrinking the batch size (a different batch size is a different experiment).
-- Python ≥ 3.10, and the deps in `pyproject.toml` (torch, transformers, datasets, httpx, pyyaml,
-  numpy, scikit-learn, fastapi, uvicorn). No other runtime dependencies.
-- Developed on a DGX Spark (GB10, 20 cores, 128 GB unified memory), Ubuntu 24.04, torch 2.13/cu130.
-- If `HTTP_PROXY`/`HTTPS_PROXY`/`ALL_PROXY` are set, unset them: they break localhost calls to the
-  teacher and slow Hugging Face downloads. The teacher client itself uses `trust_env=False`.
+  one pool and the host OOM killer will take the 84 GB process. Every training run here goes through
+  `scripts/gpu_queue.sh`: one job at a time under `flock`, each under `choom -n 1000` so the killer
+  picks the trainer, and a memory gate that *waits* rather than shrinking the batch size (a
+  different batch size is a different experiment).
+- Python ≥ 3.10 and the deps in `pyproject.toml` (torch, transformers, datasets, httpx, pyyaml,
+  numpy, scikit-learn, fastapi, uvicorn); nothing else at runtime. Developed on a DGX Spark (GB10,
+  20 cores, 128 GB unified memory), Ubuntu 24.04, torch 2.13/cu130.
+- Unset `HTTP_PROXY`/`HTTPS_PROXY`/`ALL_PROXY`: they break localhost calls to the teacher and slow
+  Hugging Face downloads (the teacher client itself uses `trust_env=False`).
 
 ## Docs
 
-- [`docs/pipeline.md`](docs/pipeline.md) — the five stages in detail, the teacher request, `openjev augment`.
-- [`docs/task-spec.md`](docs/task-spec.md) — task YAML reference, command reference, worked examples, add your own task.
+- [`docs/pipeline.md`](docs/pipeline.md) — the five stages, the teacher request, `openjev augment`.
+- [`docs/task-spec.md`](docs/task-spec.md) — task YAML and command reference, worked examples, add your own task.
 - [`docs/serving.md`](docs/serving.md) — batching, escalation, prediction sets, `openjev push`, comparing endpoints.
-- [`docs/findings.md`](docs/findings.md) — what the numbers mean, the findings in full, limitations.
+- [`docs/findings.md`](docs/findings.md) — the findings with their CIs, what the columns mean, limitations.
 - [`docs/use-cases.md`](docs/use-cases.md) — the five agent-shaped tasks: gates, costs, the one that failed.
-- [`docs/experiments.md`](docs/experiments.md) — every experiment with its commands, tables and CIs.
+- [`docs/experiments.md`](docs/experiments.md) — the lab notebook: every comparison with its commands and tables.
 - [`docs/img/README.md`](docs/img/README.md) — the figures and how they are generated.
 
 ## Credits
 
-The mechanism probe in `openjev check --probe` (letter emission and candidate mass from an
-unconstrained call), the resume guard on a changed prompt or model, the shortlist miss rate, the
-discordant-pair resolution in `openjev compare`, the preregistration template and the per-row
-rotation readouts in `scripts/perm_check.py` are our own implementations of ideas from
-[r-ms/mini-jev](https://github.com/r-ms/mini-jev) (MIT, © 2026 Mikhail Rakutko), reviewed in
-[`docs/mini-jev-review.md`](docs/mini-jev-review.md). No code was copied.
+The mechanism probe in `openjev check --probe`, the resume guard on a changed prompt or model, the
+shortlist miss rate, the discordant-pair readout in `openjev compare`, the preregistration
+template and the per-row rotation readouts in `scripts/perm_check.py` are our own implementations
+of ideas from [r-ms/mini-jev](https://github.com/r-ms/mini-jev) (MIT, © 2026 Mikhail Rakutko),
+reviewed in [`docs/mini-jev-review.md`](docs/mini-jev-review.md). No code was copied.
 
 ## Licence
 

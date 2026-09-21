@@ -25,6 +25,10 @@ Copy the one closest to your problem (`tasks/example.yaml` is the annotated blan
 | `kinopoisk.yaml` | choice | 3 | ru | long texts: `max_chars` 1500 with `student.max_len: 512` so both see the same review |
 | `georeview.yaml` | score | 5 | ru | `rubric` + `descriptions`; the served answer is an expectation over the levels, scored by MAE |
 | `toxic.yaml` | noul | 2 | en | truth of a `statement`, a fractional `gold_prob` column, and `balance: true` on a 8 %-positive pool |
+| `headlines-8k.yaml` | choice | 6 | ru | `headlines.yaml` with `data.train.n: 8000` — the "more teacher labels" arm |
+| `arb-success.yaml`, `arb-quality.yaml` | noul, score | 2, 4 | en | a web-agent run judged from its action log ([use-cases.md](use-cases.md)) |
+| `m2w-target.yaml`, `m2w-element.yaml` | noul, choice | 2, 16 | en | the same click-target question as a per-candidate verdict (works) and as a 16-slot choice (fails) |
+| `swde-field.yaml` | choice | 33 | en | a DOM node labelled with a schema field; K > 19 through the shortlist |
 
 ## Top level
 
@@ -33,11 +37,11 @@ Copy the one closest to your problem (`tasks/example.yaml` is the annotated blan
 | `name` | str | **required** | Run directory is `runs/<name>/`; also the model id used by `openjev serve` and the row name in the results table. |
 | `type` | `choice` \| `score` \| `noul` | **required** | Picks the derived labels and the response view. Anything else is an error. |
 | `question` | str | **required** for `choice`/`score` | First line of the teacher's system prompt. Optional for `noul`, where it only overrides the default head line `Is the following statement about the text true?` (the `statement` block follows it either way). |
-| `lang` | str | `en` | The labeling prompt never sees it: it is the report column, and the language `openjev augment` asks the teacher to generate in. Write the prompt's language into `question` / `options` / `statement` yourself — a task in any other language works exactly the same way, as long as the teacher and the student checkpoint cover it. |
+| `lang` | str | `en` | The labeling prompt never sees it: it is the report column, and the language `openjev augment` asks the teacher to generate in. Write the prompt's language into `question` / `options` / `statement` yourself; any language works as long as the teacher and the student checkpoint (mmBERT is multilingual) cover it. |
 | `options` | list[str] | `null` | **`choice` only, required.** The label set, in a fixed order that is the class order end to end. |
 | `rubric` | dict | `null` | **`score` only, required.** `{levels: [...], descriptions: [...]}` — see below. |
 | `statement` | str | `null` | **`noul` only, required.** The proposition the teacher judges true/false. |
-| `prior` | `uniform` \| {label: weight} | `null` | The class distribution you expect at deployment. It is used *only* by calibration, and only when the calib split has no gold (or `--ignore-gold` forces that): after fitting the temperature to the teacher's soft probabilities, a per-class bias is fitted so the mean calibrated probability over the calib rows matches this prior. That is a debiasing step with **zero gold labels**, which is the point — the teacher's dominant error on a hard task is a shifted marginal, and a K-dim bias is exactly the shape that fixes it. Weights are normalised, so `{Bad: 1, Neutral: 1, Good: 1}` and `uniform` are the same thing. Declare it only when you actually know it: a wrong prior moves the argmax the wrong way, and on a benchmark that is balanced by construction "knowing" it is a leak a real deployment does not get. `calib.json` records `target: prior-declared` when this path ran. |
+| `prior` | `uniform` \| {label: weight} | `null` | The class distribution you expect at deployment. It is used *only* by calibration, and only when the calib split has no gold (or `--ignore-gold` forces that): after fitting the temperature to the teacher's soft probabilities, a per-class bias is fitted so the mean calibrated probability over the calib rows matches this prior. That is a debiasing step with **zero gold labels** ([findings.md](findings.md#the-calibration-bias)). Weights are normalised, so `{Bad: 1, Neutral: 1, Good: 1}` and `uniform` are the same thing. Declare it only when you actually know it: a wrong prior moves the argmax the wrong way, and on a benchmark that is balanced by construction "knowing" it is a leak a real deployment does not get. `calib.json` records `target: prior-declared` when this path ran. |
 | `data` | mapping | **required** | See [data](#data). |
 | `teacher` | mapping | defaults | See [teacher](#teacher). |
 | `student` | mapping | defaults | See [student](#student). |
@@ -94,7 +98,7 @@ and used as an index.
 Roles are drawn in the order train → calib → eval, each from the rows not yet taken from that
 source split, except that any role with `balance: true` is drawn **last**: a balanced draw picks rows
 by gold and depletes the minority class, which would otherwise shift the prior of the roles after it
-(this is exactly what happened to `toxic`, see below). Two roles pointing at the same split are
+(this is what happened to `toxic`: [findings.md](findings.md#what-the-numbers-mean)). Two roles pointing at the same split are
 guaranteed disjoint either way, and the draw is deterministic — re-running resumes rather than
 re-labels. A role that cannot get its `n` rows out of what is left is an error, not a short split.
 
@@ -134,7 +138,7 @@ probability 0 (clamped to 1e-6 before the KL). Cost: `ceil(k/19) + 1` calls per 
 |---|---|---|---|
 | `model` | str | `jhu-clsp/mmBERT-small` | Any `AutoModelForSequenceClassification` checkpoint. `jhu-clsp/mmBERT-base` for a bigger run. Overridable per run with `--student`. |
 | `max_len` | int | `256` | Tokenizer truncation length for training, eval and serving. 512 for long-text tasks — see below. |
-| `epochs` | int | `5` | Overridable with `--epochs`. Upper bound, with early stopping (patience 2) on calib KL. 5 vs 12 epochs was measured on three tasks: **no measurable difference** — all three 12-epoch runs early-stopped (at 9, 7 and 5 epochs) and what `--epochs` mostly changes is the LR-decay horizon, not the training length ([findings.md](findings.md)). banking77 (77 classes) asks for 12 in its YAML. |
+| `epochs` | int | `5` | Overridable with `--epochs`. Upper bound, with early stopping (patience 2) on calib KL. 5 vs 12 was measured: **no measurable difference**, since early stopping fires first and `--epochs` mostly changes the LR-decay horizon ([experiments.md](experiments.md#e1--epochs-12-vs-the-yamls-5)). banking77 (77 classes) asks for 12 in its YAML. |
 | `lr` | float | `5.0e-5` | AdamW learning rate, 6% linear warmup then linear decay. |
 | `batch_size` | int | `32` | Training batch size. Halve it if you OOM next to a running vLLM. Overridable with `--batch-size`. |
 | `gold_weight` | float | `0.0` | Weight of a CE term on gold added to the distillation KL, applied only to rows that have gold. `0.0` = pure distillation, which is the headline setting. Overridable with `--gold-weight`. |
@@ -260,13 +264,9 @@ data:
 
 `labels = ["true", "false"]`, `k = 2`. The gold column is a fraction, so `gold_threshold` (0.5)
 turns it into a class and `gold_prob` keeps the fraction for a Brier score against it. Train is
-balanced because positives are ~8% of the data. Note that `balance: true` selects rows by gold, so a
-balanced split does spend gold labels — and that in the run recorded in the README it was drawn
-*first*, out of the same `train[:60000]` pool as calib, which left calib at **11/500 = 2.2%** positive
-against **8.1%** on eval: T = 0.25 was fitted on 11 positives. It still improved eval ECE
-(0.116 → 0.037), but fitting a temperature on a depleted pool is a weakness, which is why balanced
-roles are now drawn after the others.
-Response shape (illustrative numbers):
+balanced because positives are ~8% of the data; `balance: true` selects rows by gold, so a balanced
+split does spend gold labels, and in the recorded run it depleted the calib pool — the story is in
+[`findings.md`](findings.md#what-the-numbers-mean). Response shape (illustrative numbers):
 
 ```json
 {"model": "toxic", "probability": 0.04, "confidence": 0.96}
@@ -286,17 +286,16 @@ Response shape (illustrative numbers):
    length in characters *and* in student tokens, and an estimated teacher cost (±2×). It warns when
    `max_chars` truncates more than a quarter of the rows, and when more than a quarter of them are
    longer than `student.max_len` — i.e. when the student reads less than the teacher did. Spec and
-   data errors come back as one line and exit 1, which is the fastest way to debug a `data.text`
-   template. That `max_len` warning is the trap kinopoisk fell into: the teacher reads
-   1500 characters, and a student left at the default `max_len: 256` would read about half of that.
+   data errors come back as one line and exit 1. That `max_len` warning is the trap kinopoisk fell
+   into: the teacher reads 1500 characters, and a student at the default `max_len: 256` would read
+   about half of that.
 3. **`openjev check tasks/mytask.yaml --probe 100`** — the only step that costs teacher time (a
    minute at most). It labels the first 100 calib rows *into the real* `runs/mytask/teacher.jsonl`,
    so the full run reuses them, and prints what the teacher actually answers: accuracy against gold,
    the predicted marginal next to the gold marginal, mean max-p, and a warning for any class the
-   teacher under-predicts by more than 10 points. A skewed marginal is the teacher's dominant error
-   on hard tasks and the student copies it faithfully, so this is the moment to reword an option and
-   probe again — each iteration costs 100 calls, not 6000. On kinopoisk that warning is the whole story of
-   the task:
+   teacher under-predicts by more than 10 points. The student copies a skewed marginal faithfully,
+   so this is the moment to reword an option and probe again — each iteration costs 100 calls, not
+   6000. On kinopoisk that warning is the whole story of the task:
 
    ```
    probe: 100 calib rows, teacher Qwen/Qwen3.8-27B-FP8   # the id is read back from label.json

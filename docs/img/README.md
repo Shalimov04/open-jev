@@ -33,8 +33,8 @@ relative to the file doing the embedding):
 </picture>
 ```
 
-If you would rather not carry two files per figure, `![...](docs/img/pipeline-light.svg)`
-alone is fine too — it just shows a white card on dark theme.
+`![...](docs/img/pipeline-light.svg)` alone works too — it just shows a white card on dark theme.
+`terminal.svg` is one dark file, embedded as a plain image.
 
 ## The figures
 
@@ -48,55 +48,6 @@ alone is fine too — it just shows a white card on dark theme.
 | `use-cases-{light,dark}.svg` | Small multiples for the five agent-shaped tasks: one panel per task, each with its own metric named in it (`arb-success` AUROC, `m2w-target` AUROC, `swde-field` macro-F1, `m2w-element` accuracy, `arb-quality` MAE) and its own axis, student vs teacher inside the panel only. The five metrics are not comparable, so they never share a bar scale. `m2w-element` is marked as the failed task and carries its `1/16 = 0.0625` chance floor as a dashed line; `arb-quality`'s MAE bars hang from the top with a "better ↓" arrow. Panels say `n=3 seeds (mean)` or `n=1 seed`. | `noul.auroc` / `noul.teacher_auroc`, `student.macro_f1` / `teacher.macro_f1`, `student.acc` / `teacher.acc`, `score.mae` / `score.teacher_mae`, `k` and `eval_n` from `results/{arb-success,arb-quality,swde-field,m2w-target,m2w-element}.json`; the three-seed panels average the `-s1`/`-s2` files |
 | `response-card-{light,dark}.svg` | The actual request and typed JSON response, with callouts on `choice`, `probabilities` and `confidence`, and the `score`/`noul` shapes from `openjev/views.py`. | the README quickstart's verbatim request/response; probabilities abridged to 4 dp |
 | `terminal.svg` | Animated (SMIL) terminal: `openjev run tasks/agnews.yaml` types itself out, the stage logs appear, then a `curl` and the served JSON. Dark only — it's a terminal. | `runs/agnews/{label,train,calib}.json` and `results/agnews.json` |
-
-## Snippets
-
-```markdown
-<!-- pipeline -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/pipeline-dark.svg">
-  <img alt="open-jev pipeline: text to teacher soft labels to distilled student to typed JSON" src="docs/img/pipeline-light.svg" width="900">
-</picture>
-
-<!-- student vs teacher -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/student-vs-teacher-dark.svg">
-  <img alt="Student vs teacher accuracy on seven tasks" src="docs/img/student-vs-teacher-light.svg" width="900">
-</picture>
-
-<!-- cascade -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/cascade-dark.svg">
-  <img alt="Escalation rate vs accuracy for agnews, headlines and kinopoisk" src="docs/img/cascade-light.svg" width="900">
-</picture>
-
-<!-- calibration -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/calibration-dark.svg">
-  <img alt="ECE before and after temperature scaling, every run" src="docs/img/calibration-light.svg" width="900">
-</picture>
-
-<!-- cost -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/cost-dark.svg">
-  <img alt="Teacher labeling cost paid once vs student inference cost per call" src="docs/img/cost-light.svg" width="900">
-</picture>
-
-<!-- use cases (docs/use-cases.md) -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/use-cases-dark.svg">
-  <img alt="Five agent-shaped tasks, each panel with its own metric: student vs teacher" src="docs/img/use-cases-light.svg" width="900">
-</picture>
-
-<!-- typed response -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/response-card-dark.svg">
-  <img alt="The typed JSON decision returned by POST /v1/systemone" src="docs/img/response-card-light.svg" width="900">
-</picture>
-
-<!-- animated terminal (no <picture>: one dark file) -->
-![openjev run tasks/agnews.yaml](docs/img/terminal.svg)
-```
 
 ## On the animated one
 

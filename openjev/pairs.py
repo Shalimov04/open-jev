@@ -146,7 +146,10 @@ def sample(rows, cap, rng, path=ROOT / "data/pairs.jsonl", tasks=None):
             task = tasks[name]
             f.seek(off)
             pairs = [json.loads(f.readline()) for _ in range(task.k)]
-            for i in keep_pairs([p["p"] for p in pairs], rng):
+            # noul renders the same (seg_a, seg_b) for "true" and "false" (the option index is not
+            # in the prompt), so keeping both would train one input against p and 1-p at once.
+            kept = [0] if task.type == "noul" else keep_pairs([p["p"] for p in pairs], rng)
+            for i in kept:
                 p = pairs[i]
                 a, b = render(task, p["option_index"], p["text"])
                 yield {"seg_a": a, "seg_b": b, "target": p["p"], "row_id": p["source_id"],

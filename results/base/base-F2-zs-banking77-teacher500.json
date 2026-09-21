@@ -1,0 +1,195 @@
+{
+  "task": "banking77",
+  "type": "choice",
+  "k": 77,
+  "lang": "en",
+  "student_model": "jhu-clsp/mmBERT-small",
+  "n_train": 59872,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 2000,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.3894999921321869,
+    "macro_f1": 0.3966206604325785,
+    "ece_raw": 0.32222825288772583,
+    "ece_cal": 0.23701229691505432,
+    "brier": 0.8643862009048462,
+    "nll": 3.0241024494171143
+  },
+  "teacher": {
+    "acc": 0.7639999985694885,
+    "macro_f1": 0.7491201548921496,
+    "ece": 0.07506716996431351,
+    "brier": 0.35080432891845703,
+    "shortlist_miss": 0.0455,
+    "shortlist_n": 2000,
+    "p_none_chunk_with_gold": 0.01782406637166927,
+    "p_none_chunk_without_gold": 0.9162388143118969
+  },
+  "agreement": {
+    "argmax": 0.390500009059906,
+    "mean_kl": 2.666212797164917
+  },
+  "cascade": [
+    {
+      "tau": 0.3,
+      "escalation": 0.9365000128746033,
+      "acc": 0.7565
+    },
+    {
+      "tau": 0.35,
+      "escalation": 0.9509999752044678,
+      "acc": 0.757
+    },
+    {
+      "tau": 0.4,
+      "escalation": 0.9610000252723694,
+      "acc": 0.758
+    },
+    {
+      "tau": 0.45,
+      "escalation": 0.9670000076293945,
+      "acc": 0.758
+    },
+    {
+      "tau": 0.5,
+      "escalation": 0.9714999794960022,
+      "acc": 0.758
+    },
+    {
+      "tau": 0.55,
+      "escalation": 0.9750000238418579,
+      "acc": 0.758
+    },
+    {
+      "tau": 0.6,
+      "escalation": 0.9775000214576721,
+      "acc": 0.758
+    },
+    {
+      "tau": 0.65,
+      "escalation": 0.9815000295639038,
+      "acc": 0.7585
+    },
+    {
+      "tau": 0.7,
+      "escalation": 0.9854999780654907,
+      "acc": 0.76
+    },
+    {
+      "tau": 0.75,
+      "escalation": 0.9890000224113464,
+      "acc": 0.761
+    },
+    {
+      "tau": 0.8,
+      "escalation": 0.9925000071525574,
+      "acc": 0.7615
+    },
+    {
+      "tau": 0.85,
+      "escalation": 0.996999979019165,
+      "acc": 0.7635
+    },
+    {
+      "tau": 0.9,
+      "escalation": 0.9975000023841858,
+      "acc": 0.7635
+    },
+    {
+      "tau": 0.95,
+      "escalation": 0.9980000257492065,
+      "acc": 0.764
+    },
+    {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "acc": 0.764
+    }
+  ],
+  "cascade_parity": {
+    "metric": "acc",
+    "teacher": 0.764,
+    "slack": 0.005,
+    "parity": {
+      "tau": 0.7,
+      "escalation": 0.9854999780654907,
+      "acc": 0.76
+    }
+  },
+  "selective": [
+    {
+      "tau": 0.5,
+      "coverage": 0.0285,
+      "acc": 0.6666666666666666
+    },
+    {
+      "tau": 0.55,
+      "coverage": 0.025,
+      "acc": 0.62
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.0225,
+      "acc": 0.5777777777777777
+    },
+    {
+      "tau": 0.65,
+      "coverage": 0.0185,
+      "acc": 0.5675675675675675
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.0145,
+      "acc": 0.6206896551724138
+    },
+    {
+      "tau": 0.75,
+      "coverage": 0.011,
+      "acc": 0.5909090909090909
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.0075,
+      "acc": 0.5333333333333333
+    },
+    {
+      "tau": 0.85,
+      "coverage": 0.003,
+      "acc": 0.8333333333333334
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.0025,
+      "acc": 0.8
+    },
+    {
+      "tau": 0.95,
+      "coverage": 0.002,
+      "acc": 1.0
+    }
+  ],
+  "teacher_calls": 33000,
+  "teacher_minutes": 60.860240670045215,
+  "train_minutes": 43.115879253546396,
+  "peak_gpu_gb": 8.907302379608154,
+  "temperature": 0.5260142683982849,
+  "calib_target": "teacher-soft",
+  "ece_calib_split": [
+    0.2702322006225586,
+    0.1847831755876541
+  ],
+  "git": "5deb0e1-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "jhu-clsp/mmBERT-small",
+    "student_revision": "abc32620dd4f6ab06f5fbe905dc25f310618e09f",
+    "teacher_model": null,
+    "label_prompt_sha": null
+  }
+}

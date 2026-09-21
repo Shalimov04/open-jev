@@ -99,9 +99,10 @@ def test_index_and_sample_cap(tmp_path):
     tasks = {n: load_task(tmp_path / f"tasks/{n}.yaml") for n in rows}
     got = list(pairs.sample(rows, 24, random.Random(1), path=f, tasks=tasks))
     by = {n: [g for g in got if g["task"] == n] for n in rows}
-    assert len(by["big"]) == 24 and len(by["small"]) == 24     # cap is in pairs, not rows
+    assert len(by["big"]) == 24 and len(by["small"]) == 12     # cap is in pairs, not rows
     assert len({g["row_id"] for g in by["big"]}) == 3          # 3 rows x 8 pairs
-    assert len({g["row_id"] for g in by["small"]}) == 12       # 12 rows x 2 pairs
+    # noul renders one pair per row (the option index is not in the prompt): 12 rows, 12 pairs
+    assert len({g["row_id"] for g in by["small"]}) == 12
     assert all(g["target"] == 0.5 for g in by["big"][::8])      # argmax pair first in each row
     assert by["small"][0]["seg_a"].startswith("noul | Q:") and by["big"][0]["seg_b"].startswith("text ")
     again = {g["row_id"] for g in pairs.sample(rows, 24, random.Random(2), path=f, tasks=tasks)

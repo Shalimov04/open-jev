@@ -1,0 +1,191 @@
+{
+  "task": "kinopoisk",
+  "type": "choice",
+  "k": 3,
+  "lang": "ru",
+  "student_model": "jhu-clsp/mmBERT-small",
+  "n_train": 100,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 1500,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.5606666803359985,
+    "macro_f1": 0.5594651703914993,
+    "ece_raw": 0.24578562378883362,
+    "ece_cal": 0.051252637058496475,
+    "brier": 0.5596857666969299,
+    "nll": 0.9260129928588867
+  },
+  "teacher": {
+    "acc": 0.6520000100135803,
+    "macro_f1": 0.6092768798857093,
+    "ece": 0.17858782410621643,
+    "brier": 0.5504871606826782
+  },
+  "agreement": {
+    "argmax": 0.5633333325386047,
+    "mean_kl": 0.4883020520210266
+  },
+  "cascade": [
+    {
+      "tau": 0.3,
+      "escalation": 0.0,
+      "acc": 0.5606666666666666
+    },
+    {
+      "tau": 0.35,
+      "escalation": 0.0013333333190530539,
+      "acc": 0.5606666666666666
+    },
+    {
+      "tau": 0.4,
+      "escalation": 0.019999999552965164,
+      "acc": 0.562
+    },
+    {
+      "tau": 0.45,
+      "escalation": 0.1653333306312561,
+      "acc": 0.5966666666666667
+    },
+    {
+      "tau": 0.5,
+      "escalation": 0.42533332109451294,
+      "acc": 0.6313333333333333
+    },
+    {
+      "tau": 0.55,
+      "escalation": 0.5733333230018616,
+      "acc": 0.6406666666666667
+    },
+    {
+      "tau": 0.6,
+      "escalation": 0.6473333239555359,
+      "acc": 0.6413333333333333
+    },
+    {
+      "tau": 0.65,
+      "escalation": 0.7226666808128357,
+      "acc": 0.642
+    },
+    {
+      "tau": 0.7,
+      "escalation": 0.8199999928474426,
+      "acc": 0.6453333333333333
+    },
+    {
+      "tau": 0.75,
+      "escalation": 0.8920000195503235,
+      "acc": 0.6506666666666666
+    },
+    {
+      "tau": 0.8,
+      "escalation": 0.9473333358764648,
+      "acc": 0.6513333333333333
+    },
+    {
+      "tau": 0.85,
+      "escalation": 0.9760000109672546,
+      "acc": 0.6526666666666666
+    },
+    {
+      "tau": 0.9,
+      "escalation": 0.9946666955947876,
+      "acc": 0.652
+    },
+    {
+      "tau": 0.95,
+      "escalation": 1.0,
+      "acc": 0.652
+    },
+    {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "acc": 0.652
+    }
+  ],
+  "cascade_parity": {
+    "metric": "acc",
+    "teacher": 0.652,
+    "slack": 0.005,
+    "parity": {
+      "tau": 0.75,
+      "escalation": 0.8920000195503235,
+      "acc": 0.6506666666666666
+    }
+  },
+  "selective": [
+    {
+      "tau": 0.5,
+      "coverage": 0.5746666666666667,
+      "acc": 0.6473317865429234
+    },
+    {
+      "tau": 0.55,
+      "coverage": 0.4266666666666667,
+      "acc": 0.6640625
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.3526666666666667,
+      "acc": 0.6597353497164461
+    },
+    {
+      "tau": 0.65,
+      "coverage": 0.2773333333333333,
+      "acc": 0.6706730769230769
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.18,
+      "acc": 0.6703703703703704
+    },
+    {
+      "tau": 0.75,
+      "coverage": 0.108,
+      "acc": 0.6728395061728395
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.05266666666666667,
+      "acc": 0.6329113924050633
+    },
+    {
+      "tau": 0.85,
+      "coverage": 0.024,
+      "acc": 0.5833333333333334
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.005333333333333333,
+      "acc": 0.75
+    },
+    {
+      "tau": 0.95,
+      "coverage": 0.0,
+      "acc": null
+    }
+  ],
+  "teacher_calls": 6000,
+  "teacher_minutes": 26.63896830876668,
+  "train_minutes": 3.4085085431734723,
+  "peak_gpu_gb": 8.855759143829346,
+  "temperature": 1.3623279333114624,
+  "calib_target": "gold",
+  "ece_calib_split": [
+    0.25201746821403503,
+    0.0708131492137909
+  ],
+  "git": "5deb0e1-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "jhu-clsp/mmBERT-small",
+    "student_revision": "abc32620dd4f6ab06f5fbe905dc25f310618e09f",
+    "teacher_model": null,
+    "label_prompt_sha": null
+  }
+}

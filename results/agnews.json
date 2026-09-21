@@ -178,7 +178,16 @@
     0.07866476476192474,
     0.016974052414298058
   ],
-  "git": "9d0644c-dirty",
+  "git": "5deb0e1-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "jhu-clsp/mmBERT-small",
+    "student_revision": "abc32620dd4f6ab06f5fbe905dc25f310618e09f",
+    "teacher_model": null,
+    "label_prompt_sha": null
+  },
   "throughput_gpu_b64": 868.5942079785718,
   "latency_ms": {
     "gpu_b1_p50": 5.328222003299743,

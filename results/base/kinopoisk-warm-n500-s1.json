@@ -1,0 +1,191 @@
+{
+  "task": "kinopoisk",
+  "type": "choice",
+  "k": 3,
+  "lang": "ru",
+  "student_model": "/home/spark_4551/projects/open-jev/runs/base-F1/student",
+  "n_train": 500,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 1500,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.5846666693687439,
+    "macro_f1": 0.5913685801611276,
+    "ece_raw": 0.1628940850496292,
+    "ece_cal": 0.06120515614748001,
+    "brier": 0.5264614820480347,
+    "nll": 0.8843751549720764
+  },
+  "teacher": {
+    "acc": 0.6520000100135803,
+    "macro_f1": 0.6092768798857093,
+    "ece": 0.17858782410621643,
+    "brier": 0.5504871606826782
+  },
+  "agreement": {
+    "argmax": 0.6066666841506958,
+    "mean_kl": 0.4292135536670685
+  },
+  "cascade": [
+    {
+      "tau": 0.3,
+      "escalation": 0.0,
+      "acc": 0.5846666666666667
+    },
+    {
+      "tau": 0.35,
+      "escalation": 0.0006666666595265269,
+      "acc": 0.5853333333333334
+    },
+    {
+      "tau": 0.4,
+      "escalation": 0.009999999776482582,
+      "acc": 0.586
+    },
+    {
+      "tau": 0.45,
+      "escalation": 0.10000000149011612,
+      "acc": 0.6106666666666667
+    },
+    {
+      "tau": 0.5,
+      "escalation": 0.30266666412353516,
+      "acc": 0.6286666666666667
+    },
+    {
+      "tau": 0.55,
+      "escalation": 0.5059999823570251,
+      "acc": 0.6486666666666666
+    },
+    {
+      "tau": 0.6,
+      "escalation": 0.6233333349227905,
+      "acc": 0.6513333333333333
+    },
+    {
+      "tau": 0.65,
+      "escalation": 0.6893333196640015,
+      "acc": 0.654
+    },
+    {
+      "tau": 0.7,
+      "escalation": 0.7426666617393494,
+      "acc": 0.654
+    },
+    {
+      "tau": 0.75,
+      "escalation": 0.7953333258628845,
+      "acc": 0.6526666666666666
+    },
+    {
+      "tau": 0.8,
+      "escalation": 0.8426666855812073,
+      "acc": 0.652
+    },
+    {
+      "tau": 0.85,
+      "escalation": 0.8886666893959045,
+      "acc": 0.652
+    },
+    {
+      "tau": 0.9,
+      "escalation": 0.9233333468437195,
+      "acc": 0.652
+    },
+    {
+      "tau": 0.95,
+      "escalation": 0.9526666402816772,
+      "acc": 0.652
+    },
+    {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "acc": 0.652
+    }
+  ],
+  "cascade_parity": {
+    "metric": "acc",
+    "teacher": 0.652,
+    "slack": 0.005,
+    "parity": {
+      "tau": 0.55,
+      "escalation": 0.5059999823570251,
+      "acc": 0.6486666666666666
+    }
+  },
+  "selective": [
+    {
+      "tau": 0.5,
+      "coverage": 0.6973333333333334,
+      "acc": 0.6424474187380497
+    },
+    {
+      "tau": 0.55,
+      "coverage": 0.494,
+      "acc": 0.7004048582995951
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.37666666666666665,
+      "acc": 0.7451327433628319
+    },
+    {
+      "tau": 0.65,
+      "coverage": 0.31066666666666665,
+      "acc": 0.7660944206008584
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.25733333333333336,
+      "acc": 0.7668393782383419
+    },
+    {
+      "tau": 0.75,
+      "coverage": 0.20466666666666666,
+      "acc": 0.7654723127035831
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.15733333333333333,
+      "acc": 0.7415254237288136
+    },
+    {
+      "tau": 0.85,
+      "coverage": 0.11133333333333334,
+      "acc": 0.7065868263473054
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.07666666666666666,
+      "acc": 0.7130434782608696
+    },
+    {
+      "tau": 0.95,
+      "coverage": 0.04733333333333333,
+      "acc": 0.7464788732394366
+    }
+  ],
+  "teacher_calls": 6000,
+  "teacher_minutes": 26.63896830876668,
+  "train_minutes": 2.9716034015019734,
+  "peak_gpu_gb": 8.909127712249756,
+  "temperature": 1.5147103071212769,
+  "calib_target": "gold",
+  "ece_calib_split": [
+    0.16774040460586548,
+    0.06884273141622543
+  ],
+  "git": "5deb0e1-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "/home/spark_4551/projects/open-jev/runs/base-F1/student",
+    "student_revision": null,
+    "teacher_model": null,
+    "label_prompt_sha": null
+  }
+}

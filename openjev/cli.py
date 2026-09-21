@@ -1,5 +1,6 @@
-"""openjev run|label|train|calibrate|eval|augment|serve|report|bench"""
+"""openjev run|label|train|calibrate|eval|augment|base|serve|report|bench"""
 import argparse
+import json
 import os
 from pathlib import Path
 
@@ -121,6 +122,25 @@ def main(argv=None):
     c.add_argument("a")
     c.add_argument("b")
     c.add_argument("--boot", type=int, default=2000, help="bootstrap resamples")
+    bp = sub.add_parser("base", help="open-jev-base: train a pair scorer, or run one zero-shot")
+    bsub = bp.add_subparsers(dest="base_cmd", required=True)
+    bt = bsub.add_parser("train")
+    bt.add_argument("--fold", default="none", help="F1|F2|F3|none (tasks/base/folds.yaml)")
+    bt.add_argument("--tag")
+    bt.add_argument("--runs", default="runs")
+    bt.add_argument("--cap", type=int, default=12000, help="pairs per task per epoch")
+    bt.add_argument("--minutes", type=int, default=55, help="step budget, at the measured pairs/s")
+    bt.add_argument("--steps", type=int)
+    bt.add_argument("--seed", type=int, default=0)
+    be = bsub.add_parser("eval")
+    be.add_argument("--fold", default="none")
+    be.add_argument("--task", required=True)
+    be.add_argument("--tag")
+    be.add_argument("--runs", default="runs")
+    be.add_argument("--src", help="run dir holding the task's teacher rows (default: runs/<task>)")
+    be.add_argument("--calib", action="append", choices=["raw", "prior", "teacher500", "gold500"],
+                    help="calibration variant(s); default: all four")
+
     b = sub.add_parser("bench")
     b.add_argument("run_dir")
     b.add_argument("--timeout", type=int, default=1800, help="give up waiting for an idle teacher after N s")
@@ -145,6 +165,18 @@ def main(argv=None):
     if args.cmd == "compare":
         from openjev import evaluate
         evaluate.compare(args.a, args.b, n_boot=args.boot)
+        return
+    if args.cmd == "base":
+        from openjev import base
+        name = "base-" + args.fold + (f"-{args.tag}" if args.tag else "")
+        if args.base_cmd == "train":
+            print(json.dumps(base.train(args.fold, Path(args.runs) / name, cap=args.cap,
+                                        minutes=args.minutes, steps=args.steps, seed=args.seed),
+                             indent=1)[:2000])
+            return
+        task = load_task(args.task)
+        base.zs_eval(Path(args.runs) / name, task, Path(args.src or Path(args.runs) / task.name),
+                     runs=args.runs, variants=args.calib or base.VARIANTS)
         return
     if args.cmd == "bench":
         from openjev import evaluate

@@ -157,15 +157,22 @@ def _git():
     return (sha + "-dirty" if git("status", "--porcelain") else sha) if sha else "none"
 
 
-def run(task, run_dir, results_dir=None, latency=True):
+def run(task, run_dir, results_dir=None, latency=True, logits_fn=None):
+    """`logits_fn(texts) -> [N, K]` replaces the fixed-head student: that is the *only* difference
+    between a per-task run dir and an `open-jev-base` zero-shot run dir (PLAN-4 §0). It has no
+    student/ of its own, so latency (which needs the model) is left to `openjev bench`."""
     run_dir = Path(run_dir)
     rows = read_rows(run_dir, "eval")
     texts, max_len = [r["text"] for r in rows], task.student.max_len
     calib = json.loads((run_dir / "calib.json").read_text())
     train = json.loads((run_dir / "train.json").read_text())
     T = calib["temperature"]
-    tok, model = load_student(run_dir / "student")
-    logits = predict_logits(tok, model, texts, max_len)
+    if logits_fn is None:
+        tok, model = load_student(run_dir / "student")
+        logits_fn = lambda t: predict_logits(tok, model, t, max_len)  # noqa: E731
+    else:
+        latency = False
+    logits = logits_fn(texts)
     raw, cal = logits.softmax(-1), apply(logits, calib).softmax(-1)
     teacher = torch.tensor([r["probs"] for r in rows]).clamp_min(1e-6)
     teacher = teacher / teacher.sum(-1, keepdim=True)
@@ -222,7 +229,7 @@ def run(task, run_dir, results_dir=None, latency=True):
     # per-class recall + confusions on the calib split (never eval) for augment
     crows = read_rows(run_dir, "calib")
     cy, ctarget = targets_for(crows)
-    cpred = apply(predict_logits(tok, model, [r["text"] for r in crows], max_len), calib).argmax(-1)
+    cpred = apply(logits_fn([r["text"] for r in crows]), calib).argmax(-1)
     cm = confusion_matrix(cy, cpred, labels=list(range(task.k)))
     ev = dict(res, calib_split={"target": ctarget, "confusion": cm.tolist(),
                                 "recall": dict(zip(task.labels, (cm.diagonal() / cm.sum(1).clip(min=1)).tolist()))},

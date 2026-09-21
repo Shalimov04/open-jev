@@ -1,0 +1,195 @@
+{
+  "task": "banking77",
+  "type": "choice",
+  "k": 77,
+  "lang": "en",
+  "student_model": "jhu-clsp/mmBERT-small",
+  "n_train": 59872,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 2000,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.3894999921321869,
+    "macro_f1": 0.3966206604325785,
+    "ece_raw": 0.32222825288772583,
+    "ece_cal": 0.32222825288772583,
+    "brier": 0.9290863871574402,
+    "nll": 3.329646587371826
+  },
+  "teacher": {
+    "acc": 0.7639999985694885,
+    "macro_f1": 0.7491201548921496,
+    "ece": 0.07506716996431351,
+    "brier": 0.35080432891845703,
+    "shortlist_miss": 0.0455,
+    "shortlist_n": 2000,
+    "p_none_chunk_with_gold": 0.01782406637166927,
+    "p_none_chunk_without_gold": 0.9162388143118969
+  },
+  "agreement": {
+    "argmax": 0.390500009059906,
+    "mean_kl": 2.8922412395477295
+  },
+  "cascade": [
+    {
+      "tau": 0.3,
+      "escalation": 0.9965000152587891,
+      "acc": 0.7635
+    },
+    {
+      "tau": 0.35,
+      "escalation": 0.9975000023841858,
+      "acc": 0.7635
+    },
+    {
+      "tau": 0.4,
+      "escalation": 0.9980000257492065,
+      "acc": 0.764
+    },
+    {
+      "tau": 0.45,
+      "escalation": 0.9980000257492065,
+      "acc": 0.764
+    },
+    {
+      "tau": 0.5,
+      "escalation": 0.9984999895095825,
+      "acc": 0.764
+    },
+    {
+      "tau": 0.55,
+      "escalation": 0.9990000128746033,
+      "acc": 0.764
+    },
+    {
+      "tau": 0.6,
+      "escalation": 0.9990000128746033,
+      "acc": 0.764
+    },
+    {
+      "tau": 0.65,
+      "escalation": 0.9990000128746033,
+      "acc": 0.764
+    },
+    {
+      "tau": 0.7,
+      "escalation": 0.9990000128746033,
+      "acc": 0.764
+    },
+    {
+      "tau": 0.75,
+      "escalation": 0.9994999766349792,
+      "acc": 0.764
+    },
+    {
+      "tau": 0.8,
+      "escalation": 1.0,
+      "acc": 0.764
+    },
+    {
+      "tau": 0.85,
+      "escalation": 1.0,
+      "acc": 0.764
+    },
+    {
+      "tau": 0.9,
+      "escalation": 1.0,
+      "acc": 0.764
+    },
+    {
+      "tau": 0.95,
+      "escalation": 1.0,
+      "acc": 0.764
+    },
+    {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "acc": 0.764
+    }
+  ],
+  "cascade_parity": {
+    "metric": "acc",
+    "teacher": 0.764,
+    "slack": 0.005,
+    "parity": {
+      "tau": 0.3,
+      "escalation": 0.9965000152587891,
+      "acc": 0.7635
+    }
+  },
+  "selective": [
+    {
+      "tau": 0.5,
+      "coverage": 0.0015,
+      "acc": 1.0
+    },
+    {
+      "tau": 0.55,
+      "coverage": 0.001,
+      "acc": 1.0
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.001,
+      "acc": 1.0
+    },
+    {
+      "tau": 0.65,
+      "coverage": 0.001,
+      "acc": 1.0
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.001,
+      "acc": 1.0
+    },
+    {
+      "tau": 0.75,
+      "coverage": 0.0005,
+      "acc": 1.0
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.0,
+      "acc": null
+    },
+    {
+      "tau": 0.85,
+      "coverage": 0.0,
+      "acc": null
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.0,
+      "acc": null
+    },
+    {
+      "tau": 0.95,
+      "coverage": 0.0,
+      "acc": null
+    }
+  ],
+  "teacher_calls": 33000,
+  "teacher_minutes": 60.860240670045215,
+  "train_minutes": 43.115879253546396,
+  "peak_gpu_gb": 8.907302379608154,
+  "temperature": 1.0,
+  "calib_target": "raw",
+  "ece_calib_split": [
+    0.2702322006225586,
+    0.2702322006225586
+  ],
+  "git": "5deb0e1-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "jhu-clsp/mmBERT-small",
+    "student_revision": "abc32620dd4f6ab06f5fbe905dc25f310618e09f",
+    "teacher_model": null,
+    "label_prompt_sha": null
+  }
+}

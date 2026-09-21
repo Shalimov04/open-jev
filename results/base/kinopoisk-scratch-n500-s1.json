@@ -1,0 +1,191 @@
+{
+  "task": "kinopoisk",
+  "type": "choice",
+  "k": 3,
+  "lang": "ru",
+  "student_model": "jhu-clsp/mmBERT-small",
+  "n_train": 500,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 1500,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.612666666507721,
+    "macro_f1": 0.6118848445372174,
+    "ece_raw": 0.18388943374156952,
+    "ece_cal": 0.03125245124101639,
+    "brier": 0.5017359256744385,
+    "nll": 0.8179463744163513
+  },
+  "teacher": {
+    "acc": 0.6520000100135803,
+    "macro_f1": 0.6092768798857093,
+    "ece": 0.17858782410621643,
+    "brier": 0.5504871606826782
+  },
+  "agreement": {
+    "argmax": 0.6333333253860474,
+    "mean_kl": 0.41084024310112
+  },
+  "cascade": [
+    {
+      "tau": 0.3,
+      "escalation": 0.0,
+      "acc": 0.6126666666666667
+    },
+    {
+      "tau": 0.35,
+      "escalation": 0.0,
+      "acc": 0.6126666666666667
+    },
+    {
+      "tau": 0.4,
+      "escalation": 0.0,
+      "acc": 0.6126666666666667
+    },
+    {
+      "tau": 0.45,
+      "escalation": 0.03466666489839554,
+      "acc": 0.6146666666666667
+    },
+    {
+      "tau": 0.5,
+      "escalation": 0.19066666066646576,
+      "acc": 0.6373333333333333
+    },
+    {
+      "tau": 0.55,
+      "escalation": 0.38866665959358215,
+      "acc": 0.6386666666666667
+    },
+    {
+      "tau": 0.6,
+      "escalation": 0.5566666722297668,
+      "acc": 0.65
+    },
+    {
+      "tau": 0.65,
+      "escalation": 0.637333333492279,
+      "acc": 0.6526666666666666
+    },
+    {
+      "tau": 0.7,
+      "escalation": 0.722000002861023,
+      "acc": 0.6553333333333333
+    },
+    {
+      "tau": 0.75,
+      "escalation": 0.7839999794960022,
+      "acc": 0.6546666666666666
+    },
+    {
+      "tau": 0.8,
+      "escalation": 0.8573333621025085,
+      "acc": 0.6526666666666666
+    },
+    {
+      "tau": 0.85,
+      "escalation": 0.9233333468437195,
+      "acc": 0.652
+    },
+    {
+      "tau": 0.9,
+      "escalation": 0.972000002861023,
+      "acc": 0.652
+    },
+    {
+      "tau": 0.95,
+      "escalation": 0.9959999918937683,
+      "acc": 0.652
+    },
+    {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "acc": 0.652
+    }
+  ],
+  "cascade_parity": {
+    "metric": "acc",
+    "teacher": 0.652,
+    "slack": 0.005,
+    "parity": {
+      "tau": 0.6,
+      "escalation": 0.5566666722297668,
+      "acc": 0.65
+    }
+  },
+  "selective": [
+    {
+      "tau": 0.5,
+      "coverage": 0.8093333333333333,
+      "acc": 0.6466227347611203
+    },
+    {
+      "tau": 0.55,
+      "coverage": 0.6113333333333333,
+      "acc": 0.6837513631406761
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.44333333333333336,
+      "acc": 0.7323308270676692
+    },
+    {
+      "tau": 0.65,
+      "coverage": 0.3626666666666667,
+      "acc": 0.7518382352941176
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.278,
+      "acc": 0.7601918465227818
+    },
+    {
+      "tau": 0.75,
+      "coverage": 0.216,
+      "acc": 0.7623456790123457
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.14266666666666666,
+      "acc": 0.7383177570093458
+    },
+    {
+      "tau": 0.85,
+      "coverage": 0.07666666666666666,
+      "acc": 0.7478260869565218
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.028,
+      "acc": 0.6666666666666666
+    },
+    {
+      "tau": 0.95,
+      "coverage": 0.004,
+      "acc": 0.5
+    }
+  ],
+  "teacher_calls": 6000,
+  "teacher_minutes": 26.63896830876668,
+  "train_minutes": 5.207695110638936,
+  "peak_gpu_gb": 8.909127712249756,
+  "temperature": 1.1368321180343628,
+  "calib_target": "gold",
+  "ece_calib_split": [
+    0.1833011955022812,
+    0.05804523453116417
+  ],
+  "git": "5deb0e1-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "jhu-clsp/mmBERT-small",
+    "student_revision": "abc32620dd4f6ab06f5fbe905dc25f310618e09f",
+    "teacher_model": null,
+    "label_prompt_sha": null
+  }
+}

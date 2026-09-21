@@ -1,0 +1,191 @@
+{
+  "task": "kinopoisk",
+  "type": "choice",
+  "k": 3,
+  "lang": "ru",
+  "student_model": "/home/spark_4551/projects/open-jev/runs/base-F1/student",
+  "n_train": 100,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 1500,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.5573333501815796,
+    "macro_f1": 0.561037519381925,
+    "ece_raw": 0.1868407130241394,
+    "ece_cal": 0.03480415791273117,
+    "brier": 0.5556723475456238,
+    "nll": 0.9209983944892883
+  },
+  "teacher": {
+    "acc": 0.6520000100135803,
+    "macro_f1": 0.6092768798857093,
+    "ece": 0.17858782410621643,
+    "brier": 0.5504871606826782
+  },
+  "agreement": {
+    "argmax": 0.5759999752044678,
+    "mean_kl": 0.45179328322410583
+  },
+  "cascade": [
+    {
+      "tau": 0.3,
+      "escalation": 0.0,
+      "acc": 0.5573333333333333
+    },
+    {
+      "tau": 0.35,
+      "escalation": 0.0026666666381061077,
+      "acc": 0.5566666666666666
+    },
+    {
+      "tau": 0.4,
+      "escalation": 0.03533333167433739,
+      "acc": 0.566
+    },
+    {
+      "tau": 0.45,
+      "escalation": 0.23600000143051147,
+      "acc": 0.6033333333333334
+    },
+    {
+      "tau": 0.5,
+      "escalation": 0.4846666753292084,
+      "acc": 0.6313333333333333
+    },
+    {
+      "tau": 0.55,
+      "escalation": 0.6186666488647461,
+      "acc": 0.6406666666666667
+    },
+    {
+      "tau": 0.6,
+      "escalation": 0.6833333373069763,
+      "acc": 0.6446666666666667
+    },
+    {
+      "tau": 0.65,
+      "escalation": 0.7459999918937683,
+      "acc": 0.648
+    },
+    {
+      "tau": 0.7,
+      "escalation": 0.8173333406448364,
+      "acc": 0.6493333333333333
+    },
+    {
+      "tau": 0.75,
+      "escalation": 0.8880000114440918,
+      "acc": 0.6513333333333333
+    },
+    {
+      "tau": 0.8,
+      "escalation": 0.9300000071525574,
+      "acc": 0.652
+    },
+    {
+      "tau": 0.85,
+      "escalation": 0.9626666903495789,
+      "acc": 0.652
+    },
+    {
+      "tau": 0.9,
+      "escalation": 0.9886666536331177,
+      "acc": 0.652
+    },
+    {
+      "tau": 0.95,
+      "escalation": 0.9933333396911621,
+      "acc": 0.652
+    },
+    {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "acc": 0.652
+    }
+  ],
+  "cascade_parity": {
+    "metric": "acc",
+    "teacher": 0.652,
+    "slack": 0.005,
+    "parity": {
+      "tau": 0.65,
+      "escalation": 0.7459999918937683,
+      "acc": 0.648
+    }
+  },
+  "selective": [
+    {
+      "tau": 0.5,
+      "coverage": 0.5153333333333333,
+      "acc": 0.6610608020698577
+    },
+    {
+      "tau": 0.55,
+      "coverage": 0.38133333333333336,
+      "acc": 0.6993006993006993
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.31666666666666665,
+      "acc": 0.7094736842105264
+    },
+    {
+      "tau": 0.65,
+      "coverage": 0.254,
+      "acc": 0.7191601049868767
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.18266666666666667,
+      "acc": 0.7335766423357665
+    },
+    {
+      "tau": 0.75,
+      "coverage": 0.112,
+      "acc": 0.7083333333333334
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.07,
+      "acc": 0.6857142857142857
+    },
+    {
+      "tau": 0.85,
+      "coverage": 0.037333333333333336,
+      "acc": 0.6785714285714286
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.011333333333333334,
+      "acc": 0.5294117647058824
+    },
+    {
+      "tau": 0.95,
+      "coverage": 0.006666666666666667,
+      "acc": 0.5
+    }
+  ],
+  "teacher_calls": 6000,
+  "teacher_minutes": 26.63896830876668,
+  "train_minutes": 2.6338398575782778,
+  "peak_gpu_gb": 8.853592872619629,
+  "temperature": 1.3507896661758423,
+  "calib_target": "gold",
+  "ece_calib_split": [
+    0.2188078761100769,
+    0.058840975165367126
+  ],
+  "git": "5deb0e1-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "/home/spark_4551/projects/open-jev/runs/base-F1/student",
+    "student_revision": null,
+    "teacher_model": null,
+    "label_prompt_sha": null
+  }
+}

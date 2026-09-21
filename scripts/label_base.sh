@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.." && export PATH=$PWD/.venv/bin:$PATH
 unset HTTP_PROXY ALL_PROXY http_proxy all_proxy
 export OPENJEV_JEV_BUDGET=${OPENJEV_JEV_BUDGET:-0.40}
 for f in tasks/base/*.yaml; do
+  [ "$(basename "$f")" = folds.yaml ] && continue
   t=$(basename "$f" .yaml)
   [ -s "runs/$t-jev/teacher.jsonl" ] && continue
   echo "$(date +%T) label $t"

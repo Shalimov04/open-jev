@@ -351,3 +351,150 @@ openjev compare runs/A runs/B                    # paired per-seed deltas + pool
 `scripts/r1_table.py` refits all four calibrations from `runs/<run>/calib_logits.pt` on the CPU.
 `results/variants/` holds run dirs that are not part of a completed comparison (the `-prior` arms),
 kept out of `results/` so they can never reach the README table.
+
+## B1 — `open-jev-base`: one pair scorer, six tasks it was never trained on
+
+**What was trained.** `AutoModelForSequenceClassification(num_labels=1)` on
+`(decision, option, text)` pairs, BCE against the teacher's probability of that option
+(`openjev/base.py`, rendering from `openjev/pairs.py`). Inference: sigmoid per option, renormalised
+over the K offered, handed to `calibrate.apply` / `evaluate.run` as an `[N, K]` matrix of
+renormalised log-probabilities — so `cascade`, `selective`, `compare` and `views.view` are the same
+code as for a per-task student. `noul` is one pair scored once and returned as `[log p, log(1−p)]`
+(the option index is not in the prompt; training kept both of its pairs until this milestone, which
+was fitting one input against `p` and `1−p` at the same time — fixed in `pairs.sample`).
+
+**Mixture.** `data/pairs.jsonl` rebuilt from every finished run dir: 42 labelled task files,
+1,183,247 pairs, 129,226 examples. That is the 11 original tasks (+4 `-jev` relabels) and **all 27
+new Jev-labelled tasks** under `tasks/base/` — boolq, civil-{identity,insult,obscene,threat}, cola,
+emotion-dair, fin-sentiment, massive-{en,ru}, miracl-rerank, mrpc, paws, rte, ru-reviews,
+rubq-rerank, sib200-ru, swde-vertical, trec-coarse, tweet-{emotion,hate,irony,offensive,sentiment,
+stance}, xnli-{en,ru} — 49,376 rows for $0.84, 0 of 27 failed `scripts/base_gate.py`. Two are short
+of their YAML (`tweet-irony` 100 rows, `sib200-ru` 749) because the per-task budget cap hit first.
+
+**Folds are by text source** (`tasks/base/folds.yaml`), never by task name: F1 drops kinopoisk,
+swde-field + swde-vertical and toxic + the four civil_comments sub-tasks; F2 drops georeview,
+banking77 and m2w-element + m2w-target. `openjev base eval` refuses to score a task that is not in
+the model's recorded `excluded` list.
+
+| model | train tasks | pairs/epoch (cap 12k) | steps | minutes | peak GPU | best calib BCE |
+|---|---|---|---|---|---|---|
+| base-F1 | 31 | 171,116 | 6302 | 32.5 | 8.93 GB | 0.3544 |
+| base-F2 | 35 | 176,316 | 6302 | 43.1 | 8.91 GB | 0.3585 |
+| base-none | 40 | 234,316 | 6302 | 42.5 | 8.91 GB | 0.3550 |
+
+78–103 pairs/s measured. Calib BCE was **still falling at the last checkpoint in all three runs** —
+the 45-minute budget stopped them, early stopping never fired. Every number below is a
+one-pass-over-the-mixture model, not a converged one.
+
+### Leave-one-source-out (`python scripts/base_table.py --variant gold500`)
+
+Chance = a uniform `[N, K]`; student = the existing per-task run's 3 seeds averaged; deltas are
+paired bootstrap over the shared eval rows, 2000 resamples.
+
+| task        | fold | metric | n | chance | teacher | student | base-zs | Δ vs student (95 % CI) | Δ vs teacher (95 % CI) |
+|-------------|---|---|---|---|---|---|---|---|---|
+| kinopoisk   | F1 | acc | 1500 | 0.333 | 0.652 | 0.657 | 0.525 | -0.132 (-0.157..-0.107) | -0.127 (-0.158..-0.095) |
+| swde-field  | F1 | acc | 2000 | 0.052 | 0.803 | 0.869 | 0.353 | -0.516 (-0.538..-0.493) | -0.450 (-0.476..-0.424) |
+| toxic       | F1 | auroc | 3000 | 0.500 | 0.817 | 0.856 | 0.809 | -0.047 (-0.074..-0.021) | -0.007 (-0.036..+0.022) |
+| georeview   | F2 | mae | 2000 | 1.201 | 0.619 | 0.607 | 0.751 | +0.144 (+0.127..+0.162) | +0.132 (+0.113..+0.152) |
+| banking77   | F2 | acc | 2000 | 0.015 | 0.764 | 0.750 | 0.452 | -0.299 (-0.321..-0.275) | -0.312 (-0.337..-0.288) |
+| m2w-element | F2 | acc | 900 | 0.049 | 0.649 | 0.059 | 0.152 | +0.093 (+0.064..+0.122) | -0.497 (-0.533..-0.460) |
+
+The same table for `raw` / `prior` / `teacher500` is in `results/base/base-loto-*.json`; the
+calibration variant moves base-zs accuracy by up to 12 pts (swde-field 0.231 raw → 0.353 gold500)
+and never changes the verdict.
+
+**Read it plainly: zero-shot loses to the per-task student on 5 of 6 tasks, every CI excluding 0**
+— by 13 pts on kinopoisk, 30 pts on banking77, 52 pts on swde-field, 0.14 MAE on georeview and
+0.047 AUROC on toxic. The two results that are not losses:
+
+- **m2w-element: base zero-shot 0.152 vs the fixed 16-way head's 0.059, Δ = +9.3 pts
+  (95 % CI +6.4..+12.2).** This is the PLAN-4 §0 argument reproduced on a model that never saw a
+  Mind2Web page: a head that must mean the same thing on every row cannot learn "candidate G",
+  a pair scorer reads the candidate's own line. It is still 50 pts below the teacher's 0.649 and
+  only 3× a 0.049 chance floor — the argument is about primitives, not about this model being useful
+  here.
+- **toxic: AUROC 0.809 vs the teacher's 0.817, Δ = −0.007 (95 % CI −0.036..+0.022) — no measurable
+  difference from the teacher**, on a `noul` question over texts no fold-F1 task had seen. The
+  per-task student still beats both (0.856).
+
+### Calibration under transfer (`--calib`)
+
+| task | arm                | acc | ECE raw | ECE cal | NLL |
+|---|--------------------|---|---|---|---|
+| kinopoisk | per-task student   | 0.660 | 0.1608 | 0.0378 | 0.744 |
+| kinopoisk | base-F1 raw        | 0.515 | 0.0760 | 0.0760 | 1.032 |
+| kinopoisk | base-F1 prior      | 0.535 | 0.0760 | 0.0542 | 1.008 |
+| kinopoisk | base-F1 teacher500 | 0.515 | 0.0760 | 0.0759 | 0.997 |
+| kinopoisk | base-F1 gold500    | 0.525 | 0.0760 | 0.0484 | 0.983 |
+| swde-field | per-task student   | 0.863 | 0.0488 | 0.0361 | 0.597 |
+| swde-field | base-F1 raw        | 0.230 | 0.1164 | 0.1164 | 2.678 |
+| swde-field | base-F1 prior      | 0.278 | 0.1164 | 0.1571 | 2.761 |
+| swde-field | base-F1 teacher500 | 0.230 | 0.1164 | 0.1268 | 2.456 |
+| swde-field | base-F1 gold500    | 0.353 | 0.1164 | 0.1239 | 2.167 |
+| toxic | per-task student   | 0.917 | 0.1164 | 0.0373 | 0.252 |
+| toxic | base-F1 raw        | 0.618 | 0.0825 | 0.0825 | 0.612 |
+| toxic | base-F1 prior      | 0.489 | 0.0825 | 0.1944 | 0.761 |
+| toxic | base-F1 teacher500 | 0.618 | 0.0825 | 0.0775 | 0.611 |
+| toxic | base-F1 gold500    | 0.919 | 0.0825 | 0.0558 | 0.275 |
+| georeview | per-task student   | 0.558 | 0.2527 | 0.0246 | 1.048 |
+| georeview | base-F2 raw        | 0.344 | 0.0661 | 0.0661 | 1.331 |
+| georeview | base-F2 prior      | 0.416 | 0.0661 | 0.0678 | 1.257 |
+| georeview | base-F2 teacher500 | 0.344 | 0.0661 | 0.0277 | 1.312 |
+| georeview | base-F2 gold500    | 0.326 | 0.0661 | 0.0918 | 1.257 |
+| banking77 | per-task student   | 0.751 | 0.0171 | 0.0422 | 1.008 |
+| banking77 | base-F2 raw        | 0.389 | 0.3222 | 0.3222 | 3.330 |
+| banking77 | base-F2 prior      | 0.419 | 0.3222 | 0.3377 | 3.076 |
+| banking77 | base-F2 teacher500 | 0.389 | 0.3222 | 0.2370 | 3.024 |
+| banking77 | base-F2 gold500    | 0.451 | 0.3222 | 0.0512 | 2.376 |
+| m2w-element | per-task student   | 0.059 | 0.1017 | 0.0036 | 2.773 |
+| m2w-element | base-F2 raw        | 0.152 | 0.0550 | 0.0550 | 2.736 |
+| m2w-element | base-F2 prior      | 0.141 | 0.0550 | 0.0439 | 2.736 |
+| m2w-element | base-F2 teacher500 | 0.152 | 0.0550 | 0.0622 | 2.736 |
+| m2w-element | base-F2 gold500    | 0.152 | 0.0550 | 0.0578 | 2.735 |
+
+**The §6 question answered with numbers, not adjectives.** Out of the box (ECE raw) the pair scorer
+is *better* calibrated than the per-task student on 4 of 6 tasks — kinopoisk 0.076 vs 0.161,
+georeview 0.066 vs 0.253, toxic 0.083 vs 0.116, m2w-element 0.055 vs 0.102 — and *much worse* on the
+two large-K tasks: swde-field 0.116 vs 0.049 and banking77 **0.322 vs 0.017**. Renormalising K
+independent sigmoids is what §6 predicted would break at large K, and it does. The fix is cheap and
+post-hoc: the 500-gold vector fit takes banking77 from ECE 0.322 to 0.051 and NLL 3.33 to 2.38.
+`teacher500` (no gold, one minute of teacher) gets a third of the way there (0.237 / 3.02).
+`prior:` on unlabelled calib texts is a *marginal* correction only and can hurt: with no `prior:`
+declared in any YAML the variant assumes uniform, which is right for kinopoisk (+2.0 pts accuracy,
+ECE 0.076→0.054) and wrong for toxic, where forcing a 50 % positive rate on an 8 %-positive task
+drives ECE to 0.194 (AUROC is unaffected — a constant bias is monotone in p(true)).
+
+### Warm start on kinopoisk (`--warm`)
+
+Both arms are the same pair architecture on the same N teacher-labelled rows with the same 500-row
+vector calibration and the same eval ids; the only factor is the init.
+
+| task | N | init | seeds | metric | mean | Δ vs scratch (95 % CI) |
+|---|---|---|---|---|---|---|
+| kinopoisk | 100 | base fold model | 3 | acc | 0.5627 | +0.0478 (+0.0242..+0.0707) |
+| kinopoisk | 100 | mmBERT-small | 3 | acc | 0.5149 | — |
+| kinopoisk | 500 | base fold model | 3 | acc | 0.5933 | -0.0142 (-0.0304..+0.0020) |
+| kinopoisk | 500 | mmBERT-small | 3 | acc | 0.6076 | — |
+
+At **N = 100** the pooled CI excludes 0, but the whole effect is one seed: per-seed accuracy is
+0.557/0.569/0.562 warm against 0.561/**0.415**/0.569 scratch. Warm-starting bought a *variance*
+reduction (it stopped one from-scratch run collapsing), not a level. Claiming "+4.8 pts at N = 100"
+without that sentence would be the overstatement the reviewers have twice caught.
+At **N = 500** there is no measurable difference (Δ = −1.4 ± 1.6 pts, 95 % CI −3.0..+0.2, resolvable
+to ±2.4 pts) — as §6 expected, from-scratch has already saturated. Reference lines on the same eval
+rows: the 4000-row per-task student 0.657, the 500-gold-in-loss run 0.616, base-F1 zero-shot 0.525.
+
+### Not done
+
+No unseen pre-registered set (yahoo_answers_topics, inappropriateness, sst5) was opened: they were
+never labelled, and the teacher budget was closed for this run. No fold F3, no diversity ablation
+(M6), so **nothing here says whether the 27 new tasks helped** — that question is untouched.
+
+```bash
+python scripts/build_pairs.py && python scripts/base_gate.py
+scripts/gpu_queue.sh runs/queue-base.jobs          # base train --fold F1 | F2 | none
+scripts/gpu_queue.sh runs/queue-base-eval.jobs     # base eval, four calib variants per task
+scripts/gpu_queue.sh runs/queue-base-warm.jobs     # scripts/warm_start.py + the agnews regression
+python scripts/base_table.py [--variant V | --calib | --warm]
+```

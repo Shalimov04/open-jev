@@ -1,0 +1,195 @@
+{
+  "task": "swde-field",
+  "type": "choice",
+  "k": 33,
+  "lang": "en",
+  "student_model": "jhu-clsp/mmBERT-small",
+  "n_train": 58872,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 2000,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.3529999852180481,
+    "macro_f1": 0.31414812797981007,
+    "ece_raw": 0.11639226973056793,
+    "ece_cal": 0.12391894310712814,
+    "brier": 0.8261212110519409,
+    "nll": 2.167067766189575
+  },
+  "teacher": {
+    "acc": 0.8029999732971191,
+    "macro_f1": 0.87587944793207,
+    "ece": 0.047133684158325195,
+    "brier": 0.29543399810791016,
+    "shortlist_miss": 0.0,
+    "shortlist_n": 2000,
+    "p_none_chunk_with_gold": 0.05876104000378689,
+    "p_none_chunk_without_gold": 0.9639653234758268
+  },
+  "agreement": {
+    "argmax": 0.43700000643730164,
+    "mean_kl": 1.5314960479736328
+  },
+  "cascade": [
+    {
+      "tau": 0.3,
+      "escalation": 0.19949999451637268,
+      "acc": 0.4375
+    },
+    {
+      "tau": 0.35,
+      "escalation": 0.328000009059906,
+      "acc": 0.498
+    },
+    {
+      "tau": 0.4,
+      "escalation": 0.4505000114440918,
+      "acc": 0.5545
+    },
+    {
+      "tau": 0.45,
+      "escalation": 0.5699999928474426,
+      "acc": 0.619
+    },
+    {
+      "tau": 0.5,
+      "escalation": 0.6735000014305115,
+      "acc": 0.6655
+    },
+    {
+      "tau": 0.55,
+      "escalation": 0.7459999918937683,
+      "acc": 0.699
+    },
+    {
+      "tau": 0.6,
+      "escalation": 0.8069999814033508,
+      "acc": 0.726
+    },
+    {
+      "tau": 0.65,
+      "escalation": 0.8529999852180481,
+      "acc": 0.7435
+    },
+    {
+      "tau": 0.7,
+      "escalation": 0.8815000057220459,
+      "acc": 0.7535
+    },
+    {
+      "tau": 0.75,
+      "escalation": 0.9035000205039978,
+      "acc": 0.763
+    },
+    {
+      "tau": 0.8,
+      "escalation": 0.9244999885559082,
+      "acc": 0.7755
+    },
+    {
+      "tau": 0.85,
+      "escalation": 0.9380000233650208,
+      "acc": 0.7805
+    },
+    {
+      "tau": 0.9,
+      "escalation": 0.9539999961853027,
+      "acc": 0.7865
+    },
+    {
+      "tau": 0.95,
+      "escalation": 0.9739999771118164,
+      "acc": 0.793
+    },
+    {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "acc": 0.803
+    }
+  ],
+  "cascade_parity": {
+    "metric": "acc",
+    "teacher": 0.803,
+    "slack": 0.005,
+    "parity": {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "acc": 0.803
+    }
+  },
+  "selective": [
+    {
+      "tau": 0.5,
+      "coverage": 0.3265,
+      "acc": 0.4548238897396631
+    },
+    {
+      "tau": 0.55,
+      "coverage": 0.254,
+      "acc": 0.4763779527559055
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.193,
+      "acc": 0.5207253886010362
+    },
+    {
+      "tau": 0.65,
+      "coverage": 0.147,
+      "acc": 0.5408163265306123
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.1185,
+      "acc": 0.5485232067510548
+    },
+    {
+      "tau": 0.75,
+      "coverage": 0.0965,
+      "acc": 0.5544041450777202
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.0755,
+      "acc": 0.609271523178808
+    },
+    {
+      "tau": 0.85,
+      "coverage": 0.062,
+      "acc": 0.6209677419354839
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.046,
+      "acc": 0.6413043478260869
+    },
+    {
+      "tau": 0.95,
+      "coverage": 0.026,
+      "acc": 0.6153846153846154
+    }
+  ],
+  "teacher_calls": 19500,
+  "teacher_minutes": 55.34590482711792,
+  "train_minutes": 32.54825243552526,
+  "peak_gpu_gb": 8.93234395980835,
+  "temperature": 0.3248688578605652,
+  "calib_target": "gold",
+  "ece_calib_split": [
+    0.09224435687065125,
+    0.07321266084909439
+  ],
+  "git": "5deb0e1-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "jhu-clsp/mmBERT-small",
+    "student_revision": "abc32620dd4f6ab06f5fbe905dc25f310618e09f",
+    "teacher_model": "Qwen/Qwen3.8-27B-FP8",
+    "label_prompt_sha": null
+  }
+}

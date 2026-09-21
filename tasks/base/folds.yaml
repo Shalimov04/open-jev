@@ -1,0 +1,22 @@
+# PLAN-4 §1: folds are by TEXT SOURCE, not by task name. A fold model excludes every run dir
+# whose texts come from a held-out source (and its `-jev` relabel), so a zero-shot number on a
+# held-out task cannot be a leak through a sibling task over the same rows.
+# Key = fold, value = {source: [run-dir stems that share those texts]}.
+F1:
+  kinopoisk: [kinopoisk]
+  civil_comments: [toxic, civil-insult, civil-threat, civil-obscene, civil-identity]
+  swde: [swde-field, swde-vertical]
+F2:
+  georeview: [georeview]
+  banking77: [banking77]
+  mind2web: [m2w-element, m2w-target]
+F3:
+  agnews: [agnews, agnews-nogold]
+  headlines: [headlines, headlines-8k]
+  arb: [arb-success, arb-quality]
+
+# Held-out tasks actually evaluated per fold (the ones with a per-task student to compare against).
+eval:
+  F1: [kinopoisk, swde-field, toxic]
+  F2: [georeview, banking77, m2w-element]
+  F3: [agnews, headlines-8k, arb-success]

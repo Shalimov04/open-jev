@@ -37,7 +37,7 @@ def row(path):
 
 
 def main():
-    rows = [row(p) for p in sorted((ROOT / "tasks/base").glob("*.yaml"))]
+    rows = [row(p) for p in sorted((ROOT / "tasks/base").glob("*.yaml")) if p.name != "folds.yaml"]
     rows = [r for r in rows if r["n"]]
     w = max(len(r["task"]) for r in rows)
     print(f"{'task':{w}} {'prim':6} {'K':>2} {'n':>5} {'top class':>22} {'top%':>6} {'maxp':>6} "

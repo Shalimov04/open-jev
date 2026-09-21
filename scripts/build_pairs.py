@@ -30,6 +30,11 @@ SKIP = {
     "headlines-rev": "reversed-option-order variant, no task yaml to render it faithfully",
     "kinopoisk-rev": "reversed-option-order variant, no task yaml to render it faithfully",
     "example": "template task, not a real run",
+    # tasks/unseen/*: pre-registered unseen sets (docs/prereg/base-v2.md §6). Putting any of them
+    # in a mixture is the STOP rule that voids the zero-shot claim, so they are skipped by name.
+    "yahoo-topics-jev": "pre-registered unseen set, never in a training mixture",
+    "sst5-jev": "pre-registered unseen set, never in a training mixture",
+    "ru-inappropriate-jev": "pre-registered unseen set, never in a training mixture",
 }
 
 

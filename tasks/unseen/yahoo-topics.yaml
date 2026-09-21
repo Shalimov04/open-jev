@@ -1,0 +1,15 @@
+# Pre-registered unseen set (docs/prereg/base-v2.md §"unseen"). Never in any base mixture,
+# never in tasks/base/folds.yaml: a genuinely unseen question over a source no run dir uses.
+name: yahoo-topics
+type: choice
+question: "Which topic does this question belong to?"
+options: [Society & Culture, Science & Mathematics, Health, Education & Reference, Computers & Internet, Sports, Business & Finance, Entertainment & Music, Family & Relationships, Politics & Government]
+lang: en
+data:
+  source: {hf: community-datasets/yahoo_answers_topics}   # canonical `yahoo_answers_topics` is script-only, dead under datasets 5
+  text: "{question_title}\n{question_content}"
+  max_chars: 1200
+  gold: topic            # ClassLabel, names in the order above
+  train: {split: train, n: 800}
+  calib: {split: train, n: 200}
+  eval: {split: test, n: 500}

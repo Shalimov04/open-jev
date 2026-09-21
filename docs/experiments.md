@@ -498,3 +498,15 @@ scripts/gpu_queue.sh runs/queue-base-eval.jobs     # base eval, four calib varia
 scripts/gpu_queue.sh runs/queue-base-warm.jobs     # scripts/warm_start.py + the agnews regression
 python scripts/base_table.py [--variant V | --calib | --warm]
 ```
+
+## B2 — `open-jev-base`, converged, and does diversity buy anything? (preregistered, not yet run)
+
+Preregistration: [`docs/prereg/base-v2.md`](prereg/base-v2.md) — written before any arm existed.
+It fixes B1's three holes: converged training (max 6 epochs, early stopping on calib BCE with
+patience 3 / min_delta 0.001, no wall-clock cut) for `base-F1-v2` / `base-F2-v2` / `base-none-v2`;
+the M6 diversity ablation on fold F1 (9 original run dirs vs those + the 27 new Jev-labelled
+tasks, 3 seeds each, per-seed signs must agree); and three pre-registered unseen sets —
+`tasks/unseen/{yahoo-topics,sst5,ru-inappropriate}.yaml`, labelled with Jev before the freeze,
+never in any mixture — for the *unseen question* claim rather than B1's weaker *unseen source*.
+No results here until the arms run; per the header rule, only comparisons whose `train.json`
+postdates that file's commit may enter `findings.md`.

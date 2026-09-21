@@ -1,0 +1,15 @@
+# Pre-registered unseen set (docs/prereg/base-v2.md). Russian, `noul` primitive.
+# `apanc/russian-inappropriate-messages` (PLAN-4's name) is gone from the Hub; this is the
+# same Skoltech-lineage data, with train/validation/test splits already drawn.
+name: ru-inappropriate
+type: noul
+statement: "Это сообщение неуместно: оно может навредить репутации собеседника или компании."
+lang: ru
+data:
+  source: {hf: ai-forever/inappropriateness-classification}
+  text: "{text}"
+  max_chars: 600
+  gold: label            # float 0.0/1.0; >= 0.5 -> "true"
+  train: {split: train, n: 800}
+  calib: {split: train, n: 200}
+  eval: {split: test, n: 500}

@@ -1,0 +1,13 @@
+name: xnli-en
+type: choice
+question: "What is the relation of the hypothesis to the premise?"
+options: [entailment, neutral, contradiction]
+lang: en
+data:
+  source: {hf: facebook/xnli, config: en}
+  text: "Premise: {premise}\nHypothesis: {hypothesis}"
+  max_chars: 1200
+  gold: label
+  train: {split: "train[:20000]", n: 1200}
+  calib: {split: "train[:20000]", n: 250}
+  eval: {split: test, n: 500}

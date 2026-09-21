@@ -1,0 +1,13 @@
+name: emotion-dair
+type: choice
+question: "Which emotion is the writer of this sentence feeling?"
+options: [sadness, joy, love, anger, fear, surprise]
+lang: en
+data:
+  source: {hf: dair-ai/emotion, config: split}
+  text: "{text}"
+  max_chars: 600
+  gold: label
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: test, n: 500}

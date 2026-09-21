@@ -1,0 +1,13 @@
+name: massive-ru
+type: choice
+question: "Which assistant domain does this user utterance belong to?"
+options: [alarm, audio, calendar, cooking, datetime, email, general, iot, lists, music, news, play, qa, recommendation, social, takeaway, transport, weather]
+lang: ru
+data:
+  source: {hf: mteb/amazon_massive_scenario, config: ru}
+  text: "{text}"
+  max_chars: 400
+  gold: label
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: test, n: 500}

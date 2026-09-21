@@ -1,0 +1,12 @@
+name: tweet-irony
+type: noul
+statement: "This tweet is ironic: the author means the opposite of what the words say."
+lang: en
+data:
+  source: {hf: cardiffnlp/tweet_eval, config: irony}
+  text: "{text}"
+  max_chars: 600
+  gold: label
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: test, n: 500}

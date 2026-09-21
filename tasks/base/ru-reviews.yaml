@@ -1,0 +1,15 @@
+name: ru-reviews
+type: choice
+question: "Какую оценку товару даёт этот отзыв покупателя?"
+options: [отрицательную, нейтральную, положительную]
+lang: ru
+data:
+  source: {hf: mteb/RuReviewsClassification}
+  text: "{text}"
+  max_chars: 1200
+  gold: label          # 0 negative, 1 neutral, 2 positive
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: test, n: 500}
+student:
+  max_len: 512

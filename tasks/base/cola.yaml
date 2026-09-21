@@ -1,0 +1,12 @@
+name: cola
+type: noul
+statement: "This sentence is grammatically acceptable English."
+lang: en
+data:
+  source: {hf: nyu-mll/glue, config: cola}
+  text: "{sentence}"
+  max_chars: 400
+  gold: label
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: validation, n: 500}

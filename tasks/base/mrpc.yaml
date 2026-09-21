@@ -1,0 +1,12 @@
+name: mrpc
+type: noul
+statement: "The two news sentences are paraphrases of each other."
+lang: en
+data:
+  source: {hf: nyu-mll/glue, config: mrpc}
+  text: "A: {sentence1}\nB: {sentence2}"
+  max_chars: 1200
+  gold: label
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: test, n: 500}

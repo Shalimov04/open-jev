@@ -1,0 +1,15 @@
+name: miracl-rerank
+type: noul
+question: "Ниже вопрос и отрывок текста. Оцени утверждение."
+statement: "Этот отрывок отвечает на заданный вопрос."
+lang: ru
+data:
+  source: {jsonl: data/base/miracl-rerank.jsonl}   # scripts/prep_base.py, mteb/MIRACLReranking ru, 25% positive
+  text: "Вопрос: {query}\nОтрывок: {passage}"
+  max_chars: 1500
+  gold: relevant
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: train, n: 500}
+student:
+  max_len: 512

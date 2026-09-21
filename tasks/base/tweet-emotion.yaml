@@ -1,0 +1,13 @@
+name: tweet-emotion
+type: choice
+question: "Which emotion does this tweet express?"
+options: [anger, joy, optimism, sadness]
+lang: en
+data:
+  source: {hf: cardiffnlp/tweet_eval, config: emotion}
+  text: "{text}"
+  max_chars: 600
+  gold: label
+  train: {split: train, n: 1200}
+  calib: {split: train, n: 250}
+  eval: {split: test, n: 500}

@@ -1,0 +1,13 @@
+name: sib200-ru
+type: choice
+question: "К какой теме относится этот текст?"
+options: [развлечения, география, здоровье, политика, наука и технологии, спорт, путешествия]
+lang: ru
+data:
+  source: {hf: mteb/sib200, config: rus_Cyrl}
+  text: "{text}"
+  max_chars: 800
+  gold: label          # 0-6, alphabetical English names in the same order as the options above
+  train: {split: train, n: 500}
+  calib: {split: train, n: 150}
+  eval: {split: test, n: 99}

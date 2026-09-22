@@ -10,3 +10,8 @@ __pycache__/
 *.safetensors
 *.egg-info/
 .env.local
+
+# working notes that are not part of the project
+/.claude/
+/brag-output/
+/docs/launch-posts.md

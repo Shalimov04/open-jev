@@ -1,0 +1,191 @@
+{
+  "task": "yahoo-topics",
+  "type": "choice",
+  "k": 10,
+  "lang": "en",
+  "student_model": "jhu-clsp/mmBERT-small",
+  "n_train": 80872,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 500,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.527999997138977,
+    "macro_f1": 0.5131359946936013,
+    "ece_raw": 0.08428754657506943,
+    "ece_cal": 0.08428754657506943,
+    "brier": 0.6329417824745178,
+    "nll": 1.5000805854797363
+  },
+  "teacher": {
+    "acc": 0.7179999947547913,
+    "macro_f1": 0.7188768523647402,
+    "ece": 0.18687155842781067,
+    "brier": 0.4614931046962738
+  },
+  "agreement": {
+    "argmax": 0.6100000143051147,
+    "mean_kl": 0.9669706225395203
+  },
+  "cascade": [
+    {
+      "tau": 0.3,
+      "escalation": 0.1340000033378601,
+      "acc": 0.568
+    },
+    {
+      "tau": 0.35,
+      "escalation": 0.20800000429153442,
+      "acc": 0.594
+    },
+    {
+      "tau": 0.4,
+      "escalation": 0.30000001192092896,
+      "acc": 0.63
+    },
+    {
+      "tau": 0.45,
+      "escalation": 0.3499999940395355,
+      "acc": 0.646
+    },
+    {
+      "tau": 0.5,
+      "escalation": 0.3840000033378601,
+      "acc": 0.654
+    },
+    {
+      "tau": 0.55,
+      "escalation": 0.44200000166893005,
+      "acc": 0.658
+    },
+    {
+      "tau": 0.6,
+      "escalation": 0.492000013589859,
+      "acc": 0.68
+    },
+    {
+      "tau": 0.65,
+      "escalation": 0.5419999957084656,
+      "acc": 0.692
+    },
+    {
+      "tau": 0.7,
+      "escalation": 0.5899999737739563,
+      "acc": 0.696
+    },
+    {
+      "tau": 0.75,
+      "escalation": 0.6439999938011169,
+      "acc": 0.704
+    },
+    {
+      "tau": 0.8,
+      "escalation": 0.6959999799728394,
+      "acc": 0.706
+    },
+    {
+      "tau": 0.85,
+      "escalation": 0.765999972820282,
+      "acc": 0.71
+    },
+    {
+      "tau": 0.9,
+      "escalation": 0.8320000171661377,
+      "acc": 0.712
+    },
+    {
+      "tau": 0.95,
+      "escalation": 0.9200000166893005,
+      "acc": 0.716
+    },
+    {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "acc": 0.718
+    }
+  ],
+  "cascade_parity": {
+    "metric": "acc",
+    "teacher": 0.718,
+    "slack": 0.005,
+    "parity": {
+      "tau": 0.95,
+      "escalation": 0.9200000166893005,
+      "acc": 0.716
+    }
+  },
+  "selective": [
+    {
+      "tau": 0.5,
+      "coverage": 0.616,
+      "acc": 0.6623376623376623
+    },
+    {
+      "tau": 0.55,
+      "coverage": 0.558,
+      "acc": 0.6917562724014337
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.508,
+      "acc": 0.7204724409448819
+    },
+    {
+      "tau": 0.65,
+      "coverage": 0.458,
+      "acc": 0.7379912663755459
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.41,
+      "acc": 0.7463414634146341
+    },
+    {
+      "tau": 0.75,
+      "coverage": 0.356,
+      "acc": 0.7640449438202247
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.304,
+      "acc": 0.7828947368421053
+    },
+    {
+      "tau": 0.85,
+      "coverage": 0.234,
+      "acc": 0.7948717948717948
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.168,
+      "acc": 0.8452380952380952
+    },
+    {
+      "tau": 0.95,
+      "coverage": 0.08,
+      "acc": 0.9
+    }
+  ],
+  "teacher_calls": 700,
+  "teacher_minutes": 0.5128623445828756,
+  "train_minutes": 100.36183035771052,
+  "peak_gpu_gb": 8.91485595703125,
+  "temperature": 1.0,
+  "calib_target": "raw",
+  "ece_calib_split": [
+    0.07564236968755722,
+    0.07564236968755722
+  ],
+  "git": "317e01e-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "jhu-clsp/mmBERT-small",
+    "student_revision": "abc32620dd4f6ab06f5fbe905dc25f310618e09f",
+    "teacher_model": "typesafe/jev-1.13-20260917",
+    "label_prompt_sha": null
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "task": "sst5",
+  "type": "score",
+  "k": 5,
+  "lang": "en",
+  "student_model": "jhu-clsp/mmBERT-small",
+  "n_train": 80872,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 500,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.41999998688697815,
+    "macro_f1": 0.3941298989754408,
+    "ece_raw": 0.13983042538166046,
+    "ece_cal": 0.057804007083177567,
+    "brier": 0.690632700920105,
+    "nll": 1.3227207660675049
+  },
+  "teacher": {
+    "acc": 0.578000009059906,
+    "macro_f1": 0.5590412172735253,
+    "ece": 0.17645606398582458,
+    "brier": 0.5906030535697937
+  },
+  "agreement": {
+    "argmax": 0.3959999978542328,
+    "mean_kl": 0.7493686676025391
+  },
+  "cascade": [
+    {
+      "tau": 0.3,
+      "escalation": 0.05000000074505806,
+      "mae": 0.7950206398963928
+    },
+    {
+      "tau": 0.35,
+      "escalation": 0.2840000092983246,
+      "mae": 0.6986726522445679
+    },
+    {
+      "tau": 0.4,
+      "escalation": 0.7680000066757202,
+      "mae": 0.5611932873725891
+    },
+    {
+      "tau": 0.45,
+      "escalation": 0.9580000042915344,
+      "mae": 0.4980062246322632
+    },
+    {
+      "tau": 0.5,
+      "escalation": 0.9980000257492065,
+      "mae": 0.4943615198135376
+    },
+    {
+      "tau": 0.55,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 0.6,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 0.65,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 0.7,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 0.75,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 0.8,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 0.85,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 0.9,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 0.95,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    }
+  ],
+  "cascade_parity": {
+    "metric": "mae",
+    "teacher": 0.49270007014274597,
+    "slack": 0.005,
+    "parity": {
+      "tau": 0.5,
+      "escalation": 0.9980000257492065,
+      "mae": 0.4943615198135376
+    }
+  },
+  "selective": [
+    {
+      "tau": 0.5,
+      "coverage": 0.002,
+      "mae": 0.8307492733001709
+    },
+    {
+      "tau": 0.55,
+      "coverage": 0.0,
+      "mae": null
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.0,
+      "mae": null
+    },
+    {
+      "tau": 0.65,
+      "coverage": 0.0,
+      "mae": null
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.0,
+      "mae": null
+    },
+    {
+      "tau": 0.75,
+      "coverage": 0.0,
+      "mae": null
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.0,
+      "mae": null
+    },
+    {
+      "tau": 0.85,
+      "coverage": 0.0,
+      "mae": null
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.0,
+      "mae": null
+    },
+    {
+      "tau": 0.95,
+      "coverage": 0.0,
+      "mae": null
+    }
+  ],
+  "score": {
+    "mae": 0.8337114453315735,
+    "teacher_mae": 0.4927000105381012
+  },
+  "teacher_calls": 700,
+  "teacher_minutes": 0.5096733411153157,
+  "train_minutes": 100.36183035771052,
+  "peak_gpu_gb": 8.91485595703125,
+  "temperature": 2.6497111320495605,
+  "calib_target": "teacher-soft",
+  "ece_calib_split": [
+    0.11895644664764404,
+    0.07768891751766205
+  ],
+  "git": "317e01e-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "jhu-clsp/mmBERT-small",
+    "student_revision": "abc32620dd4f6ab06f5fbe905dc25f310618e09f",
+    "teacher_model": "typesafe/jev-1.13-20260917",
+    "label_prompt_sha": null
+  }
+}

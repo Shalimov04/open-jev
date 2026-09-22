@@ -1,0 +1,195 @@
+{
+  "task": "sst5",
+  "type": "score",
+  "k": 5,
+  "lang": "en",
+  "student_model": "jhu-clsp/mmBERT-small",
+  "n_train": 80872,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 500,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.41999998688697815,
+    "macro_f1": 0.3941298989754408,
+    "ece_raw": 0.13983042538166046,
+    "ece_cal": 0.13983042538166046,
+    "brier": 0.7235191464424133,
+    "nll": 1.470826506614685
+  },
+  "teacher": {
+    "acc": 0.578000009059906,
+    "macro_f1": 0.5590412172735253,
+    "ece": 0.17645606398582458,
+    "brier": 0.5906030535697937
+  },
+  "agreement": {
+    "argmax": 0.3959999978542328,
+    "mean_kl": 0.9484893083572388
+  },
+  "cascade": [
+    {
+      "tau": 0.3,
+      "escalation": 0.0,
+      "mae": 0.7741679549217224
+    },
+    {
+      "tau": 0.35,
+      "escalation": 0.009999999776482582,
+      "mae": 0.7635036110877991
+    },
+    {
+      "tau": 0.4,
+      "escalation": 0.024000000208616257,
+      "mae": 0.751630961894989
+    },
+    {
+      "tau": 0.45,
+      "escalation": 0.06800000369548798,
+      "mae": 0.725071907043457
+    },
+    {
+      "tau": 0.5,
+      "escalation": 0.25,
+      "mae": 0.6532065868377686
+    },
+    {
+      "tau": 0.55,
+      "escalation": 0.5220000147819519,
+      "mae": 0.5866517424583435
+    },
+    {
+      "tau": 0.6,
+      "escalation": 0.7080000042915344,
+      "mae": 0.5396610498428345
+    },
+    {
+      "tau": 0.65,
+      "escalation": 0.8479999899864197,
+      "mae": 0.5215478539466858
+    },
+    {
+      "tau": 0.7,
+      "escalation": 0.9139999747276306,
+      "mae": 0.5118452906608582
+    },
+    {
+      "tau": 0.75,
+      "escalation": 0.9679999947547913,
+      "mae": 0.49536237120628357
+    },
+    {
+      "tau": 0.8,
+      "escalation": 0.9940000176429749,
+      "mae": 0.49003198742866516
+    },
+    {
+      "tau": 0.85,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 0.9,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 0.95,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    },
+    {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "mae": 0.49270007014274597
+    }
+  ],
+  "cascade_parity": {
+    "metric": "mae",
+    "teacher": 0.49270007014274597,
+    "slack": 0.005,
+    "parity": {
+      "tau": 0.75,
+      "escalation": 0.9679999947547913,
+      "mae": 0.49536237120628357
+    }
+  },
+  "selective": [
+    {
+      "tau": 0.5,
+      "coverage": 0.75,
+      "mae": 0.7012353539466858
+    },
+    {
+      "tau": 0.55,
+      "coverage": 0.478,
+      "mae": 0.6990199685096741
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.292,
+      "mae": 0.6924688220024109
+    },
+    {
+      "tau": 0.65,
+      "coverage": 0.152,
+      "mae": 0.6659764051437378
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.086,
+      "mae": 0.7279738187789917
+    },
+    {
+      "tau": 0.75,
+      "coverage": 0.032,
+      "mae": 0.7238360047340393
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.006,
+      "mae": 0.7486581206321716
+    },
+    {
+      "tau": 0.85,
+      "coverage": 0.0,
+      "mae": null
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.0,
+      "mae": null
+    },
+    {
+      "tau": 0.95,
+      "coverage": 0.0,
+      "mae": null
+    }
+  ],
+  "score": {
+    "mae": 0.7741679549217224,
+    "teacher_mae": 0.4927000105381012
+  },
+  "teacher_calls": 700,
+  "teacher_minutes": 0.5096733411153157,
+  "train_minutes": 100.36183035771052,
+  "peak_gpu_gb": 8.91485595703125,
+  "temperature": 1.0,
+  "calib_target": "raw",
+  "ece_calib_split": [
+    0.11895644664764404,
+    0.11895644664764404
+  ],
+  "git": "317e01e-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "jhu-clsp/mmBERT-small",
+    "student_revision": "abc32620dd4f6ab06f5fbe905dc25f310618e09f",
+    "teacher_model": "typesafe/jev-1.13-20260917",
+    "label_prompt_sha": null
+  }
+}

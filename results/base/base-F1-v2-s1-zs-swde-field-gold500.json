@@ -1,0 +1,195 @@
+{
+  "task": "swde-field",
+  "type": "choice",
+  "k": 33,
+  "lang": "en",
+  "student_model": "jhu-clsp/mmBERT-small",
+  "n_train": 58872,
+  "n_synth": 0,
+  "augment_round": 0,
+  "gold_weight": 0.0,
+  "balanced_train": false,
+  "eval_n": 2000,
+  "eval_target": "gold",
+  "student": {
+    "acc": 0.41850000619888306,
+    "macro_f1": 0.4076673023668276,
+    "ece_raw": 0.09550530463457108,
+    "ece_cal": 0.05240025371313095,
+    "brier": 0.7408218383789062,
+    "nll": 1.735595703125
+  },
+  "teacher": {
+    "acc": 0.8029999732971191,
+    "macro_f1": 0.87587944793207,
+    "ece": 0.047133684158325195,
+    "brier": 0.29543399810791016,
+    "shortlist_miss": 0.0,
+    "shortlist_n": 2000,
+    "p_none_chunk_with_gold": 0.05876104000378689,
+    "p_none_chunk_without_gold": 0.9639653234758268
+  },
+  "agreement": {
+    "argmax": 0.398499995470047,
+    "mean_kl": 1.3452866077423096
+  },
+  "cascade": [
+    {
+      "tau": 0.3,
+      "escalation": 0.18799999356269836,
+      "acc": 0.522
+    },
+    {
+      "tau": 0.35,
+      "escalation": 0.31299999356269836,
+      "acc": 0.577
+    },
+    {
+      "tau": 0.4,
+      "escalation": 0.4325000047683716,
+      "acc": 0.625
+    },
+    {
+      "tau": 0.45,
+      "escalation": 0.5440000295639038,
+      "acc": 0.6685
+    },
+    {
+      "tau": 0.5,
+      "escalation": 0.6424999833106995,
+      "acc": 0.7095
+    },
+    {
+      "tau": 0.55,
+      "escalation": 0.7174999713897705,
+      "acc": 0.7275
+    },
+    {
+      "tau": 0.6,
+      "escalation": 0.7940000295639038,
+      "acc": 0.7555
+    },
+    {
+      "tau": 0.65,
+      "escalation": 0.8535000085830688,
+      "acc": 0.7725
+    },
+    {
+      "tau": 0.7,
+      "escalation": 0.9010000228881836,
+      "acc": 0.7885
+    },
+    {
+      "tau": 0.75,
+      "escalation": 0.9315000176429749,
+      "acc": 0.7965
+    },
+    {
+      "tau": 0.8,
+      "escalation": 0.9570000171661377,
+      "acc": 0.7995
+    },
+    {
+      "tau": 0.85,
+      "escalation": 0.9794999957084656,
+      "acc": 0.802
+    },
+    {
+      "tau": 0.9,
+      "escalation": 0.9900000095367432,
+      "acc": 0.8025
+    },
+    {
+      "tau": 0.95,
+      "escalation": 0.9994999766349792,
+      "acc": 0.803
+    },
+    {
+      "tau": 1.0,
+      "escalation": 1.0,
+      "acc": 0.803
+    }
+  ],
+  "cascade_parity": {
+    "metric": "acc",
+    "teacher": 0.803,
+    "slack": 0.005,
+    "parity": {
+      "tau": 0.8,
+      "escalation": 0.9570000171661377,
+      "acc": 0.7995
+    }
+  },
+  "selective": [
+    {
+      "tau": 0.5,
+      "coverage": 0.3575,
+      "acc": 0.558041958041958
+    },
+    {
+      "tau": 0.55,
+      "coverage": 0.2825,
+      "acc": 0.5752212389380531
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.206,
+      "acc": 0.6262135922330098
+    },
+    {
+      "tau": 0.65,
+      "coverage": 0.1465,
+      "acc": 0.6518771331058021
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.099,
+      "acc": 0.6919191919191919
+    },
+    {
+      "tau": 0.75,
+      "coverage": 0.0685,
+      "acc": 0.7153284671532847
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.043,
+      "acc": 0.7093023255813954
+    },
+    {
+      "tau": 0.85,
+      "coverage": 0.0205,
+      "acc": 0.7073170731707317
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.01,
+      "acc": 0.75
+    },
+    {
+      "tau": 0.95,
+      "coverage": 0.0005,
+      "acc": 1.0
+    }
+  ],
+  "teacher_calls": 19500,
+  "teacher_minutes": 55.34590482711792,
+  "train_minutes": 137.75199329455694,
+  "peak_gpu_gb": 8.919411182403564,
+  "temperature": 0.2795855402946472,
+  "calib_target": "gold",
+  "ece_calib_split": [
+    0.08217394351959229,
+    0.09611815959215164
+  ],
+  "git": "317e01e-dirty",
+  "env": {
+    "python": "3.12.3",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "student_model": "jhu-clsp/mmBERT-small",
+    "student_revision": "abc32620dd4f6ab06f5fbe905dc25f310618e09f",
+    "teacher_model": "Qwen/Qwen3.8-27B-FP8",
+    "label_prompt_sha": null
+  }
+}

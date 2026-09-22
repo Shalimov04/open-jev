@@ -1,0 +1,83 @@
+[
+ {
+  "task": "kinopoisk",
+  "variant": "prior",
+  "metric": "acc",
+  "n": 1500,
+  "seeds_a": 3,
+  "seeds_b": 3,
+  "a": 0.5244444444444444,
+  "b": 0.5046666666666667,
+  "delta": 0.019777777777777672,
+  "ci": [
+   0.003777777777777769,
+   0.03488888888888886
+  ],
+  "half_width": 0.015555555555555545,
+  "per_seed": [
+   0.01666666666666672,
+   0.017999999999999905,
+   0.024666666666666726
+  ],
+  "same_sign": true,
+  "excludes_0": true,
+  "improvement": false,
+  "non_inferior": true,
+  "inconclusive": false,
+  "rows_ok": true
+ },
+ {
+  "task": "swde-field",
+  "variant": "prior",
+  "metric": "acc",
+  "n": 2000,
+  "seeds_a": 3,
+  "seeds_b": 3,
+  "a": 0.34900000000000003,
+  "b": 0.2568333333333333,
+  "delta": 0.09216666666666673,
+  "ci": [
+   0.07916666666666666,
+   0.10533333333333333
+  ],
+  "half_width": 0.013083333333333336,
+  "per_seed": [
+   0.08700000000000002,
+   0.1485,
+   0.041000000000000036
+  ],
+  "same_sign": true,
+  "excludes_0": true,
+  "improvement": true,
+  "non_inferior": true,
+  "inconclusive": false,
+  "rows_ok": true
+ },
+ {
+  "task": "toxic",
+  "variant": "prior",
+  "metric": "auroc",
+  "n": 3000,
+  "seeds_a": 3,
+  "seeds_b": 3,
+  "a": 0.8121190626313578,
+  "b": 0.6629259459738117,
+  "delta": 0.1491931166575461,
+  "ci": [
+   0.12271264323452702,
+   0.1734615656655446
+  ],
+  "half_width": 0.025374461215508792,
+  "per_seed": [
+   0.21650750077327563,
+   0.04182454376739875,
+   0.18924730543196366
+  ],
+  "same_sign": true,
+  "excludes_0": true,
+  "improvement": true,
+  "non_inferior": true,
+  "inconclusive": false,
+  "rows_ok": true
+ }
+]

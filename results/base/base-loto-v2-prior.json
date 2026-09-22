@@ -1,0 +1,152 @@
+[
+ {
+  "fold": "F1",
+  "tag": "v2",
+  "task": "kinopoisk",
+  "metric": "acc",
+  "n": 1500,
+  "seeds": 3,
+  "variant": "prior",
+  "chance": 0.3333333333333333,
+  "teacher": 0.652,
+  "student": 0.656888888888889,
+  "base": 0.522,
+  "d_student": [
+   -0.13488888888888895,
+   -0.16199999999999998,
+   -0.10933333333333328
+  ],
+  "verdict_student": "base worse",
+  "d_teacher": [
+   -0.13,
+   -0.15999999999999992,
+   -0.09933333333333338
+  ],
+  "verdict_teacher": "base worse"
+ },
+ {
+  "fold": "F1",
+  "tag": "v2",
+  "task": "swde-field",
+  "metric": "acc",
+  "n": 2000,
+  "seeds": 3,
+  "variant": "prior",
+  "chance": 0.052,
+  "teacher": 0.803,
+  "student": 0.8685,
+  "base": 0.3375,
+  "d_student": [
+   -0.531,
+   -0.5536666666666666,
+   -0.5086666666666666
+  ],
+  "verdict_student": "base worse",
+  "d_teacher": [
+   -0.4655,
+   -0.4925,
+   -0.437
+  ],
+  "verdict_teacher": "base worse"
+ },
+ {
+  "fold": "F1",
+  "tag": "v2",
+  "task": "toxic",
+  "metric": "auroc",
+  "n": 3000,
+  "seeds": 1,
+  "variant": "prior",
+  "chance": 0.5,
+  "teacher": 0.8165537486021557,
+  "student": 0.8563112672202526,
+  "base": 0.8290451236051298,
+  "d_student": [
+   -0.027266143615122806,
+   -0.05463372194663574,
+   -0.0001925513955498559
+  ],
+  "verdict_student": "base worse",
+  "d_teacher": [
+   0.012491375002974148,
+   -0.01707279799111816,
+   0.04193142963604346
+  ],
+  "verdict_teacher": "no measurable difference"
+ },
+ {
+  "fold": "F2",
+  "tag": "v2",
+  "task": "georeview",
+  "metric": "mae",
+  "n": 2000,
+  "seeds": 3,
+  "variant": "prior",
+  "chance": 1.2005000114440918,
+  "teacher": 0.6186898350715637,
+  "student": 0.6065031488736471,
+  "base": 0.7280057668685913,
+  "d_student": [
+   0.12150261799494422,
+   0.10245039065678918,
+   0.14057169357935584
+  ],
+  "verdict_student": "base worse",
+  "d_teacher": [
+   0.10931593179702759,
+   0.0883062481880188,
+   0.13031238317489624
+  ],
+  "verdict_teacher": "base worse"
+ },
+ {
+  "fold": "F2",
+  "tag": "v2",
+  "task": "banking77",
+  "metric": "acc",
+  "n": 2000,
+  "seeds": 1,
+  "variant": "prior",
+  "chance": 0.015,
+  "teacher": 0.764,
+  "student": 0.7505,
+  "base": 0.3485,
+  "d_student": [
+   -0.40199999999999997,
+   -0.4255,
+   -0.377
+  ],
+  "verdict_student": "base worse",
+  "d_teacher": [
+   -0.41550000000000004,
+   -0.4405,
+   -0.389
+  ],
+  "verdict_teacher": "base worse"
+ },
+ {
+  "fold": "F2",
+  "tag": "v2",
+  "task": "m2w-element",
+  "metric": "acc",
+  "n": 900,
+  "seeds": 1,
+  "variant": "prior",
+  "chance": 0.04888888888888889,
+  "teacher": 0.6488888888888888,
+  "student": 0.058888888888888886,
+  "base": 0.14,
+  "d_student": [
+   0.08111111111111113,
+   0.05444444444444445,
+   0.10888888888888888
+  ],
+  "verdict_student": "base better",
+  "d_teacher": [
+   -0.5088888888888888,
+   -0.5455555555555556,
+   -0.47
+  ],
+  "verdict_teacher": "base worse"
+ }
+]

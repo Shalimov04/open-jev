@@ -1,0 +1,59 @@
+[
+ {
+  "task": "yahoo-topics",
+  "variant": "prior",
+  "metric": "acc",
+  "n": 500,
+  "k": 10,
+  "chance": 0.088,
+  "teacher": 0.718,
+  "base": 0.544,
+  "adv": 0.45600000000000007,
+  "ci": [
+   0.406,
+   0.508
+  ],
+  "teacher_adv": 0.63,
+  "normalised": 0.7238095238095239,
+  "beats_chance": true,
+  "rows_ok": true
+ },
+ {
+  "task": "sst5",
+  "variant": "prior",
+  "metric": "mae",
+  "n": 500,
+  "k": 5,
+  "chance": 1.1519999504089355,
+  "teacher": 0.49270007014274597,
+  "base": 0.7448709607124329,
+  "adv": 0.4071289896965027,
+  "ci": [
+   0.33233124017715454,
+   0.48542332649230957
+  ],
+  "teacher_adv": 0.6592998802661896,
+  "normalised": 0.617517160070052,
+  "beats_chance": true,
+  "rows_ok": true
+ },
+ {
+  "task": "ru-inappropriate",
+  "variant": "prior",
+  "metric": "auroc",
+  "n": 500,
+  "k": 2,
+  "chance": 0.5,
+  "teacher": 0.8911546652575619,
+  "base": 0.6188852060015051,
+  "adv": 0.1188852060015051,
+  "ci": [
+   0.07159373745483744,
+   0.16788017474516326
+  ],
+  "teacher_adv": 0.39115466525756193,
+  "normalised": 0.30393401015228405,
+  "beats_chance": true,
+  "rows_ok": true
+ }
+]

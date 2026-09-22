@@ -1,0 +1,83 @@
+[
+ {
+  "task": "kinopoisk",
+  "variant": "teacher500",
+  "metric": "acc",
+  "n": 1500,
+  "seeds_a": 3,
+  "seeds_b": 3,
+  "a": 0.4931111111111111,
+  "b": 0.472,
+  "delta": 0.021111111111111136,
+  "ci": [
+   0.004666666666666652,
+   0.03711111111111115
+  ],
+  "half_width": 0.01622222222222225,
+  "per_seed": [
+   0.010666666666666713,
+   -0.0006666666666667043,
+   0.053333333333333344
+  ],
+  "same_sign": false,
+  "excludes_0": true,
+  "improvement": false,
+  "non_inferior": true,
+  "inconclusive": false,
+  "rows_ok": true
+ },
+ {
+  "task": "swde-field",
+  "variant": "teacher500",
+  "metric": "acc",
+  "n": 2000,
+  "seeds_a": 3,
+  "seeds_b": 3,
+  "a": 0.23750000000000002,
+  "b": 0.19166666666666665,
+  "delta": 0.045833333333333365,
+  "ci": [
+   0.030833333333333324,
+   0.05933333333333335
+  ],
+  "half_width": 0.014250000000000013,
+  "per_seed": [
+   0.004500000000000004,
+   0.08499999999999999,
+   0.04799999999999999
+  ],
+  "same_sign": true,
+  "excludes_0": true,
+  "improvement": true,
+  "non_inferior": true,
+  "inconclusive": false,
+  "rows_ok": true
+ },
+ {
+  "task": "toxic",
+  "variant": "teacher500",
+  "metric": "auroc",
+  "n": 3000,
+  "seeds_a": 3,
+  "seeds_b": 3,
+  "a": 0.8121190626313578,
+  "b": 0.6629259459738117,
+  "delta": 0.1491931166575461,
+  "ci": [
+   0.12271264323452702,
+   0.1734615656655446
+  ],
+  "half_width": 0.025374461215508792,
+  "per_seed": [
+   0.21650750077327563,
+   0.04182454376739875,
+   0.18924730543196366
+  ],
+  "same_sign": true,
+  "excludes_0": true,
+  "improvement": true,
+  "non_inferior": true,
+  "inconclusive": false,
+  "rows_ok": true
+ }
+]

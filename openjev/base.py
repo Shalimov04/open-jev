@@ -95,11 +95,13 @@ def predict_logits(tok, model, task, texts, batch_size=64, max_len=pairs.MAX_LEN
 
 
 def train(fold, run_dir, cap=12000, steps=None, minutes=55, batch=32, lr=5e-5, seed=0,
-          eval_every=1500, calib_cap=120, patience=3, max_len=pairs.MAX_LEN,
-          init="jhu-clsp/mmBERT-small", only=None, limit=None):
-    """One pair model. `steps` defaults to what fits in `minutes` at the measured rate; rows (and
-    the K > 8 negatives) are redrawn every epoch. Model selection: mean BCE on the held-in tasks'
-    *calib* pairs, evaluated every `eval_every` steps, patience `patience`."""
+          eval_every=1500, calib_cap=120, patience=3, min_delta=0.0, max_epochs=None,
+          max_len=pairs.MAX_LEN, init="jhu-clsp/mmBERT-small", only=None, limit=None):
+    """One pair model. `steps` defaults to `max_epochs` epochs over the capped mixture, else to what
+    fits in `minutes` at the measured rate; rows (and the K > 8 negatives) are redrawn every epoch.
+    Model selection: mean BCE on the held-in tasks' *calib* pairs, evaluated every `eval_every`
+    steps; a checkpoint improves only if it beats the best by `min_delta`, `patience` non-improving
+    evaluations stop the run. Reaching the step ceiling without that is `converged: false`."""
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     drop = excluded(fold)
@@ -123,6 +125,8 @@ def train(fold, run_dir, cap=12000, steps=None, minutes=55, batch=32, lr=5e-5, s
     model = AutoModelForSequenceClassification.from_pretrained(
         init, num_labels=1, attn_implementation="sdpa").to(dev).train()
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
+    if steps is None and max_epochs:  # the prereg's ceiling: N epochs over the capped mixture
+        steps = max(1, -(-max_epochs * per_epoch // batch))
     if steps is None:  # 74.7 pairs/s measured at len 512 (M0); re-measured below and recorded
         steps = max(1, int(minutes * 60 * 74.7 / batch))
     sched = get_linear_schedule_with_warmup(opt, int(0.06 * steps), steps)
@@ -133,6 +137,7 @@ def train(fold, run_dir, cap=12000, steps=None, minutes=55, batch=32, lr=5e-5, s
           f"{per_epoch} pairs/epoch at cap {cap}, {len(calib)} calib pairs, {steps} steps",
           flush=True)
     t0, step, epoch, best, bad, history, losses = time.time(), 0, 0, float("inf"), 0, [], []
+    stopped = False
     stream = iter(())
     while step < steps:
         batch_rows = [r for _, r in zip(range(batch), stream)]
@@ -160,15 +165,16 @@ def train(fold, run_dir, cap=12000, steps=None, minutes=55, batch=32, lr=5e-5, s
                             / len(losses[-eval_every:]), "calib_bce": cb, "pairs_per_s": rate})
             print(f"step {step} epoch {epoch} train_bce {history[-1]['train_bce']:.4f} "
                   f"calib_bce {cb:.4f} {rate:.1f} pairs/s", flush=True)
-            if cb < best:
-                best, bad = cb, 0
+            improved = cb < best - min_delta      # patience counts min_delta improvements...
+            if cb < best:                         # ...but `student/` is always the best checkpoint
+                best = cb
                 model.save_pretrained(run_dir / "student")
                 tok.save_pretrained(run_dir / "student")
-            else:
-                bad += 1
-                if bad >= patience:
-                    print(f"early stop at step {step} (best calib_bce {best:.4f})", flush=True)
-                    break
+            bad = 0 if improved else bad + 1
+            if bad >= patience:
+                stopped = True
+                print(f"early stop at step {step} (best calib_bce {best:.4f})", flush=True)
+                break
     info = {"fold": fold, "student": init, "pair_model": True, "seed": seed,
             "only": only, "limit": limit,
             "excluded": sorted(drop), "train_tasks": sorted(rows), "cap": cap, "batch": batch,
@@ -176,6 +182,8 @@ def train(fold, run_dir, cap=12000, steps=None, minutes=55, batch=32, lr=5e-5, s
             "epochs_seen": epoch, "pairs_per_epoch": per_epoch, "n_calib_pairs": len(calib),
             "n_train": sum(len(v) for v in rows.values()), "n_synth": 0, "augment_round": 0,
             "gold_weight": 0.0, "best_calib_bce": best, "history": history,
+            "patience": patience, "min_delta": min_delta, "max_epochs": max_epochs,
+            "converged": stopped,
             "train_minutes": (time.time() - t0) / 60,
             "peak_gpu_gb": torch.cuda.max_memory_allocated() / 2**30 if dev == "cuda" else 0.0}
     (run_dir / "train.json").write_text(json.dumps(info, indent=2))

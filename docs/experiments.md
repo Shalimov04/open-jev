@@ -499,14 +499,243 @@ scripts/gpu_queue.sh runs/queue-base-warm.jobs     # scripts/warm_start.py + the
 python scripts/base_table.py [--variant V | --calib | --warm]
 ```
 
-## B2 — `open-jev-base`, converged, and does diversity buy anything? (preregistered, not yet run)
 
-Preregistration: [`docs/prereg/base-v2.md`](prereg/base-v2.md) — written before any arm existed.
-It fixes B1's three holes: converged training (max 6 epochs, early stopping on calib BCE with
-patience 3 / min_delta 0.001, no wall-clock cut) for `base-F1-v2` / `base-F2-v2` / `base-none-v2`;
-the M6 diversity ablation on fold F1 (9 original run dirs vs those + the 27 new Jev-labelled
-tasks, 3 seeds each, per-seed signs must agree); and three pre-registered unseen sets —
-`tasks/unseen/{yahoo-topics,sst5,ru-inappropriate}.yaml`, labelled with Jev before the freeze,
-never in any mixture — for the *unseen question* claim rather than B1's weaker *unseen source*.
-No results here until the arms run; per the header rule, only comparisons whose `train.json`
-postdates that file's commit may enter `findings.md`.
+## B2 — `open-jev-base`, converged: one unseen-question claim survives, the diversity ablation is voided by its own STOP rule
+
+Preregistration: [`docs/prereg/base-v2.md`](prereg/base-v2.md), commit `317e01e`, written before any arm
+existed and before any number below was computed. Every threshold, fold, seed, run-dir name and STOP
+rule in this section is quoted from that file; nothing here was chosen after seeing a number. The
+mixture is `data/pairs.jsonl` as B1 left it — 42 tasks, 1,183,247 pairs, byte-identical, with the
+three unseen sets excluded by name in `scripts/build_pairs.py`'s `SKIP`.
+
+Code added first, exactly the four things §2 names: `--max-epochs`, `--patience`, `--min-delta`,
+`--only` on `openjev base train`, plus the `min_delta` rule and the epoch ceiling in `base.train`
+(`converged` is now a field of `train.json`). Patience counts only evaluations that beat the best by
+`min_delta`; `student/` is still the best-BCE checkpoint. Tests: `tests/test_base.py` (4 new) and
+`tests/test_base_v2.py` (4 new); `pytest -q tests` = **60 passed**.
+
+### Convergence (a precondition, not a claim)
+
+Stop rule: mean BCE on the held-in tasks' calib pairs every 1,500 steps, `min_delta` 0.0010,
+patience 3, ceiling 6 epochs over the capped mixture. No wall-clock budget.
+
+| arm | run dirs in mixture | pairs/epoch | ceiling (steps) | steps run | best step (epoch) | best calib BCE | converged | min | peak GPU |
+|---|---|---|---|---|---|---|---|---|---|
+| `base-F1-v2` (= ABL-all s0) | 31 | 171,116 | 32,085 | 15,000 | 10,500 (3) | 0.3562 | yes | 76 | 8.93 GB |
+| `base-F1-v2-s1` | 31 | 171,116 | 32,085 | 27,000 | 22,500 (5) | 0.3385 | yes | 138 | 8.92 GB |
+| `base-F1-v2-s2` | 31 | 171,116 | 32,085 | 18,000 | 13,500 (3) | 0.3594 | yes | 92 | 8.92 GB |
+| `base-F2-v2` | 35 | 176,316 | 33,060 | 16,500 | 12,000 (3) | 0.3637 | yes | 113 | 8.91 GB |
+| `base-none-v2` | 40 | 234,316 | 43,935 | 15,000 | 10,500 (2) | 0.3569 | yes | 100 | 8.91 GB |
+| `base-F1-v2-orig` (ABL-orig s0) | 9 | 86,500 | 16,219 | 16,219 | 16,219 (6) | 0.2641 | **no** | 94 | 8.92 GB |
+| `base-F1-v2-orig-s1` | 9 | 86,500 | 16,219 | 16,219 | 12,000 (5) | 0.2587 | at the ceiling | 93 | 8.93 GB |
+| `base-F1-v2-orig-s2` | 9 | 86,500 | 16,219 | 16,219 | 13,500 (6) | 0.2611 | **no** | 94 | 8.94 GB |
+
+78–105 pairs/s, 13.3 GPU-hours for the eight arms. B1's complaint is fixed for the five large-mixture
+arms: early stopping fired on its own, between epoch 3 and epoch 5, 2–4× past the 45-minute budget
+that cut B1. Calib BCE is **not comparable across arms with different mixtures** — ABL-orig's 0.26 is
+a mean over 960 calib pairs from 9 tasks, ABL-all's 0.36 over 2,939 pairs from 31.
+
+`base-F1-v2-orig-s1` is the awkward one: its patience rule fired on the very last evaluation the
+ceiling allowed (best at 12,000, three non-improvements at 13,500 / 15,000 / 16,219). It is counted
+as converged because the rule fired, and flagged because one more epoch would have been needed to
+know.
+
+### STOP rules that fired
+
+- **§5, "a fold or ablation model reaches 6 epochs without early stopping" — fired on
+  `base-F1-v2-orig` (seed 0) and `base-F1-v2-orig-s2` (seed 2).** Both ran the full 16,219-step
+  ceiling with calib BCE still falling (seed 0: 0.2644 → 0.2641 on the last two evaluations; seed 2's
+  best was at 13,500 of 16,219). Their arm is compared below only to say that the comparison is void:
+  §4 says *"no comparison may be drawn between a converged and a non-converged arm"*, and 2 of the 3
+  ABL-orig seeds are non-converged while all 3 ABL-all seeds converged. **The diversity ablation is
+  therefore not a result of this round**, whatever its numbers say — and the numbers below say
+  "improvement", which is exactly the direction a half-trained control arm would fake.
+- No other STOP rule fired. Checked and clean: no `tasks/unseen/*` in `data/pairs.jsonl` or in any
+  arm's `train_tasks` (42 tasks, 1,183,247 pairs, `SKIP` holds); `label.json`'s `model` identical
+  across the mixture and unchanged since B1 (`typesafe/jev-1.13-20260917` on the 31 `-jev` dirs,
+  `Qwen/Qwen3.8-27B-FP8` on 6, none re-labelled; the Jev backend writes no `prompt_sha`, and
+  `git diff f52aa0c HEAD -- tasks/` touches no `-jev` task YAML, only `folds.yaml` and the new
+  `tasks/unseen/*`); the three unseen sets have `n_failed` 0/700 and no teacher collapse on calib
+  (top option 16.0 % / 27.5 % / 55.5 %, against the 95 % guard); shared eval rows 500 / 500 / 500
+  (guard 450) and 1500 / 2000 / 3000 on kinopoisk / swde-field / toxic (guards 1400 / 1900 / 2800);
+  all four calibration variants fitted on calib rows only; no arm scored on a task in its own
+  mixture; no teacher call and no spend in this round (the unseen labels cost $0.0253 before the
+  freeze, against the $0.50 cap).
+
+### Leave-one-source-out, converged (`python scripts/base_table.py --tag v2 --variant gold500`)
+
+Chance = a uniform `[N, K]` scored by the task's own metric; student = the per-task run's 3 seeds
+averaged; paired bootstrap over the shared eval rows, 2,000 resamples. `gold500` is the
+preregistered primary variant.
+
+| task | fold | metric | n | chance | teacher | student | base-zs v2 | Δ vs student (95 % CI) | Δ vs teacher (95 % CI) | B1 (unconverged) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| kinopoisk | F1 | acc | 1500 | 0.333 | 0.652 | 0.657 | 0.519 | −0.138 (−0.164..−0.112) | −0.133 (−0.164..−0.101) | 0.525 |
+| swde-field | F1 | acc | 2000 | 0.052 | 0.803 | 0.869 | 0.317 | −0.552 (−0.574..−0.529) | −0.487 (−0.511..−0.460) | 0.353 |
+| toxic | F1 | auroc | 3000 | 0.500 | 0.817 | 0.856 | 0.829 | −0.027 (−0.055..−0.000) | +0.012 (−0.017..+0.042) | 0.809 |
+| georeview | F2 | mae | 2000 | 1.201 | 0.619 | 0.607 | 0.767 | +0.161 (+0.143..+0.179) | +0.149 (+0.129..+0.170) | 0.751 |
+| banking77 | F2 | acc | 2000 | 0.015 | 0.764 | 0.750 | 0.372 | −0.378 (−0.403..−0.355) | −0.392 (−0.418..−0.366) | 0.452 |
+| m2w-element | F2 | acc | 900 | 0.049 | 0.649 | 0.059 | 0.136 | +0.077 (+0.051..+0.103) | −0.513 (−0.550..−0.476) | 0.152 |
+
+**Convergence did not buy transfer.** B1's headline — zero-shot loses to the per-task student on 5 of
+6 tasks, every CI excluding 0 — survives unchanged, and the converged model is *worse* on 5 of the 6
+than the one the 45-minute budget cut short (banking77 −8.0 pts, swde-field −3.6 pts, kinopoisk
+−0.6 pts, georeview +0.016 MAE, m2w-element −1.6 pts; only toxic improves, +2.0 pts AUROC). Training
+to the minimum of held-in calib BCE overfits the mixture's tasks at the expense of a held-out one.
+That is a diagnostic reading of a secondary comparison across two training recipes, not a
+preregistered claim — but it kills the one explanation B1 offered for its own result ("these models
+were never converged").
+
+The two non-losses survive in the same shape: **m2w-element 0.136 vs the fixed 16-way head's 0.059,
+Δ = +7.7 pts (CI +5.1..+10.3)**, the PLAN-4 §0 primitive argument again; and **toxic 0.829 vs the
+teacher's 0.817, Δ = +0.012 (CI −0.017..+0.042) — still no measurable difference from the teacher**,
+now from a converged model. The per-task student still beats base zero-shot on toxic (0.856,
+CI −0.055..−0.000, i.e. the CI only just excludes 0).
+
+### The three pre-registered unseen sets (`python scripts/base_v2.py --unseen`)
+
+`base-none-v2`, seed 0, the shipped artefact, on the eval splits of `tasks/unseen/*` (n = 500 each),
+never in any mixture, Jev-labelled before the freeze. Teacher-normalised =
+(metric − chance) / (teacher − chance), sign-flipped for MAE. `gold500`, fitted on each task's own
+200 calib rows.
+
+| task | metric | n | K | chance | teacher | base-none-v2 | advantage over chance (95 % CI) | teacher-normalised |
+|---|---|---|---|---|---|---|---|---|
+| yahoo-topics | acc | 500 | 10 | 0.088 | 0.718 | 0.528 | +0.440 (+0.386..+0.492) | 0.70 |
+| sst5 | mae | 500 | 5 | 1.152 | 0.493 | 0.775 | +0.377 (+0.324..+0.435) | 0.57 |
+| ru-inappropriate | auroc | 500 | 2 | 0.500 | 0.891 | 0.619 | +0.119 (+0.072..+0.168) | 0.30 |
+
+**The preregistered rule is met**: the CI on (metric − chance) excludes 0 on all three, and the
+teacher-normalised score is ≥ 0.5 on 2 of 3 (0.70, 0.57; ru-inappropriate 0.30). So the §4 sentence
+is earned: on three questions it was never trained on, over three text sources it never saw, the pair
+scorer recovers 70 % / 57 % / 30 % of what the Jev teacher recovers over chance.
+
+Two things that keep it honest, both preregistered as diagnostics:
+
+- **It is variant-sensitive at the margin.** The same table at `teacher500` (no gold: temperature
+  fitted to the teacher's soft probabilities on 200 calib rows) puts sst5 at 0.48 and the rule would
+  read 1 of 3 — i.e. the claim leans on the 200 *gold* calib labels, which a real deployment on a new
+  question would have to supply. `raw` 0.70 / 0.57 / 0.30, `prior` 0.72 / 0.62 / 0.30 (all three beat
+  chance under every variant; only the ≥ 0.5 count moves).
+- **The weakest set is the one closest to the model's reason for existing.** ru-inappropriate is a
+  Russian `noul` safety question at 0.619 AUROC — 30 % of the teacher — while the model's *best*
+  unseen result is a 10-way English topic choice. Whatever this model is, it is not a safety
+  classifier for a new language.
+
+### Diversity ablation — **VOID by STOP §5** (`python scripts/base_v2.py --ablation`)
+
+Δ = ABL-all − ABL-orig on fold F1's held-out tasks, 3 seeds each, per-row paired across all six run
+dirs, seeds pooled by averaging the per-row calibrated probabilities. ABL-all is `base-F1-v2{,-s1,-s2}`
+(31 run dirs); ABL-orig is the same configuration with `--only` the 9 preregistered original run dirs
+(`agnews arb-quality arb-success banking77 georeview georeview-jev headlines-8k m2w-element
+m2w-target`). The difference is exactly the 22 new Jev-labelled run dirs that fold F1 leaves in.
+
+| task | metric | n | seeds | ABL-all | ABL-orig | Δ (95 % CI) | per-seed Δ | signs agree | rule |
+|---|---|---|---|---|---|---|---|---|---|
+| kinopoisk | acc | 1500 | 3v3 | 0.524 | 0.501 | +0.0224 (+0.0064..+0.0376) | +0.020, +0.016, +0.031 | yes | would pass |
+| swde-field | acc | 2000 | 3v3 | 0.348 | 0.245 | +0.1030 (+0.0898..+0.1170) | +0.055, +0.248, +0.005 | yes | would pass |
+| toxic | auroc | 3000 | 3v3 | 0.812 | 0.663 | +0.1492 (+0.1227..+0.1735) | +0.217, +0.042, +0.189 | yes | would pass |
+
+All three parts of the §4 rule are met on 3 of 3 tasks (CI excludes 0, |Δ| ≥ 2.0 pts, per-seed signs
+agree), and non-inferiority holds on all three. **It still does not count.** Two of the three
+ABL-orig seeds hit the 6-epoch ceiling with calib BCE falling, which is the §5 STOP rule, and §4
+forbids comparing a converged arm with a non-converged one. An under-trained control arm biases Δ
+upward; the rule exists precisely so that a favourable void cannot be cashed as a finding. The
+preregistered wording for this round is therefore: **the diversity ablation was not completed; the 27
+new tasks are neither shown to help nor shown not to.**
+
+What the numbers are good for is diagnosis, and two features of them survive the void because they
+are about mechanism, not size:
+
+- The per-seed spread is enormous on the two tasks whose Δ is large: swde-field +0.005 / +0.055 /
+  +0.248, toxic +0.042 / +0.189 / +0.217. A "+10 pt" pooled Δ that ranges over 24 points between
+  seeds is not a measurement of a 2-pt threshold, whatever the pooled CI says.
+- The gap is largest on **toxic**, and the 22 added run dirs include `tweet-hate`, `tweet-offensive`,
+  `tweet-irony` and seven other `noul` tasks, against ABL-orig's two `noul` tasks (`arb-success`,
+  `m2w-target`, both agent/web questions). The honest hypothesis is "the mixture gained near-neighbour
+  toxicity questions", not "diversity in general transfers" — and a fold that holds out the text
+  source cannot separate those two.
+
+The preregistered *secondary* read-out (the same Δ on the three unseen sets, explicitly "no claim")
+was **not run**: `base.zs_eval` refuses to score a fold model on any task outside its recorded
+`excluded` list, and §2 froze `base.py` to the four additions named there, so the guard could not be
+relaxed without breaking the freeze. That trade — keep the freeze, lose a no-claim diagnostic — is the
+one the prereg's own wording forces.
+
+### Calibration under transfer, converged (`python scripts/base_table.py --calib --tag v2`)
+
+| task | arm | acc | ECE raw | ECE cal | NLL |
+|---|---|---|---|---|---|
+| kinopoisk | per-task student | 0.660 | 0.1608 | 0.0378 | 0.744 |
+| kinopoisk | base-F1-v2 raw | 0.466 | 0.1794 | 0.1794 | 1.106 |
+| kinopoisk | base-F1-v2 prior | 0.522 | 0.1794 | 0.0572 | 0.995 |
+| kinopoisk | base-F1-v2 teacher500 | 0.466 | 0.1794 | 0.0631 | 1.033 |
+| kinopoisk | base-F1-v2 gold500 | 0.519 | 0.1794 | 0.0622 | 0.987 |
+| swde-field | per-task student | 0.863 | 0.0488 | 0.0361 | 0.597 |
+| swde-field | base-F1-v2 raw | 0.212 | 0.0419 | 0.0419 | 2.440 |
+| swde-field | base-F1-v2 prior | 0.338 | 0.0419 | 0.2041 | 2.580 |
+| swde-field | base-F1-v2 teacher500 | 0.212 | 0.0419 | 0.1483 | 2.272 |
+| swde-field | base-F1-v2 gold500 | 0.317 | 0.0419 | 0.1232 | 1.949 |
+| toxic | per-task student | 0.917 | 0.1164 | 0.0373 | 0.252 |
+| toxic | base-F1-v2 raw | 0.666 | 0.0588 | 0.0588 | 0.581 |
+| toxic | base-F1-v2 prior | 0.511 | 0.0588 | 0.1972 | 0.790 |
+| toxic | base-F1-v2 teacher500 | 0.666 | 0.0588 | 0.0436 | 0.582 |
+| toxic | base-F1-v2 gold500 | 0.919 | 0.0588 | 0.0559 | 0.266 |
+| georeview | per-task student | 0.558 | 0.2527 | 0.0246 | 1.048 |
+| georeview | base-F2-v2 raw | 0.412 | 0.0160 | 0.0160 | 1.295 |
+| georeview | base-F2-v2 prior | 0.414 | 0.0160 | 0.0688 | 1.251 |
+| georeview | base-F2-v2 teacher500 | 0.412 | 0.0160 | 0.0573 | 1.292 |
+| georeview | base-F2-v2 gold500 | 0.412 | 0.0160 | 0.0487 | 1.288 |
+| banking77 | per-task student | 0.751 | 0.0171 | 0.0422 | 1.008 |
+| banking77 | base-F2-v2 raw | 0.368 | 0.3074 | 0.3074 | 3.521 |
+| banking77 | base-F2-v2 prior | 0.349 | 0.3074 | 0.2709 | 3.234 |
+| banking77 | base-F2-v2 teacher500 | 0.368 | 0.3074 | 0.2443 | 3.344 |
+| banking77 | base-F2-v2 gold500 | 0.372 | 0.3074 | 0.0545 | 2.722 |
+| m2w-element | per-task student | 0.059 | 0.1017 | 0.0036 | 2.773 |
+| m2w-element | base-F2-v2 raw | 0.136 | 0.0569 | 0.0569 | 2.735 |
+| m2w-element | base-F2-v2 prior | 0.140 | 0.0569 | 0.0643 | 2.735 |
+| m2w-element | base-F2-v2 teacher500 | 0.136 | 0.0569 | 0.0441 | 2.721 |
+| m2w-element | base-F2-v2 gold500 | 0.136 | 0.0569 | **0.8550** | **inf** |
+
+B1's calibration finding survives convergence in the same shape: out of the box the pair scorer is
+better calibrated than the per-task student on georeview (0.016 vs 0.253), toxic (0.059 vs 0.116),
+m2w-element (0.057 vs 0.102) and swde-field (0.042 vs 0.049), and catastrophically worse on
+banking77 (**0.307 vs 0.017**) — renormalised independent sigmoids at K = 77 — where the 500-gold
+vector fit repairs it post-hoc to 0.055 (NLL 3.52 → 2.72). It is now worse than the student on
+kinopoisk too (0.179 vs 0.161), where B1's shorter run was better (0.076): more training sharpened
+the probabilities past the point where the raw sigmoids were accidentally well spread.
+
+One new failure, diagnostic and unexplained: **m2w-element `gold500` has ECE 0.855 and NLL `inf`** —
+the vector fit on 500 calib rows drove one option's calibrated probability to 0 on a row that carries
+it as gold. Accuracy (0.136) is unaffected, since argmax is. Anything that reads `nll` off that file
+is reading a degenerate fit.
+
+### Verdict on publishing the model
+
+Measured against what §1 of the preregistration asked *before* any of this existed — ship with a
+zero-shot story, or ship as an init only — the answer is: **ship it, with the zero-shot sentence the
+unseen sets actually earned and no sentence about diversity at all.** The earned sentence is narrow:
+on three questions and three text sources the model never saw, it beats chance with the CI excluding
+0 on all three and recovers 70 % / 57 % / 30 % of the teacher's margin over chance, with 200 gold
+calib rows per task; under a no-gold calibration the middle number drops to 48 % and the rule is met
+on 1 of 3. Everything else in this round argues for modesty: the converged model is *worse* at
+leave-one-source-out transfer than B1's unconverged one on 5 of 6 tasks, it still loses to every
+per-task student except the 16-way m2w-element head, and its raw probabilities at K = 77 are
+unusable without a calibration fit. The diversity question the round was half-built to answer is
+**void by its own STOP rule** — two of three control seeds never converged — so the README may not
+say the 27 small tasks bought anything, and the honest next round is ABL-orig re-run under a step
+budget matched to ABL-all rather than an epoch budget, which is an amendment, not a re-analysis of
+these files. The words "general" and "any question" stay out of the write-up by the §4 rule's own
+logic even though the rule passed: it passed on 2 of 3 at the primary variant, with the weakest
+result on the safety-shaped question, and a claim of generality from three sets and one seed would be
+exactly the overstatement this preregistration was written to prevent.
+
+```bash
+# the eight arms (13.3 GPU-h) and the 24 zero-shot evaluations, all under the memory gate
+scripts/gpu_queue.sh runs/queue-base-v2.jobs
+scripts/gpu_queue.sh runs/queue-base-v2-eval.jobs
+python scripts/base_table.py --tag v2 --variant gold500      # LOTO   -> results/base/base-loto-v2-*.json
+python scripts/base_table.py --tag v2 --calib                # calibration under transfer
+python scripts/base_v2.py --unseen                           # -> results/base/unseen-base-none-v2-*.json
+python scripts/base_v2.py --ablation                         # -> results/base/ablation-*.json (VOID, see §5)
+```

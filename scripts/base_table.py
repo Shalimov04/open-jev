@@ -59,18 +59,18 @@ def arms(base_dir, student_dir):
     return ids, name, higher, fns, len(srcs)
 
 
-def loto(variant="gold500", n_boot=2000):
+def loto(variant="gold500", n_boot=2000, tag=""):
     out = []
     ev = folds()["eval"]
     for fold, tasks in ev.items():
         for t in tasks:
-            b = RUNS / f"base-{fold}-zs-{t}-{variant}"
+            b = RUNS / f"base-{fold}{tag and '-' + tag}-zs-{t}-{variant}"
             s = RUNS / t
             if not (b / "eval_rows.jsonl").exists():
                 continue
             ids, name, higher, fns, nseeds = arms(b, s)
             n = len(ids)
-            row = {"fold": fold, "task": t, "metric": name, "n": n, "seeds": nseeds,
+            row = {"fold": fold, "tag": tag, "task": t, "metric": name, "n": n, "seeds": nseeds,
                    "variant": variant, "chance": fns["chance"](), "teacher": fns["teacher"](),
                    "student": fns["student"](), "base": fns["base"]()}
             for other in ("student", "teacher"):
@@ -95,22 +95,22 @@ def fmt(rows):
     return "\n".join(lines)
 
 
-def calib_table():
+def calib_table(tag=""):
     """ECE_raw / ECE_cal / NLL of base zero-shot per variant, against the per-task student's."""
-    rows = []
+    rows, arm = [], lambda fold: f"base-{fold}{tag and '-' + tag}"
     ev = folds()["eval"]
     for fold, tasks in ev.items():
         for t in tasks:
             st = RESULTS / f"{t}.json"
-            have = [v for v in VARIANTS if (BASE / f"base-{fold}-zs-{t}-{v}.json").exists()]
+            have = [v for v in VARIANTS if (BASE / f"{arm(fold)}-zs-{t}-{v}.json").exists()]
             if not st.exists() or not have:      # no base model for this fold yet
                 continue
             s = json.loads(st.read_text())["student"]
             rows.append({"task": t, "arm": "per-task student", "acc": s["acc"],
                          "ece_raw": s["ece_raw"], "ece_cal": s["ece_cal"], "nll": s["nll"]})
             for v in have:
-                b = json.loads((BASE / f"base-{fold}-zs-{t}-{v}.json").read_text())["student"]
-                rows.append({"task": t, "arm": f"base-{fold} {v}", "acc": b["acc"],
+                b = json.loads((BASE / f"{arm(fold)}-zs-{t}-{v}.json").read_text())["student"]
+                rows.append({"task": t, "arm": f"{arm(fold)} {v}", "acc": b["acc"],
                              "ece_raw": b["ece_raw"], "ece_cal": b["ece_cal"], "nll": b["nll"]})
     w = max(len(r["arm"]) for r in rows)
     lines = [f"| task | {'arm':{w}} | acc | ECE raw | ECE cal | NLL |", f"|---|{'-' * (w + 2)}|---|---|---|---|"]
@@ -143,14 +143,15 @@ if __name__ == "__main__":
     ap.add_argument("--warm", action="store_true")
     ap.add_argument("--task", default="kinopoisk")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--tag", default="", help="run-dir tag of the base models (e.g. v2)")
     a = ap.parse_args()
     if a.calib:
-        print(calib_table())
+        print(calib_table(a.tag))
     elif a.warm:
         print(warm_table(a.task))
     else:
-        rows = loto(a.variant)
-        (BASE / f"base-loto-{a.variant}.json").write_text(json.dumps(rows, indent=1))
+        rows = loto(a.variant, tag=a.tag)
+        (BASE / f"base-loto{a.tag and '-' + a.tag}-{a.variant}.json").write_text(json.dumps(rows, indent=1))
         if a.json:
             print(json.dumps(rows, indent=1))
             raise SystemExit

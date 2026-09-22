@@ -132,6 +132,13 @@ def main(argv=None):
     bt.add_argument("--minutes", type=int, default=55, help="step budget, at the measured pairs/s")
     bt.add_argument("--steps", type=int)
     bt.add_argument("--seed", type=int, default=0)
+    bt.add_argument("--max-epochs", type=int, help="epoch ceiling over the capped mixture "
+                    "(sets --steps; --minutes is then unused)")
+    bt.add_argument("--patience", type=int, default=3, help="non-improving calib evaluations that stop the run")
+    bt.add_argument("--min-delta", type=float, default=0.0,
+                    help="calib BCE a checkpoint must beat the best by to count as an improvement")
+    bt.add_argument("--only", nargs="+", metavar="RUN_DIR",
+                    help="train on these run-dir names only (exact names, e.g. agnews georeview-jev)")
     be = bsub.add_parser("eval")
     be.add_argument("--fold", default="none")
     be.add_argument("--task", required=True)
@@ -171,7 +178,9 @@ def main(argv=None):
         name = "base-" + args.fold + (f"-{args.tag}" if args.tag else "")
         if args.base_cmd == "train":
             print(json.dumps(base.train(args.fold, Path(args.runs) / name, cap=args.cap,
-                                        minutes=args.minutes, steps=args.steps, seed=args.seed),
+                                        minutes=args.minutes, steps=args.steps, seed=args.seed,
+                                        max_epochs=args.max_epochs, patience=args.patience,
+                                        min_delta=args.min_delta, only=args.only),
                              indent=1)[:2000])
             return
         task = load_task(args.task)

@@ -1,0 +1,83 @@
+[
+ {
+  "task": "kinopoisk",
+  "variant": "gold500",
+  "metric": "acc",
+  "n": 1500,
+  "seeds_a": 3,
+  "seeds_b": 3,
+  "a": 0.5235555555555554,
+  "b": 0.5011111111111112,
+  "delta": 0.022444444444444267,
+  "ci": [
+   0.006444444444444475,
+   0.03755555555555562
+  ],
+  "half_width": 0.015555555555555572,
+  "per_seed": [
+   0.019999999999999962,
+   0.015999999999999903,
+   0.03133333333333327
+  ],
+  "same_sign": true,
+  "excludes_0": true,
+  "improvement": true,
+  "non_inferior": true,
+  "inconclusive": false,
+  "rows_ok": true
+ },
+ {
+  "task": "swde-field",
+  "variant": "gold500",
+  "metric": "acc",
+  "n": 2000,
+  "seeds_a": 3,
+  "seeds_b": 3,
+  "a": 0.34783333333333327,
+  "b": 0.24483333333333335,
+  "delta": 0.10299999999999992,
+  "ci": [
+   0.08983333333333327,
+   0.11699999999999999
+  ],
+  "half_width": 0.013583333333333364,
+  "per_seed": [
+   0.055499999999999994,
+   0.24849999999999997,
+   0.0050000000000000044
+  ],
+  "same_sign": true,
+  "excludes_0": true,
+  "improvement": true,
+  "non_inferior": true,
+  "inconclusive": false,
+  "rows_ok": true
+ },
+ {
+  "task": "toxic",
+  "variant": "gold500",
+  "metric": "auroc",
+  "n": 3000,
+  "seeds_a": 3,
+  "seeds_b": 3,
+  "a": 0.8121190626313578,
+  "b": 0.6629259459738117,
+  "delta": 0.1491931166575461,
+  "ci": [
+   0.12271264323452702,
+   0.1734615656655446
+  ],
+  "half_width": 0.025374461215508792,
+  "per_seed": [
+   0.21650750077327563,
+   0.04182454376739875,
+   0.18924730543196366
+  ],
+  "same_sign": true,
+  "excludes_0": true,
+  "improvement": true,
+  "non_inferior": true,
+  "inconclusive": false,
+  "rows_ok": true
+ }
+]

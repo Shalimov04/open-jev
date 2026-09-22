@@ -175,6 +175,32 @@ informatively. Numbers, gate tables and limits: [`docs/use-cases.md`](docs/use-c
 Whole track: 35,900 teacher calls, 118 minutes of labeling, three seeds where it mattered
 (*no measurable difference* between seeds on all three).
 
+## One scorer, questions it was never trained on
+
+`open-jev-base` is the same machinery pointed at 40 tasks at once: a pointwise cross-encoder that
+scores one `(question, option, text)` triple and returns a probability, so K and the option wording
+are free at inference. Weights:
+**[sshalimov04/open-jev-base](https://huggingface.co/sshalimov04/open-jev-base)**. It was
+preregistered before it was run ([`docs/prereg/base-v2.md`](docs/prereg/base-v2.md)); every table is
+in [`docs/experiments.md`](docs/experiments.md#b2--open-jev-base-converged-one-unseen-question-claim-survives-the-diversity-ablation-is-voided-by-its-own-stop-rule).
+
+- **It cleared its preregistered rule on three sets nobody here had opened.** yahoo-topics acc
+  **0.528** (chance 0.088, teacher 0.718), sst5 MAE **0.775** (chance 1.152, teacher 0.493),
+  ru-inappropriate AUROC **0.619** (chance 0.500, teacher 0.891): better than chance on all three
+  with every CI excluding 0, recovering **70 / 57 / 30 %** of the teacher's margin over chance,
+  given **200 gold calibration rows per task**. That is the entire claim — three questions, three
+  text sources, one seed. The words *general* and *any question* are not in it.
+- **It loses to every per-task student.** The single exception is the collapsed 16-way
+  `m2w-element` head (0.136 vs 0.059). Elsewhere it is 13.8 pts behind on kinopoisk, 37.8 on
+  banking77, 55.2 on swde-field, +0.16 MAE on georeview, 0.027 AUROC on toxic — every CI excluding 0.
+- **Training it to convergence made transfer worse**, not better: on 5 of those 6 held-out tasks the
+  converged model is behind the 45-minute models that preceded it. And without the gold calibration
+  rows sst5 drops to 0.48, at which point the preregistered rule would have failed on 2 of 3 sets.
+- **The diversity ablation is void.** It passed all three parts of its threshold and is void anyway,
+  because 2 of its 3 control seeds never converged and the prereg forbids that comparison. Nothing
+  here says the 27 small tasks in the mixture bought anything:
+  [`docs/findings.md#the-ablation-that-passed-and-does-not-count`](docs/findings.md#the-ablation-that-passed-and-does-not-count).
+
 ## Requirements
 
 - **A teacher**: a vLLM (or other OpenAI-compatible) endpoint at `OPENJEV_TEACHER_URL` that

@@ -227,6 +227,51 @@ the API and not of the model; and two tasks, both Russian, both ordinal-ish, is 
 arm where Jev ranks *worse* than our student (arb-success) was not distilled, so nothing here says
 what a worse-but-softer teacher does to a student.
 
+## One pair scorer over 40 tasks
+
+`open-jev-base` drops the fixed K-way head for a pointwise cross-encoder over
+`(question, option, text)`, trained on the pooled soft labels of 40 run dirs; K and the option
+wording are then inputs, not architecture. The shipped artefact is `base-none-v2`
+([sshalimov04/open-jev-base](https://huggingface.co/sshalimov04/open-jev-base)). It was
+preregistered before it was run ([`prereg/base-v2.md`](prereg/base-v2.md)); the arms, the
+convergence log and every table are
+[B2](experiments.md#b2--open-jev-base-converged-one-unseen-question-claim-survives-the-diversity-ablation-is-voided-by-its-own-stop-rule).
+
+**On three questions and three text sources it never saw, it beats chance and recovers part of its
+teacher's margin.** yahoo-topics acc 0.528 against a 0.088 chance floor and a 0.718 teacher
+(advantage over chance +0.440, 95 % CI +0.386..+0.492); sst5 MAE 0.775 against chance 1.152 and
+teacher 0.493 (+0.377, +0.324..+0.435); ru-inappropriate AUROC 0.619 against 0.500 and 0.891
+(+0.119, +0.072..+0.168). Teacher-normalised that is **0.70 / 0.57 / 0.30**, with 200 gold
+calibration rows per task — the preregistered rule (CI excludes 0 on all three, normalised ≥ 0.5 on
+2 of 3) is met. The rule's own logic bans the words *general* and *any question*: it passed 2 of 3
+at the primary variant, its weakest set is the safety-shaped one, and three sets on one seed do not
+make a claim about questions in general.
+
+**The counterweights are the same size as the claim.** It loses to every per-task student except the
+collapsed 16-way `m2w-element` head — kinopoisk −13.8 pts, banking77 −37.8, swde-field −55.2,
+georeview +0.161 MAE, toxic −0.027 AUROC, every CI excluding 0. Training it to the minimum of
+held-in calib BCE made transfer *worse* on 5 of those 6 tasks than the 45-minute models that
+preceded it: converging overfits the mixture's own tasks at the expense of a held-out one. And the
+zero-shot result leans on its gold calibration: under `teacher500` (no gold, temperature fitted to
+the teacher's soft probabilities) sst5 falls to 0.48 and the rule would have been met on 1 of 3.
+Raw, its renormalised sigmoids are also unusable at K = 77 (ECE 0.307 on banking77, repaired
+post-hoc to 0.055 by the 500-gold vector fit).
+
+### The ablation that passed and does not count
+
+The round's other question was whether the 27 small Jev-labelled tasks in the mixture help at all.
+The ablation answered *yes* on 3 of 3 held-out tasks — kinopoisk +2.2 pts, swde-field +10.3, toxic
++14.9 AUROC, every CI excluding 0, every per-seed sign agreeing, all three parts of the
+preregistered threshold met — and **it is void**, because 2 of the 3 control-arm seeds hit the
+6-epoch ceiling with their loss still falling and the preregistration forbids comparing a converged
+arm with a non-converged one. An under-trained control biases the difference upward, which is
+exactly the direction these numbers point; the per-seed spread (swde-field +0.005 / +0.055 / +0.248)
+says the same thing. Written after the fact, this is the paragraph where a favourable result gets
+kept "with a caveat". Written before it, the STOP rule simply deletes it: **the 27 tasks are neither
+shown to help nor shown not to**, the README may claim nothing from them, and the fix is a rerun of
+the control arm under a matched step budget — an amendment, not a re-analysis of these files. That
+is the whole return on the paperwork, and it is the best argument for preregistration this repo has.
+
 ## What the numbers mean
 
 - **The teacher** for every row is Qwen3.8-27B zero-shot (README, Requirements). Runs from before

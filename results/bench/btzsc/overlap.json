@@ -1,0 +1,258 @@
+{
+  "n_our_texts": 110499,
+  "leak_threshold": 0.005,
+  "datasets": {
+    "amazonpolarity": {
+      "n_texts": 10000,
+      "k": 2,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "imdb": {
+      "n_texts": 10000,
+      "k": 2,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "appreviews": {
+      "n_texts": 4000,
+      "k": 2,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "yelpreviews": {
+      "n_texts": 10000,
+      "k": 2,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "rottentomatoes": {
+      "n_texts": 1066,
+      "k": 2,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "financialphrasebank": {
+      "n_texts": 690,
+      "k": 3,
+      "exact_text_overlap": 293,
+      "overlap_frac": 0.4246376811594203,
+      "text_leak": true,
+      "in_mixture": true,
+      "mixture_tasks": [
+        "fin-sentiment-jev"
+      ],
+      "clean": false
+    },
+    "emotiondair": {
+      "n_texts": 2000,
+      "k": 6,
+      "exact_text_overlap": 501,
+      "overlap_frac": 0.2505,
+      "text_leak": true,
+      "in_mixture": true,
+      "mixture_tasks": [
+        "emotion-dair-jev"
+      ],
+      "clean": false
+    },
+    "empathetic": {
+      "n_texts": 2542,
+      "k": 32,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "banking77": {
+      "n_texts": 3080,
+      "k": 72,
+      "exact_text_overlap": 2000,
+      "overlap_frac": 0.6493506493506493,
+      "text_leak": true,
+      "in_mixture": true,
+      "mixture_tasks": [
+        "banking77"
+      ],
+      "clean": false
+    },
+    "biasframes_intent": {
+      "n_texts": 3648,
+      "k": 2,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "massive": {
+      "n_texts": 2974,
+      "k": 59,
+      "exact_text_overlap": 502,
+      "overlap_frac": 0.16879623402824478,
+      "text_leak": true,
+      "in_mixture": true,
+      "mixture_tasks": [
+        "massive-en-jev"
+      ],
+      "clean": false
+    },
+    "agnews": {
+      "n_texts": 7600,
+      "k": 4,
+      "exact_text_overlap": 2000,
+      "overlap_frac": 0.2631578947368421,
+      "text_leak": true,
+      "in_mixture": true,
+      "mixture_tasks": [
+        "agnews",
+        "agnews-jev"
+      ],
+      "clean": false
+    },
+    "yahootopics": {
+      "n_texts": 50000,
+      "k": 10,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "trueteacher": {
+      "n_texts": 8955,
+      "k": 2,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "manifesto": {
+      "n_texts": 17018,
+      "k": 56,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "capsotu": {
+      "n_texts": 3355,
+      "k": 21,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "biasframes_offensive": {
+      "n_texts": 3838,
+      "k": 2,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "biasframes_sex": {
+      "n_texts": 4404,
+      "k": 2,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "wikitoxic_toxicaggregated": {
+      "n_texts": 10000,
+      "k": 2,
+      "exact_text_overlap": 1,
+      "overlap_frac": 0.0001,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "wikitoxic_obscene": {
+      "n_texts": 8691,
+      "k": 2,
+      "exact_text_overlap": 2,
+      "overlap_frac": 0.00023012311586698885,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "wikitoxic_threat": {
+      "n_texts": 5211,
+      "k": 2,
+      "exact_text_overlap": 0,
+      "overlap_frac": 0.0,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    },
+    "wikitoxic_insult": {
+      "n_texts": 8427,
+      "k": 2,
+      "exact_text_overlap": 2,
+      "overlap_frac": 0.00023733238400379733,
+      "text_leak": false,
+      "in_mixture": false,
+      "mixture_tasks": [],
+      "clean": true
+    }
+  },
+  "mixture_tasks_absent_from_pairs_jsonl": {},
+  "primary_set": [
+    "yahootopics",
+    "wikitoxic_insult",
+    "wikitoxic_obscene",
+    "wikitoxic_threat",
+    "wikitoxic_toxicaggregated",
+    "amazonpolarity",
+    "imdb",
+    "appreviews",
+    "yelpreviews",
+    "rottentomatoes",
+    "empathetic",
+    "biasframes_intent",
+    "biasframes_offensive",
+    "biasframes_sex",
+    "trueteacher",
+    "manifesto",
+    "capsotu"
+  ],
+  "stops": []
+}

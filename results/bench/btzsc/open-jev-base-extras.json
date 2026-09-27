@@ -1,0 +1,234 @@
+{
+  "per_dataset": {
+    "amazonpolarity": {
+      "n_texts": 10000,
+      "n_pair_rows": 20000,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 143.89497256278992,
+      "pairs_per_s": 138.9902624379237,
+      "ece": 0.040779706090688705
+    },
+    "imdb": {
+      "n_texts": 10000,
+      "n_pair_rows": 20000,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 240.5559527873993,
+      "pairs_per_s": 83.14074030699952,
+      "ece": 0.036436907947063446
+    },
+    "appreviews": {
+      "n_texts": 4000,
+      "n_pair_rows": 8000,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 43.270886182785034,
+      "pairs_per_s": 184.88181559782186,
+      "ece": 0.022062230855226517
+    },
+    "yelpreviews": {
+      "n_texts": 10000,
+      "n_pair_rows": 20000,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 235.49383234977722,
+      "pairs_per_s": 84.92791424912627,
+      "ece": 0.042011722922325134
+    },
+    "rottentomatoes": {
+      "n_texts": 1066,
+      "n_pair_rows": 2132,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 5.750668287277222,
+      "pairs_per_s": 370.73951991229205,
+      "ece": 0.07567324489355087
+    },
+    "financialphrasebank": {
+      "n_texts": 690,
+      "n_pair_rows": 2070,
+      "k": 3,
+      "k_prereg": 3,
+      "seconds": 7.743300914764404,
+      "pairs_per_s": 267.32785187943085,
+      "ece": 0.08136679232120514
+    },
+    "emotiondair": {
+      "n_texts": 2000,
+      "n_pair_rows": 12000,
+      "k": 6,
+      "k_prereg": 6,
+      "seconds": 38.17506504058838,
+      "pairs_per_s": 314.3413111998996,
+      "ece": 0.16406898200511932
+    },
+    "empathetic": {
+      "n_texts": 2542,
+      "n_pair_rows": 81344,
+      "k": 32,
+      "k_prereg": 32,
+      "seconds": 633.9818217754364,
+      "pairs_per_s": 128.30651795693439,
+      "ece": 0.1341126412153244
+    },
+    "banking77": {
+      "n_texts": 3080,
+      "n_pair_rows": 221760,
+      "k": 72,
+      "k_prereg": 77,
+      "seconds": 810.9816241264343,
+      "pairs_per_s": 273.44639311510093,
+      "ece": 0.4875089228153229
+    },
+    "biasframes_intent": {
+      "n_texts": 3648,
+      "n_pair_rows": 7296,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 32.866684675216675,
+      "pairs_per_s": 221.98770798143792,
+      "ece": 0.03919759765267372
+    },
+    "massive": {
+      "n_texts": 2974,
+      "n_pair_rows": 175466,
+      "k": 59,
+      "k_prereg": 59,
+      "seconds": 592.6919431686401,
+      "pairs_per_s": 296.04924113178674,
+      "ece": 0.25409936904907227
+    },
+    "agnews": {
+      "n_texts": 7600,
+      "n_pair_rows": 30400,
+      "k": 4,
+      "k_prereg": 4,
+      "seconds": 134.37489795684814,
+      "pairs_per_s": 226.23272993861073,
+      "ece": 0.19497095048427582
+    },
+    "yahootopics": {
+      "n_texts": 50000,
+      "n_pair_rows": 500000,
+      "k": 10,
+      "k_prereg": 10,
+      "seconds": 5766.330603122711,
+      "pairs_per_s": 86.71025551834106,
+      "ece": 0.39514651894569397
+    },
+    "trueteacher": {
+      "n_texts": 8955,
+      "n_pair_rows": 17910,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 198.50904941558838,
+      "pairs_per_s": 90.22258709478045,
+      "ece": 0.12031876295804977
+    },
+    "manifesto": {
+      "n_texts": 17018,
+      "n_pair_rows": 953008,
+      "k": 56,
+      "k_prereg": 56,
+      "seconds": 4761.759713172913,
+      "pairs_per_s": 200.13777624343425,
+      "ece": 0.016515983268618584
+    },
+    "capsotu": {
+      "n_texts": 3355,
+      "n_pair_rows": 70455,
+      "k": 21,
+      "k_prereg": 21,
+      "seconds": 342.9327554702759,
+      "pairs_per_s": 205.44844106064627,
+      "ece": 0.21065564453601837
+    },
+    "biasframes_offensive": {
+      "n_texts": 3838,
+      "n_pair_rows": 7676,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 34.18929886817932,
+      "pairs_per_s": 224.51469477615436,
+      "ece": 0.060071349143981934
+    },
+    "biasframes_sex": {
+      "n_texts": 4404,
+      "n_pair_rows": 8808,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 37.94710731506348,
+      "pairs_per_s": 232.1125541103782,
+      "ece": 0.17218992114067078
+    },
+    "wikitoxic_toxicaggregated": {
+      "n_texts": 10000,
+      "n_pair_rows": 20000,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 224.842045545578,
+      "pairs_per_s": 88.95133448670647,
+      "ece": 0.17078736424446106
+    },
+    "wikitoxic_obscene": {
+      "n_texts": 8691,
+      "n_pair_rows": 17382,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 196.41206789016724,
+      "pairs_per_s": 88.49761721219664,
+      "ece": 0.27760863304138184
+    },
+    "wikitoxic_threat": {
+      "n_texts": 5211,
+      "n_pair_rows": 10422,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 116.83070611953735,
+      "pairs_per_s": 89.20600025593059,
+      "ece": 0.0816929042339325
+    },
+    "wikitoxic_insult": {
+      "n_texts": 8427,
+      "n_pair_rows": 16854,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 167.0926923751831,
+      "pairs_per_s": 100.8661705094602,
+      "ece": 0.10060719400644302
+    }
+  },
+  "render": "choice",
+  "question": "Which of these statements about the text is true?",
+  "max_len": 512,
+  "weights_sha256": "216715a3fba176d19cf650bfaee52b8b11b33258b0e611aca4d3af79ad4a57a4",
+  "achieved_pairs_per_s": 150.54100684324908,
+  "total_pair_rows": 2222983,
+  "clean": [
+    "yahootopics",
+    "wikitoxic_insult",
+    "wikitoxic_obscene",
+    "wikitoxic_threat",
+    "wikitoxic_toxicaggregated",
+    "amazonpolarity",
+    "imdb",
+    "appreviews",
+    "yelpreviews",
+    "rottentomatoes",
+    "empathetic",
+    "biasframes_intent",
+    "biasframes_offensive",
+    "biasframes_sex",
+    "trueteacher",
+    "manifesto",
+    "capsotu"
+  ],
+  "trained_on_this_source": [
+    "agnews",
+    "banking77",
+    "emotiondair",
+    "financialphrasebank",
+    "massive"
+  ]
+}

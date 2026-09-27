@@ -1,0 +1,60 @@
+{
+  "per_dataset": {
+    "rottentomatoes": {
+      "n_texts": 1066,
+      "n_pair_rows": 2132,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 45.9033567905426,
+      "pairs_per_s": 46.44540506543636
+    },
+    "financialphrasebank": {
+      "n_texts": 690,
+      "n_pair_rows": 2070,
+      "k": 3,
+      "k_prereg": 3,
+      "seconds": 35.16642761230469,
+      "pairs_per_s": 58.862959377645446
+    },
+    "appreviews": {
+      "n_texts": 4000,
+      "n_pair_rows": 8000,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 179.33350467681885,
+      "pairs_per_s": 44.609622805381456
+    }
+  },
+  "render": null,
+  "question": null,
+  "max_len": null,
+  "weights_sha256": null,
+  "achieved_pairs_per_s": 46.858087096845374,
+  "total_pair_rows": 12202,
+  "clean": [
+    "yahootopics",
+    "wikitoxic_insult",
+    "wikitoxic_obscene",
+    "wikitoxic_threat",
+    "wikitoxic_toxicaggregated",
+    "amazonpolarity",
+    "imdb",
+    "appreviews",
+    "yelpreviews",
+    "rottentomatoes",
+    "empathetic",
+    "biasframes_intent",
+    "biasframes_offensive",
+    "biasframes_sex",
+    "trueteacher",
+    "manifesto",
+    "capsotu"
+  ],
+  "trained_on_this_source": [
+    "agnews",
+    "banking77",
+    "emotiondair",
+    "financialphrasebank",
+    "massive"
+  ]
+}

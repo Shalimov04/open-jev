@@ -739,3 +739,165 @@ python scripts/base_table.py --tag v2 --calib                # calibration under
 python scripts/base_v2.py --unseen                           # -> results/base/unseen-base-none-v2-*.json
 python scripts/base_v2.py --ablation                         # -> results/base/ablation-*.json (VOID, see §5)
 ```
+
+## B3 — BTZSC (22 datasets, zero-shot, no calibration rows): the number is computed, the comparison is voided
+
+Preregistered in `docs/prereg/bench-v1.md` (frozen at 3a30b97, three dated amendments in its §9).
+Protocol: one fixed hypothesis string per label, score every (text, label) pair, argmax, sklearn
+macro-F1 per dataset, flat mean. No labelled examples, no fine-tuning, no model selection on BTZSC
+and — because BTZSC forbids labelled examples from its own tasks — **no calibration rows at all**:
+the primary is the raw model, and there is no `gold500` variant anywhere in this section.
+
+Everything here comes from `scripts/bench_btzsc.py` (one file, a `btzsc.models.base.BaseModel`
+wrapper over `openjev.base.predict_logits`; nothing in `openjev/` changed), `btzsc==0.1.2` in a
+separate `.venv-bench`, on `sshalimov04/open-jev-base` revision `bf071a69`, weights sha256
+`216715a3…a57a4` = `runs/base-none-v2/student/model.safetensors`. Artefacts:
+`results/bench/btzsc/{overlap.json, open-jev-base.json, open-jev-base-extras.json, table.md,
+field-17.json, scores/*.npy}` and `results/bench/t0/open-jev-base.json`.
+
+### The overlap audit (never cut; ran before the model did)
+
+`--overlap-audit` recomputes the prereg's §2 audit mechanically: the exact-string intersection of
+every BTZSC test text with the 110,499 distinct `text` values in `data/pairs.jsonl`. The five
+datasets whose sources are in our training mixture show **16.9–64.9 %** of their texts verbatim in
+`pairs.jsonl` (banking77 64.9 %, financialphrasebank 42.5 %, agnews 26.3 %, emotiondair 25.1 %,
+massive 16.9 %) — the disqualification is not a judgement call. Of the 17 clean datasets the worst
+overlap is **2 texts of 8,427 (0.024 %)** on wikitoxic_insult, 20× under the 0.5 % STOP threshold;
+yahootopics — the one disclosed set whose 500 test rows this author had already seen a number on
+(§B2) — is at **0.0000 %**, because it was only ever a calibration/eval set and never entered
+`pairs.jsonl`. **No leak STOP fired; the primary set stayed at 17.**
+
+### STOP rule 1 fired: the environment could not be matched, so the comparison is voided
+
+The prereg makes the whole comparison conditional on reproducing `Qwen/Qwen3-Reranker-0.6B`'s
+published macro-F1 on rottentomatoes / financialphrasebank / appreviews (0.7832 / 0.4138 / 0.8868)
+within ±0.5 pt with the installed harness. It cannot be done:
+
+- `btzsc.models.reranker` loads every reranker with `AutoModelForSequenceClassification` and then
+  reads `logits[:, -1, :]` at the `"yes"`/`"no"` vocab ids — causal-LM logits. Under
+  `transformers` 5.17 the Qwen path raises before scoring anything
+  (`Cannot handle batch sizes > 1 if no padding token is defined`). The code on GitHub at the
+  published commit `8a0d52cbe423` is byte-identical to the 0.1.1 and 0.1.2 sdists, so the
+  published numbers came from an environment that is not published.
+- With the minimal fix (load the causal-LM head the adapter actually indexes) we get
+  **0.7606 / 0.4241 / 0.8842** = **−2.26 / +1.03 / −0.26 pt**. Two of three miss the band.
+  Left-padding and bfloat16 variants are bit-identical (these datasets' hypotheses tokenise to
+  equal lengths, so padding never bites). `results/bench/btzsc/sanity.json`,
+  `sanity-left-bf16.json`.
+
+Per §5 that **voids the primary number as a comparison against the published field**: no §4
+sentence is earned, and none is written into `README.md`, the model card or `docs/findings.md`.
+What the miss does *not* touch is the data and metric path — appreviews lands inside the band, and
+our own scoring loop agrees with `BTZSCBenchmark.evaluate`
+on the same adapter to 6 decimals (`--via-harness`: rottentomatoes 0.763104, biasframes_sex
+0.505202, identical to the primary run's values). The numbers below are therefore reported as **an unvalidated-environment run**.
+
+### The 17 clean datasets (primary set), raw model
+
+17-dataset mean macro-F1 **0.6049**, 95 % CI **[0.6015, 0.6079]** (2,000 paired bootstrap draws
+over texts, seed 0, the same draws used jointly for the mean). 22-dataset mean 0.6011. Full
+per-dataset table with per-dataset CIs, ECE and the field median: `results/bench/btzsc/table.md`.
+
+| | 17-mean macro-F1 |
+|---|---|
+| Qwen3-Reranker-8B (best overall, 8B) | 0.7316 |
+| gte-large-en-v1.5 (best < 1B, 434M) | 0.6322 |
+| **e5-base-v2 (best ≤ 200M, 110M)** | **0.6106** |
+| **`open-jev-base` (141M), raw** | **0.6049 [0.6015, 0.6079]** |
+| median of all 35 published models | 0.5752 |
+| gte-modernbert-base (nearest size peer, 149M) | 0.5772 |
+| ms-marco-MiniLM-L6-v2 (22M) | 0.4773 |
+
+Had the environment check passed, the preregistered rule would have returned
+**"Competitive with the published field at 140M"** (CI lower 0.6015 ≥ 0.575 and point 0.6049 ≥
+0.581, but CI lower < 0.611 so not "best under 200M"). **It did not pass, so that sentence is not
+claimed.** The rule's own output is recorded here and nowhere else.
+
+Where the shape of the result sits: above the field median on 9 of 17 (yahootopics +6.7 pt,
+wikitoxic_obscene +16.3, biasframes_sex +20.1, biasframes_offensive +8.0, trueteacher +6.1,
+wikitoxic_toxicaggregated +9.4, wikitoxic_insult +8.8, wikitoxic_threat +12.1, biasframes_intent
++2.6), below it on the five binary sentiment sets by 0.2–5.1 pt, and far below on the three
+large-K sets: capsotu (K=21) 0.3042 vs 0.462, empathetic (K=32) 0.1909 vs 0.318, manifesto (K=56)
+**0.0410** vs 0.162. That is the 96-token cut on the contrast set (`openjev/pairs.py:OPTIONS_TOKENS`)
+doing exactly what the prereg said it would: it is how the model was trained, not a knob, and at
+K ≥ 20 the model never sees most of the options it is choosing between.
+
+### Calibration (diagnostic, no comparator)
+
+10-bin top-probability ECE on the raw renormalised sigmoids, mean over the 17 clean datasets
+**0.117**; 0.02–0.08 on the binary sets, 0.395 on yahootopics (K=10) and 0.488 on banking77
+(K=72). **No published leaderboard reports ECE for zero-shot text classification**, BTZSC included,
+so there is nothing to compare this to and no claim is made. It restates B2's finding on new data:
+raw probabilities are usable at small K and unusable at large K, and BTZSC's protocol forbids the
+calibration rows that repaired them.
+
+### Secondary: the per-row-option tasks (COPA, HellaSwag)
+
+The shape a fixed-head classifier cannot do at all — the options change on every row. One `Task`
+per row, raw argmax, accuracy − chance with a 2,000-draw bootstrap over rows.
+
+| set | n | K | chance | accuracy | advantage (95 % CI) | above chance |
+|---|---|---|---|---|---|---|
+| COPA (`aps/super_glue`, validation) | 100 | 2 | 0.50 | 0.670 | +0.170 (+0.080..+0.250) | yes |
+| HellaSwag (`Rowan/hellaswag`, validation) | 10,042 | 4 | 0.25 | 0.284 | +0.034 (+0.026..+0.043) | yes |
+
+Both clear chance with the CI excluding 0, and that is the **only** claim available: the T0 paper's
+numbers here (COPA 55.0 / 74.9 / 90.8, HellaSwag 27.7 / 27.5 / 33.7 for T5+LM 11B / T0-3B / T0-11B)
+come from models ≥ 3B, so no size-comparable comparison exists and none is written. COPA at n = 100
+resolves to about ±10 pts, as the prereg noted.
+
+### Cost, and what the machine actually did
+
+2,222,983 pairs over the 22 datasets in **4.1 h of scoring, 150.5 pairs/s** averaged (83 pairs/s on
+the long-text sets, 371 on rottentomatoes), at batch 256 / `max_len` 512 — well below the 636
+pairs/s measured idle, because an unrelated training job held ~96 % of the GPU for most of the run.
+`max_samples: None` everywhere; the score matrices are cached under `results/bench/btzsc/scores/`,
+so the CIs are a re-read and not a re-run.
+
+### The `noul` rendering (diagnostic, never a claim)
+
+The prereg's secondary rendering, run only after the primary was on disk: one `noul` task per label
+(`statement: <hypothesis>`, default head), argmax over p(true) — the same weights asked a yes/no
+question per label instead of being shown the contrast set. All 22 datasets,
+`results/bench/btzsc/open-jev-base-noul.json`, matrices in `scores-noul/`. 2,222,983 pairs in
+5.2 h at 119.5 pairs/s (58–538 per dataset; two unrelated training jobs shared the GPU).
+
+**17-clean mean macro-F1 0.5619 against the primary's 0.6049 — the preregistered `choice`
+rendering is better by 4.3 pt.** 22-mean 0.5679 vs 0.6011. It is worse on 14 of the 17 clean sets:
+
+| dataset | K | choice | noul | Δ |
+|---|---|---|---|---|
+| yahootopics | 10 | 0.5496 | 0.4669 | -0.0827 |
+| wikitoxic_insult | 2 | 0.6825 | 0.6829 | +0.0004 |
+| wikitoxic_obscene | 2 | 0.8458 | 0.5243 | -0.3215 |
+| wikitoxic_threat | 2 | 0.4108 | 0.3988 | -0.0121 |
+| wikitoxic_toxicaggregated | 2 | 0.7490 | 0.6699 | -0.0791 |
+| amazonpolarity | 2 | 0.9091 | 0.9021 | -0.0070 |
+| imdb | 2 | 0.8573 | 0.8604 | +0.0031 |
+| appreviews | 2 | 0.8759 | 0.8687 | -0.0072 |
+| yelpreviews | 2 | 0.9160 | 0.9125 | -0.0035 |
+| rottentomatoes | 2 | 0.7631 | 0.7504 | -0.0127 |
+| empathetic | 32 | 0.1909 | 0.1624 | -0.0285 |
+| biasframes_intent | 2 | 0.5905 | 0.6152 | +0.0247 |
+| biasframes_offensive | 2 | 0.6230 | 0.6178 | -0.0052 |
+| biasframes_sex | 2 | 0.5052 | 0.3702 | -0.1350 |
+| trueteacher | 2 | 0.4702 | 0.4249 | -0.0453 |
+| manifesto | 56 | 0.0410 | 0.0369 | -0.0040 |
+| capsotu | 21 | 0.3042 | 0.2881 | -0.0161 |
+| *agnews* (trained-on) | 4 | 0.8356 | 0.8298 | -0.0059 |
+| *banking77* (trained-on) | 72 | 0.5675 | 0.4766 | -0.0909 |
+| *emotiondair* (trained-on) | 6 | 0.4871 | 0.4991 | +0.0120 |
+| *financialphrasebank* (trained-on) | 3 | 0.7280 | 0.8250 | +0.0970 |
+| *massive* (trained-on) | 59 | 0.3214 | 0.3122 | -0.0093 |
+
+The two big losses are binary, not large-K: wikitoxic_obscene **−32.2 pt** and biasframes_sex
+**−13.5 pt**, where a single "is this statement true" pass collapses towards one class, while
+showing both statements side by side keeps the decision calibrated against its own negation.
+yahootopics loses 8.3 pt for the same reason at K=10. Where `noul` wins it wins small
+(biasframes_intent +2.5, imdb +0.3, wikitoxic_insult +0.04) — the one large gain,
+financialphrasebank +9.7, is on a trained-on source and means nothing here. Large K is not where
+the renderings differ: manifesto moves 0.4 pt and capsotu 1.6, because at K ≥ 20 the 96-token cut
+has already removed most of the contrast set the `choice` prompt would have shown.
+
+This is a diagnostic and changes no claim: the primary rendering was fixed in the prereg before any
+of this was measured, and it is also the one that won.

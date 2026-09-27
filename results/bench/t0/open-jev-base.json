@@ -1,0 +1,36 @@
+{
+  "model": "sshalimov04/open-jev-base",
+  "revision": "bf071a696e3a6ea486bfc16c22cedbfb9c3ee207",
+  "weights_sha256": "216715a3fba176d19cf650bfaee52b8b11b33258b0e611aca4d3af79ad4a57a4",
+  "question_copa": "Which alternative is the more plausible {cause/effect} of the premise?",
+  "results": {
+    "copa": {
+      "n": 100,
+      "k": 2,
+      "accuracy": 0.67,
+      "chance": 0.5,
+      "advantage": 0.17000000000000004,
+      "advantage_ci": [
+        0.07999999999999996,
+        0.25
+      ],
+      "above_chance": true,
+      "seconds": 7.807459354400635,
+      "pairs_per_s": 25.616527851313247
+    },
+    "hellaswag": {
+      "n": 10042,
+      "k": 4,
+      "accuracy": 0.28440549691296557,
+      "chance": 0.25,
+      "advantage": 0.03440549691296557,
+      "advantage_ci": [
+        0.025736904999004218,
+        0.04317118103963352
+      ],
+      "above_chance": true,
+      "seconds": 280.3922142982483,
+      "pairs_per_s": 143.25647415186071
+    }
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "per_dataset": {
+    "amazonpolarity": {
+      "n_texts": 10000,
+      "n_pair_rows": 20000,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 182.75509905815125,
+      "pairs_per_s": 109.43607102112186
+    },
+    "imdb": {
+      "n_texts": 10000,
+      "n_pair_rows": 20000,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 346.3217988014221,
+      "pairs_per_s": 57.74975779525742
+    },
+    "appreviews": {
+      "n_texts": 4000,
+      "n_pair_rows": 8000,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 63.717424154281616,
+      "pairs_per_s": 125.55435355687436
+    },
+    "yelpreviews": {
+      "n_texts": 10000,
+      "n_pair_rows": 20000,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 292.8261594772339,
+      "pairs_per_s": 68.29990884593397
+    },
+    "rottentomatoes": {
+      "n_texts": 1066,
+      "n_pair_rows": 2132,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 4.407881736755371,
+      "pairs_per_s": 483.67903844202476
+    },
+    "financialphrasebank": {
+      "n_texts": 690,
+      "n_pair_rows": 2070,
+      "k": 3,
+      "k_prereg": 3,
+      "seconds": 5.479628086090088,
+      "pairs_per_s": 377.76286409923483
+    },
+    "emotiondair": {
+      "n_texts": 2000,
+      "n_pair_rows": 12000,
+      "k": 6,
+      "k_prereg": 6,
+      "seconds": 22.5294349193573,
+      "pairs_per_s": 532.6365282996776
+    },
+    "empathetic": {
+      "n_texts": 2542,
+      "n_pair_rows": 81344,
+      "k": 32,
+      "k_prereg": 32,
+      "seconds": 778.9811487197876,
+      "pairs_per_s": 104.42357961252895
+    },
+    "banking77": {
+      "n_texts": 3080,
+      "n_pair_rows": 221760,
+      "k": 72,
+      "k_prereg": 77,
+      "seconds": 696.0678834915161,
+      "pairs_per_s": 318.5896164144785
+    },
+    "biasframes_intent": {
+      "n_texts": 3648,
+      "n_pair_rows": 7296,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 47.309463024139404,
+      "pairs_per_s": 154.21861787518608
+    },
+    "massive": {
+      "n_texts": 2974,
+      "n_pair_rows": 175466,
+      "k": 59,
+      "k_prereg": 59,
+      "seconds": 326.37342739105225,
+      "pairs_per_s": 537.6234254198678
+    },
+    "agnews": {
+      "n_texts": 7600,
+      "n_pair_rows": 30400,
+      "k": 4,
+      "k_prereg": 4,
+      "seconds": 181.60135054588318,
+      "pairs_per_s": 167.39963611845042
+    },
+    "yahootopics": {
+      "n_texts": 50000,
+      "n_pair_rows": 500000,
+      "k": 10,
+      "k_prereg": 10,
+      "seconds": 8577.32718539238,
+      "pairs_per_s": 58.29321759481499
+    },
+    "trueteacher": {
+      "n_texts": 8955,
+      "n_pair_rows": 17910,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 272.566064119339,
+      "pairs_per_s": 65.70884037918371
+    },
+    "manifesto": {
+      "n_texts": 17018,
+      "n_pair_rows": 953008,
+      "k": 56,
+      "k_prereg": 56,
+      "seconds": 5237.811856985092,
+      "pairs_per_s": 181.94773428699588
+    },
+    "capsotu": {
+      "n_texts": 3355,
+      "n_pair_rows": 70455,
+      "k": 21,
+      "k_prereg": 21,
+      "seconds": 344.2616214752197,
+      "pairs_per_s": 204.6554004425132
+    },
+    "biasframes_offensive": {
+      "n_texts": 3838,
+      "n_pair_rows": 7676,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 52.819565296173096,
+      "pairs_per_s": 145.32493701829358
+    },
+    "biasframes_sex": {
+      "n_texts": 4404,
+      "n_pair_rows": 8808,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 57.696889877319336,
+      "pairs_per_s": 152.65987505961613
+    },
+    "wikitoxic_toxicaggregated": {
+      "n_texts": 10000,
+      "n_pair_rows": 20000,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 342.83651185035706,
+      "pairs_per_s": 58.33684368113539
+    },
+    "wikitoxic_obscene": {
+      "n_texts": 8691,
+      "n_pair_rows": 17382,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 299.82162642478943,
+      "pairs_per_s": 57.974470378507846
+    },
+    "wikitoxic_threat": {
+      "n_texts": 5211,
+      "n_pair_rows": 10422,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 180.3083052635193,
+      "pairs_per_s": 57.800998044811756
+    },
+    "wikitoxic_insult": {
+      "n_texts": 8427,
+      "n_pair_rows": 16854,
+      "k": 2,
+      "k_prereg": 2,
+      "seconds": 289.98025846481323,
+      "pairs_per_s": 58.12119793680747
+    }
+  },
+  "render": "noul",
+  "question": null,
+  "max_len": 512,
+  "weights_sha256": "216715a3fba176d19cf650bfaee52b8b11b33258b0e611aca4d3af79ad4a57a4",
+  "achieved_pairs_per_s": 119.49079919968474,
+  "total_pair_rows": 2222983,
+  "clean": [
+    "yahootopics",
+    "wikitoxic_insult",
+    "wikitoxic_obscene",
+    "wikitoxic_threat",
+    "wikitoxic_toxicaggregated",
+    "amazonpolarity",
+    "imdb",
+    "appreviews",
+    "yelpreviews",
+    "rottentomatoes",
+    "empathetic",
+    "biasframes_intent",
+    "biasframes_offensive",
+    "biasframes_sex",
+    "trueteacher",
+    "manifesto",
+    "capsotu"
+  ],
+  "trained_on_this_source": [
+    "agnews",
+    "banking77",
+    "emotiondair",
+    "financialphrasebank",
+    "massive"
+  ]
+}

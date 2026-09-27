@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "model": {
+    "name": "Qwen/Qwen3-Reranker-0.6B",
+    "model_type": "reranker",
+    "params": "unknown",
+    "revision": "published-baseline",
+    "url": "https://huggingface.co/Qwen/Qwen3-Reranker-0.6B"
+  },
+  "evaluation": {
+    "btzsc_version": "0.1.2",
+    "btzsc_commit": "3a30b97b04fb",
+    "timestamp": "2026-09-27T00:57:01.057187+00:00",
+    "device": "cuda",
+    "precision": "float32",
+    "batch_size": 8,
+    "max_samples": null
+  },
+  "results": {
+    "overall": {
+      "macro_f1": 0.6896248826221192,
+      "accuracy": 0.6778979298655864,
+      "macro_precision": 0.7510385580012602,
+      "macro_recall": 0.7558052911217278
+    },
+    "by_task": {
+      "sentiment": {
+        "macro_f1": 0.6896248826221192,
+        "accuracy": 0.6778979298655864,
+        "macro_precision": 0.7510385580012602,
+        "macro_recall": 0.7558052911217278
+      },
+      "topic": {
+        "macro_f1": 0.0,
+        "accuracy": 0.0,
+        "macro_precision": 0.0,
+        "macro_recall": 0.0
+      },
+      "intent": {
+        "macro_f1": 0.0,
+        "accuracy": 0.0,
+        "macro_precision": 0.0,
+        "macro_recall": 0.0
+      },
+      "emotion": {
+        "macro_f1": 0.0,
+        "accuracy": 0.0,
+        "macro_precision": 0.0,
+        "macro_recall": 0.0
+      }
+    },
+    "by_dataset": {
+      "rottentomatoes": {
+        "macro_f1": 0.7606344336652792,
+        "accuracy": 0.7607879924953096,
+        "macro_precision": 0.7614589215132693,
+        "macro_recall": 0.7607879924953096
+      },
+      "financialphrasebank": {
+        "macro_f1": 0.4240779971762339,
+        "accuracy": 0.3884057971014493,
+        "macro_precision": 0.6026190163360049,
+        "macro_recall": 0.6221278808698739
+      },
+      "appreviews": {
+        "macro_f1": 0.8841622170248444,
+        "accuracy": 0.8845,
+        "macro_precision": 0.8890377361545062,
+        "macro_recall": 0.8845000000000001
+      }
+    }
+  }
+}

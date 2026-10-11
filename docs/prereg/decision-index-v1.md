@@ -108,4 +108,8 @@ read §4's numbers and says so, as for BTZSC (`docs/bench/btzsc-submission.md`).
 
 ## 7. Amendments
 
-None yet.
+- **2026-10-11, before any run.** The repo owner decided to skip our own run (§5). Instead, the
+  maintainers are asked to evaluate the model on the lab side; the request text is in
+  `docs/bench/decision-index-request.md`. §1's README line and §4's report wait for numbers that the
+  board publishes. §2's rendering, §3's disclosure and the engine are unchanged and are what the
+  request hands over.
